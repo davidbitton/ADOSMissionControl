@@ -2,8 +2,8 @@
 
 // HUD page. Full-screen flight display for HDMI kiosk mode on the SBC.
 //
-// Phase 2 Wave C: live telemetry, WebRTC/WHEP video background, gamepad
-// polling, PIC claim stub.
+// Live telemetry, WebRTC/WHEP video background, gamepad polling, PIC
+// claim stub.
 //
 // Query params:
 //   ?layer=minimal    render lightweight inline HUD for low-power SBCs
@@ -15,6 +15,8 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { HudOfflineFallback } from "./components/HudOfflineFallback";
+import { HudErrorBoundary } from "./components/HudErrorBoundary";
 import { TopBar } from "@/components/hud/TopBar";
 import { BottomBar } from "@/components/hud/BottomBar";
 import { CornerAlerts } from "@/components/hud/CornerAlerts";
@@ -36,9 +38,11 @@ const HUD_KIOSK_CLIENT_ID = "hdmi-kiosk";
 
 export default function HudPage() {
   return (
-    <Suspense fallback={<div className="w-full h-full bg-black" />}>
-      <HudRouter />
-    </Suspense>
+    <HudErrorBoundary>
+      <Suspense fallback={<HudOfflineFallback timeoutMs={3000} />}>
+        <HudRouter />
+      </Suspense>
+    </HudErrorBoundary>
   );
 }
 
@@ -177,9 +181,15 @@ function MinimalHud() {
   const gps = useTelemetryStore((s) => s.gps.latest());
   const fence = useTelemetryStore((s) => s.fenceStatus.latest());
   const mode = useDroneStore((s) => s.flightMode);
+  const locale = useSettingsStore((s) => s.locale);
 
-  const f = (n: number | undefined | null, d = 0) =>
-    n === undefined || n === null || !Number.isFinite(n) ? "--" : n.toFixed(d);
+  const f = (n: number | undefined | null, d = 0) => {
+    if (n === undefined || n === null || !Number.isFinite(n)) return "--";
+    return new Intl.NumberFormat(locale, {
+      maximumFractionDigits: d,
+      minimumFractionDigits: d,
+    }).format(n);
+  };
 
   const pitchOffset = (attitude?.pitch ?? 0) * 4;
   const rollDeg = attitude?.roll ?? 0;

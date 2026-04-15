@@ -2,9 +2,8 @@
 
 /**
  * @module HardwareAndroidRcPage
- * @description Phase 4 Wave 3 stub. Placeholder for the ADOS Android RC
- * handheld controller panel. Lights up when the product ships
- * (DEC-090/091/092).
+ * @description Placeholder panel for the ADOS Android RC handheld
+ * controller. Lights up when the product ships.
  * @license GPL-3.0-only
  */
 

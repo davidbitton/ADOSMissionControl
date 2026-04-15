@@ -10,21 +10,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
-const TABS: { href: string; label: string }[] = [
-  { href: "/hardware", label: "Overview" },
-  { href: "/hardware/network", label: "Network" },
-  { href: "/hardware/ui", label: "Physical UI" },
-  { href: "/hardware/gamepads", label: "Gamepads" },
-  { href: "/hardware/controllers", label: "Controllers" },
-  { href: "/hardware/peripherals", label: "Peripherals" },
-  { href: "/hardware/edge", label: "Edge" },
-  { href: "/hardware/android-rc", label: "Android RC" },
+const TABS: { href: string; key: string }[] = [
+  { href: "/hardware", key: "overview" },
+  { href: "/hardware/network", key: "network" },
+  { href: "/hardware/ui", key: "physicalUi" },
+  { href: "/hardware/gamepads", key: "gamepads" },
+  { href: "/hardware/controllers", key: "controllers" },
+  { href: "/hardware/peripherals", key: "peripherals" },
+  { href: "/hardware/edge", key: "edge" },
+  { href: "/hardware/android-rc", key: "androidRc" },
 ];
 
 export function HardwareTabs() {
   const pathname = usePathname();
+  const t = useTranslations("hardware.tabs");
 
   return (
     <nav className="mb-5 flex flex-wrap gap-1 border-b border-border-primary">
@@ -41,7 +43,7 @@ export function HardwareTabs() {
                 : "border-transparent text-text-secondary hover:text-text-primary",
             )}
           >
-            {tab.label}
+            {t(tab.key)}
           </Link>
         );
       })}

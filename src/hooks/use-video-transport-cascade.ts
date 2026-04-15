@@ -204,9 +204,19 @@ export function useVideoTransportCascade(opts: CascadeOpts): CascadeResult {
           return;
         }
         if (stream) {
-          // videoEl was non-null at effect entry (we returned early otherwise),
-          // and refs don't change identity within an effect run.
-          videoEl!.srcObject = stream;
+          // videoEl was non-null at effect entry, but defensively null-check
+          // anyway: a caller could pass a ref that unmounted mid-cascade.
+          // If the element is gone, stop the tracks to avoid leaking the
+          // camera capture.
+          if (!videoEl) {
+            stream.getTracks().forEach((t) => t.stop());
+            stopStream();
+            setState("failed");
+            setActiveTransport("unknown");
+            setError("Video element unavailable");
+            return;
+          }
+          videoEl.srcObject = stream;
           setState("connected");
           setActiveTransport(mode);
           setError(null);

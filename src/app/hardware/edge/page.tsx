@@ -2,8 +2,8 @@
 
 /**
  * @module HardwareEdgePage
- * @description Phase 4 Wave 3 stub. Placeholder for the ADOS Edge RC
- * controller panel. Lights up when the firmware ships (DEC-098).
+ * @description Placeholder panel for the ADOS Edge RC controller.
+ * Lights up when the firmware ships.
  * @license GPL-3.0-only
  */
 

@@ -741,8 +741,13 @@ export class GroundStationApi {
 
     const scheduleReconnect = () => {
       if (closed) return;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        if (closed) return;
         retryDelay = Math.min(retryDelay * 2, 10000);
         connect();
       }, retryDelay);
@@ -752,7 +757,10 @@ export class GroundStationApi {
 
     return () => {
       closed = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       if (ws) {
         try {
           ws.close();
@@ -817,8 +825,13 @@ export class GroundStationApi {
 
     const scheduleReconnect = () => {
       if (closed) return;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        if (closed) return;
         retryDelay = Math.min(retryDelay * 2, 10000);
         connect();
       }, retryDelay);
@@ -828,7 +841,10 @@ export class GroundStationApi {
 
     return () => {
       closed = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       if (ws) {
         try {
           ws.close();

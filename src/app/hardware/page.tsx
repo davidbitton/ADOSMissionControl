@@ -17,6 +17,7 @@ import { PairModal } from "@/components/hardware/PairModal";
 import { PicWidget } from "@/components/hardware/PicWidget";
 import { OverviewUplinkWidget } from "@/components/hardware/OverviewUplinkWidget";
 import { Button } from "@/components/ui/button";
+import { useGroundStationSubscriptions } from "@/hooks/use-ground-station-subscriptions";
 
 const POLL_INTERVAL_MS = 500; // 2 Hz
 const EMPTY = "…";
@@ -55,8 +56,11 @@ export default function HardwarePage() {
   const loadStatus = useGroundStationStore((s) => s.loadStatus);
   const setLoading = useGroundStationStore((s) => s.setLoading);
   const setError = useGroundStationStore((s) => s.setError);
-  const subscribePicWs = useGroundStationStore((s) => s.subscribePicWs);
-  const subscribeUplinkWs = useGroundStationStore((s) => s.subscribeUplinkWs);
+
+  // PIC + Uplink WebSocket subscriptions via shared memoized hook.
+  // The hook builds one GroundStationApi client per (agentUrl, apiKey) and
+  // resubscribes only when that tuple changes, avoiding duplicate sockets.
+  useGroundStationSubscriptions(agentUrl, apiKey);
 
   const [pairOpen, setPairOpen] = useState(false);
 
@@ -117,26 +121,6 @@ export default function HardwarePage() {
       }
     };
   }, [loadStatus, setLoading, setError]);
-
-  // PIC events WebSocket subscription (Phase 2, Wave C).
-  useEffect(() => {
-    const client = groundStationApiFromAgent(agentUrl, apiKey);
-    if (!client) return;
-    const unsubscribe = subscribePicWs(client);
-    return () => {
-      unsubscribe();
-    };
-  }, [agentUrl, apiKey, subscribePicWs]);
-
-  // Uplink events WebSocket subscription (Phase 3, Wave C).
-  useEffect(() => {
-    const client = groundStationApiFromAgent(agentUrl, apiKey);
-    if (!client) return;
-    const unsubscribe = subscribeUplinkWs(client);
-    return () => {
-      unsubscribe();
-    };
-  }, [agentUrl, apiKey, subscribeUplinkWs]);
 
   const hasAgent = Boolean(agentUrl);
   const hasData = lastFetchedAt != null && hasAgent;

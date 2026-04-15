@@ -53,6 +53,7 @@ export function PicWidget() {
 
   const [countdown, setCountdown] = useState<number | null>(null);
   const [working, setWorking] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   useEffect(() => {
     const client = groundStationApiFromAgent(agentUrl, apiKey);
@@ -68,20 +69,31 @@ export function PicWidget() {
     const client = groundStationApiFromAgent(agentUrl, apiKey);
     if (!client) return;
     setWorking(true);
+    setClaimError(null);
+    let tokenRes;
     try {
-      const tokenRes = await client.createPicConfirmToken(clientId);
-      setCountdown(Math.floor(CONFIRM_WINDOW_MS / 1000));
-      const start = Date.now();
-      const tick = setInterval(() => {
-        const remaining = CONFIRM_WINDOW_MS - (Date.now() - start);
-        if (remaining <= 0) {
-          clearInterval(tick);
-          setCountdown(null);
-        } else {
-          setCountdown(Math.ceil(remaining / 1000));
-        }
-      }, 100);
+      tokenRes = await client.createPicConfirmToken(clientId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Could not request confirm token";
+      setClaimError(msg);
+      toast(msg, "error");
+      setWorking(false);
+      return;
+    }
 
+    setCountdown(Math.floor(CONFIRM_WINDOW_MS / 1000));
+    const start = Date.now();
+    const tick = setInterval(() => {
+      const remaining = CONFIRM_WINDOW_MS - (Date.now() - start);
+      if (remaining <= 0) {
+        clearInterval(tick);
+        setCountdown(null);
+      } else {
+        setCountdown(Math.ceil(remaining / 1000));
+      }
+    }, 100);
+
+    try {
       const ok = await claimPic(client, clientId, {
         confirmToken: tokenRes.confirm_token,
         force: Boolean(otherHolder),
@@ -91,11 +103,15 @@ export function PicWidget() {
       if (ok) {
         toast("You have control.", "success");
       } else {
-        toast("Could not take control.", "error");
+        const msg = "Could not take control.";
+        setClaimError(msg);
+        toast(msg, "error");
       }
     } catch (err) {
+      clearInterval(tick);
       setCountdown(null);
       const msg = err instanceof Error ? err.message : "Claim failed";
+      setClaimError(msg);
       toast(msg, "error");
     } finally {
       setWorking(false);
@@ -156,6 +172,26 @@ export function PicWidget() {
           {pic.error ? (
             <div className="rounded border border-status-error/40 bg-status-error/10 px-3 py-2 text-xs text-status-error">
               {pic.error}
+            </div>
+          ) : null}
+
+          {claimError ? (
+            <div
+              aria-live="polite"
+              role="status"
+              className="flex items-center justify-between gap-3 rounded border border-status-error/40 bg-status-error/10 px-3 py-2 text-xs text-status-error"
+            >
+              <span className="break-all">{claimError}</span>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setClaimError(null);
+                  void handleTakeControl();
+                }}
+                disabled={working || pic.loading}
+              >
+                Retry
+              </Button>
             </div>
           ) : null}
 

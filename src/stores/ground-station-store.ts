@@ -863,9 +863,10 @@ export const useGroundStationStore = create<GroundStationState>((set, get) => ({
   },
 
   applyPriority: async (api, priority) => {
-    const currentUplink = get().uplink;
+    // capture full slice for optimistic revert
+    const prevUplink = get().uplink;
     // optimistic update
-    set({ uplink: { ...currentUplink, priority } });
+    set({ uplink: { ...prevUplink, priority } });
     try {
       const res = await api.setPriority(priority);
       set({
@@ -874,9 +875,9 @@ export const useGroundStationStore = create<GroundStationState>((set, get) => ({
       return res.priority;
     } catch (err) {
       const { message } = errorMessage(err);
-      // revert on failure
+      // revert full slice on failure, surface error
       set({
-        uplink: { ...get().uplink, priority: currentUplink.priority, error: message },
+        uplink: { ...prevUplink, error: message },
       });
       return null;
     }
