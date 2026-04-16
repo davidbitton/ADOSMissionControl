@@ -14,6 +14,7 @@ import {
   Wrench,
   Sparkles,
   Zap,
+  Cpu,
   Plug,
   Unplug,
   ChevronDown,
@@ -59,7 +60,7 @@ export function CommandPage() {
     overview: { label: t("overview"), icon: Monitor },
     features: { label: "Features", icon: Sparkles },
     "smart-modes": { label: "Smart Modes", icon: Zap },
-    ros: { label: "ROS", icon: Cloud },
+    ros: { label: "ROS", icon: Cpu },
     system: { label: "System", icon: Wrench },
     scripts: { label: t("scripts"), icon: TerminalSquare },
   }), [t]);

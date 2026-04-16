@@ -9,7 +9,19 @@
 
 import { useState } from "react";
 import { Box, Cpu, Eye, Play, Terminal } from "lucide-react";
+import { Select } from "@/components/ui/select";
 import { useRosStore } from "@/stores/ros-store";
+
+const PROFILE_OPTIONS = [
+  { value: "minimal", label: "Minimal", description: "Bridge + foxglove only" },
+  { value: "vio", label: "VIO", description: "Camera + VINS-Fusion visual-inertial odometry" },
+  { value: "mapping", label: "Mapping", description: "Octomap + Nav2 lite" },
+];
+
+const MIDDLEWARE_OPTIONS = [
+  { value: "zenoh", label: "Zenoh", description: "NAT-friendly, WAN-capable" },
+  { value: "cyclonedds", label: "Cyclone DDS", description: "LAN only, lower latency" },
+];
 
 const FEATURES = [
   {
@@ -78,27 +90,20 @@ export function RosNotInitialized() {
       {!notSupported && (
         <div className="flex gap-4 mb-4 w-full">
           <div className="flex-1">
-            <label className="text-xs text-text-secondary mb-1 block">Profile</label>
-            <select
+            <Select
+              label="Profile"
+              options={PROFILE_OPTIONS}
               value={profile}
-              onChange={(e) => setProfile(e.target.value)}
-              className="w-full bg-surface-secondary border border-border-primary rounded px-3 py-1.5 text-sm text-text-primary"
-            >
-              <option value="minimal">Minimal (bridge + foxglove)</option>
-              <option value="vio">VIO (+ camera + VINS-Fusion)</option>
-              <option value="mapping">Mapping (+ octomap + Nav2 lite)</option>
-            </select>
+              onChange={setProfile}
+            />
           </div>
           <div className="flex-1">
-            <label className="text-xs text-text-secondary mb-1 block">Middleware</label>
-            <select
+            <Select
+              label="Middleware"
+              options={MIDDLEWARE_OPTIONS}
               value={middleware}
-              onChange={(e) => setMiddleware(e.target.value)}
-              className="w-full bg-surface-secondary border border-border-primary rounded px-3 py-1.5 text-sm text-text-primary"
-            >
-              <option value="zenoh">Zenoh (NAT-friendly, WAN-capable)</option>
-              <option value="cyclonedds">Cyclone DDS (LAN only, lower latency)</option>
-            </select>
+              onChange={setMiddleware}
+            />
           </div>
         </div>
       )}

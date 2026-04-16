@@ -17,17 +17,31 @@ export function RosNodeGraph() {
   const nodes = useRosStore((s) => s.nodes);
   const topics = useRosStore((s) => s.topics);
 
-  // Build connection map: which nodes publish/subscribe to which topics
+  // Build connection map: which nodes publish/subscribe to which topics.
+  // Uses a topic->subscribers map for O(n) instead of O(n^2) lookup.
   const connections = useMemo(() => {
-    const conns: { from: string; to: string; topic: string }[] = [];
+    // Build topic -> subscriber node names map
+    const topicSubscribers = new Map<string, string[]>();
+    for (const node of nodes) {
+      for (const sub of node.subscribes) {
+        const existing = topicSubscribers.get(sub);
+        if (existing) {
+          existing.push(node.name);
+        } else {
+          topicSubscribers.set(sub, [node.name]);
+        }
+      }
+    }
 
+    // For each publisher, look up subscribers via the map
+    const conns: { from: string; to: string; topic: string }[] = [];
     for (const node of nodes) {
       for (const pub of node.publishes) {
-        // Find subscribers
-        for (const other of nodes) {
-          if (other.name === node.name) continue;
-          if (other.subscribes.includes(pub)) {
-            conns.push({ from: node.name, to: other.name, topic: pub });
+        const subs = topicSubscribers.get(pub);
+        if (!subs) continue;
+        for (const subName of subs) {
+          if (subName !== node.name) {
+            conns.push({ from: node.name, to: subName, topic: pub });
           }
         }
       }

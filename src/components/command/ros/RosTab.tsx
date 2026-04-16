@@ -44,12 +44,7 @@ export function RosTab() {
   const error = useRosStore((s) => s.error);
   const activeSubView = useRosStore((s) => s.activeSubView);
   const setActiveSubView = useRosStore((s) => s.setActiveSubView);
-  const pollStatus = useRosStore((s) => s.pollStatus);
-  const pollNodes = useRosStore((s) => s.pollNodes);
-  const pollTopics = useRosStore((s) => s.pollTopics);
-  const setClient = useRosStore((s) => s.setClient);
   const initInProgress = useRosStore((s) => s.initInProgress);
-  const stop = useRosStore((s) => s.stop);
 
   const agentUrl = useAgentConnectionStore((s) => s.agentUrl);
   const apiKey = useAgentConnectionStore((s) => s.apiKey);
@@ -57,29 +52,30 @@ export function RosTab() {
   // Set up client when agent URL is available
   useEffect(() => {
     if (agentUrl) {
-      setClient(agentUrl, apiKey || "");
+      useRosStore.getState().setClient(agentUrl, apiKey || "");
     }
-  }, [agentUrl, apiKey, setClient]);
+  }, [agentUrl, apiKey]);
 
-  // Polling intervals
+  // Polling intervals - use getState() for stable callbacks (no dep churn)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     // Initial poll
-    pollStatus();
+    useRosStore.getState().pollStatus();
 
-    // Set up interval polling (3s for status, 5s for topics)
+    // 3s interval for status + nodes + topics
     pollRef.current = setInterval(() => {
       if (document.hidden) return;
-      pollStatus();
-      pollNodes();
-      pollTopics();
+      const store = useRosStore.getState();
+      store.pollStatus();
+      store.pollNodes();
+      store.pollTopics();
     }, 3000);
 
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [pollStatus, pollNodes, pollTopics]);
+  }, []);
 
   // Not initialized state
   if (rosState === "not_initialized" || rosState === "not_supported" || rosState === "stopped") {
@@ -103,14 +99,14 @@ export function RosTab() {
         <p className="text-sm text-text-secondary max-w-md text-center">{error}</p>
         <div className="flex gap-3">
           <button
-            onClick={() => pollStatus()}
+            onClick={() => useRosStore.getState().pollStatus()}
             className="flex items-center gap-2 px-4 py-2 bg-surface-secondary rounded-lg text-text-primary hover:bg-surface-tertiary transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Retry
           </button>
           <button
-            onClick={() => stop()}
+            onClick={() => useRosStore.getState().stop()}
             className="flex items-center gap-2 px-4 py-2 bg-status-error/20 rounded-lg text-status-error hover:bg-status-error/30 transition-colors"
           >
             <Square className="w-4 h-4" />

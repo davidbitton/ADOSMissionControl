@@ -240,6 +240,7 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
       vision: DEFAULT_VISION,
       models: DEFAULT_MODELS,
       features: DEFAULT_FEATURES,
+      ros2State: "absent",
       loaded: false,
     });
   },
