@@ -129,7 +129,7 @@ export function PlanContextMenu({ planId, x, y, onClose, onPlanRenamed }: PlanCo
   return (
     <div
       ref={ref}
-      className="fixed z-50 bg-bg-primary border border-border-default shadow-lg py-1 min-w-[160px]"
+      className="fixed z-[2000] bg-bg-primary border border-border-default shadow-lg py-1 min-w-[160px]"
       style={{ left: x, top: y }}
     >
       {renaming ? (

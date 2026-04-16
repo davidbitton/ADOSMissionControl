@@ -29,7 +29,7 @@ export function Tooltip({ content, children, position = "top" }: TooltipProps) {
       {show && (
         <div
           className={cn(
-            "absolute z-50 px-2 py-1 text-[10px] font-medium whitespace-nowrap",
+            "absolute z-[2000] px-2 py-1 text-[10px] font-medium whitespace-nowrap",
             "bg-bg-tertiary border border-border-default text-text-primary",
             positionStyles[position]
           )}

@@ -8,8 +8,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { HardwareTabs } from "@/components/hardware/HardwareTabs";
+import { Monitor } from "lucide-react";
 import { BluetoothPairModal } from "@/components/hardware/BluetoothPairModal";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -107,186 +106,177 @@ export default function HardwareUiPage() {
   const screenOrder = ui?.screens.order ?? DEFAULT_SCREEN_ORDER;
   const enabledScreens = new Set(ui?.screens.enabled ?? DEFAULT_SCREEN_ORDER);
 
-  return (
-    <div className="flex-1 overflow-auto bg-surface-primary p-6">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-2 flex items-center gap-2 text-xs text-text-secondary">
-          <Link href="/hardware" className="hover:text-text-primary transition-colors">
-            Hardware
-          </Link>
-          <span>/</span>
-          <span>Physical UI</span>
-        </div>
-        <h1 className="mb-6 text-2xl font-semibold text-text-primary">Physical UI</h1>
-
-        <HardwareTabs />
-
-        {!hasAgent ? (
-          <div className="rounded-lg border border-border-primary bg-surface-secondary p-8 text-center text-sm text-text-secondary">
-            No ground station connected.
-          </div>
-        ) : null}
-
-        {hasAgent ? (
-          <div className="flex flex-col gap-5">
-            {/* OLED card */}
-            <section className="rounded-lg border border-border-primary bg-surface-secondary p-5">
-              <h2 className="mb-4 text-lg font-medium text-text-primary">OLED Display</h2>
-
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="oled-brightness" className="text-xs text-text-secondary">
-                      Brightness
-                    </label>
-                    <span className="font-mono text-xs text-text-primary">{brightness}</span>
-                  </div>
-                  <input
-                    id="oled-brightness"
-                    type="range"
-                    min={0}
-                    max={255}
-                    step={1}
-                    value={brightness}
-                    onChange={(e) => handleBrightness(Number(e.target.value))}
-                    className="w-full accent-accent-primary"
-                  />
-                </div>
-
-                <Toggle
-                  label="Auto-dim after 60 s idle"
-                  checked={autoDim}
-                  onChange={handleAutoDim}
-                />
-
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="oled-cycle" className="text-xs text-text-secondary">
-                    Cycle interval (seconds)
-                  </label>
-                  <input
-                    id="oled-cycle"
-                    type="number"
-                    min={1}
-                    max={60}
-                    step={1}
-                    value={cycleSeconds}
-                    onChange={(e) => handleCycle(Number(e.target.value))}
-                    className="w-28 h-8 px-2 bg-bg-tertiary border border-border-default text-sm font-mono text-text-primary focus:outline-none focus:border-accent-primary transition-colors"
-                  />
-                </div>
-
-                {lastError ? (
-                  <div className="rounded border border-status-error/40 bg-status-error/10 px-3 py-2 text-xs text-status-error">
-                    {lastError}
-                  </div>
-                ) : null}
-              </div>
-            </section>
-
-            {/* Buttons card (read-only) */}
-            <section className="rounded-lg border border-border-primary bg-surface-secondary p-5">
-              <h2 className="mb-4 text-lg font-medium text-text-primary">Buttons</h2>
-              <div className="overflow-hidden rounded border border-border-primary">
-                <table className="w-full text-sm">
-                  <thead className="bg-bg-tertiary text-xs uppercase tracking-wide text-text-secondary">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Button</th>
-                      <th className="px-3 py-2 text-left">Short press</th>
-                      <th className="px-3 py-2 text-left">Long press</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {buttonIds.map((id) => {
-                      const binding = buttonEntries[id] ?? {};
-                      return (
-                        <tr key={id} className="border-t border-border-primary/40">
-                          <td className="px-3 py-2 font-mono text-text-primary">{id}</td>
-                          <td className="px-3 py-2 text-text-secondary">
-                            {binding.short_press ?? "unassigned"}
-                          </td>
-                          <td className="px-3 py-2 text-text-secondary">
-                            {binding.long_press ?? "unassigned"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-3 text-xs text-text-secondary">
-                Remapping ships in Phase 2.
-              </p>
-            </section>
-
-            {/* Screens card (read-only) */}
-            <section className="rounded-lg border border-border-primary bg-surface-secondary p-5">
-              <h2 className="mb-4 text-lg font-medium text-text-primary">Screens</h2>
-              <ol className="space-y-1">
-                {screenOrder.map((name, idx) => (
-                  <li
-                    key={name}
-                    className="flex items-center justify-between rounded border border-border-primary/40 px-3 py-2 text-sm"
-                  >
-                    <span className="font-mono text-text-primary">
-                      {idx + 1}. {name}
-                    </span>
-                    <span
-                      className={
-                        enabledScreens.has(name)
-                          ? "text-xs text-status-success"
-                          : "text-xs text-text-tertiary"
-                      }
-                    >
-                      {enabledScreens.has(name) ? "enabled" : "disabled"}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-              <p className="mt-3 text-xs text-text-secondary">
-                Enable and reorder ships in Phase 2.
-              </p>
-            </section>
-
-            {/* Bluetooth card (Phase 2, Wave C) */}
-            <section className="rounded-lg border border-border-primary bg-surface-secondary p-5">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-medium text-text-primary">Bluetooth</h2>
-                <Button variant="primary" size="sm" onClick={() => setBtPairOpen(true)}>
-                  Pair new device
-                </Button>
-              </div>
-              {bluetooth.paired.length === 0 ? (
-                <div className="py-4 text-center text-sm text-text-secondary">
-                  No paired Bluetooth devices.
-                </div>
-              ) : (
-                <ul className="flex flex-col gap-1">
-                  {bluetooth.paired.map((dev) => (
-                    <li
-                      key={dev.mac}
-                      className="flex items-center justify-between rounded border border-border-primary/40 px-3 py-2"
-                    >
-                      <div className="flex flex-col">
-                        <span className="text-sm text-text-primary">{dev.name || "Unknown"}</span>
-                        <span className="font-mono text-xs text-text-secondary">{dev.mac}</span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleForgetBt(dev.mac, dev.name || dev.mac)}
-                      >
-                        Forget
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          </div>
-        ) : null}
-
-        <BluetoothPairModal open={btPairOpen} onClose={() => setBtPairOpen(false)} />
+  if (!hasAgent) {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-border-primary/60 bg-surface-secondary py-16 text-center">
+        <Monitor className="h-8 w-8 text-text-tertiary" />
+        <p className="text-sm font-medium text-text-secondary">
+          No ground station connected
+        </p>
+        <p className="max-w-sm text-xs text-text-tertiary">
+          Connect to an ADOS ground station agent to configure the physical UI.
+        </p>
       </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* OLED card */}
+      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+        <h2 className="mb-4 text-lg font-medium text-text-primary">OLED Display</h2>
+
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <label htmlFor="oled-brightness" className="text-xs text-text-secondary">
+                Brightness
+              </label>
+              <span className="font-mono text-xs text-text-primary">{brightness}</span>
+            </div>
+            <input
+              id="oled-brightness"
+              type="range"
+              min={0}
+              max={255}
+              step={1}
+              value={brightness}
+              onChange={(e) => handleBrightness(Number(e.target.value))}
+              className="w-full accent-accent-primary"
+            />
+          </div>
+
+          <Toggle
+            label="Auto-dim after 60 s idle"
+            checked={autoDim}
+            onChange={handleAutoDim}
+          />
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="oled-cycle" className="text-xs text-text-secondary">
+              Cycle interval (seconds)
+            </label>
+            <input
+              id="oled-cycle"
+              type="number"
+              min={1}
+              max={60}
+              step={1}
+              value={cycleSeconds}
+              onChange={(e) => handleCycle(Number(e.target.value))}
+              className="w-28 h-8 px-2 bg-bg-tertiary border border-border-default text-sm font-mono text-text-primary focus:outline-none focus:border-accent-primary transition-colors"
+            />
+          </div>
+
+          {lastError ? (
+            <div className="rounded border border-status-error/40 bg-status-error/10 px-3 py-2 text-xs text-status-error">
+              {lastError}
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {/* Buttons card (read-only) */}
+      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+        <h2 className="mb-4 text-lg font-medium text-text-primary">Buttons</h2>
+        <div className="overflow-hidden rounded border border-border-primary/60">
+          <table className="w-full text-sm">
+            <thead className="bg-bg-tertiary text-xs uppercase tracking-wide text-text-secondary">
+              <tr>
+                <th className="px-3 py-2 text-left">Button</th>
+                <th className="px-3 py-2 text-left">Short press</th>
+                <th className="px-3 py-2 text-left">Long press</th>
+              </tr>
+            </thead>
+            <tbody>
+              {buttonIds.map((id) => {
+                const binding = buttonEntries[id] ?? {};
+                return (
+                  <tr key={id} className="border-t border-border-primary/40">
+                    <td className="px-3 py-2 font-mono text-text-primary">{id}</td>
+                    <td className="px-3 py-2 text-text-secondary">
+                      {binding.short_press ?? "unassigned"}
+                    </td>
+                    <td className="px-3 py-2 text-text-secondary">
+                      {binding.long_press ?? "unassigned"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-xs text-text-secondary">
+          Remapping ships in Phase 2.
+        </p>
+      </section>
+
+      {/* Screens card (read-only) */}
+      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+        <h2 className="mb-4 text-lg font-medium text-text-primary">Screens</h2>
+        <ol className="space-y-1">
+          {screenOrder.map((name, idx) => (
+            <li
+              key={name}
+              className="flex items-center justify-between rounded border border-border-primary/40 px-3 py-2 text-sm"
+            >
+              <span className="font-mono text-text-primary">
+                {idx + 1}. {name}
+              </span>
+              <span
+                className={
+                  enabledScreens.has(name)
+                    ? "text-xs text-status-success"
+                    : "text-xs text-text-tertiary"
+                }
+              >
+                {enabledScreens.has(name) ? "enabled" : "disabled"}
+              </span>
+            </li>
+          ))}
+        </ol>
+        <p className="mt-3 text-xs text-text-secondary">
+          Enable and reorder ships in Phase 2.
+        </p>
+      </section>
+
+      {/* Bluetooth card (Phase 2, Wave C) */}
+      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-medium text-text-primary">Bluetooth</h2>
+          <Button variant="primary" size="sm" onClick={() => setBtPairOpen(true)}>
+            Pair new device
+          </Button>
+        </div>
+        {bluetooth.paired.length === 0 ? (
+          <div className="py-4 text-center text-sm text-text-secondary">
+            No paired Bluetooth devices.
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {bluetooth.paired.map((dev) => (
+              <li
+                key={dev.mac}
+                className="flex items-center justify-between rounded border border-border-primary/40 px-3 py-2"
+              >
+                <div className="flex flex-col">
+                  <span className="text-sm text-text-primary">{dev.name || "Unknown"}</span>
+                  <span className="font-mono text-xs text-text-secondary">{dev.mac}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleForgetBt(dev.mac, dev.name || dev.mac)}
+                >
+                  Forget
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <BluetoothPairModal open={btPairOpen} onClose={() => setBtPairOpen(false)} />
     </div>
   );
 }

@@ -2289,12 +2289,9 @@
       "overview": "Overview",
       "network": "Network",
       "wfbNg": "WFB-ng Radio",
-      "ui": "Physical UI",
-      "gamepads": "Gamepads",
+      "physicalUi": "Physical UI",
       "controllers": "Controllers",
-      "peripherals": "Peripherals",
-      "edge": "ADOS Edge",
-      "androidRc": "Android RC"
+      "peripherals": "Peripherals"
     },
     "confirms": {
       "unpair": {

@@ -11,9 +11,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { HardwareTabs } from "@/components/hardware/HardwareTabs";
+import { Plug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { groundStationApiFromAgent } from "@/lib/api/ground-station-api";
 import type { PeripheralSummary } from "@/lib/api/ground-station-api";
@@ -79,68 +78,51 @@ export default function HardwarePeripheralsPage() {
   const rows = useMemo(() => peripherals.list, [peripherals.list]);
 
   return (
-    <div className="flex-1 overflow-auto bg-surface-primary p-6">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-2 flex items-center gap-2 text-xs text-text-secondary">
-          <Link
-            href="/hardware"
-            className="hover:text-text-primary transition-colors"
-          >
-            {t("overview")}
-          </Link>
-          <span>/</span>
-          <span>{t("peripherals.title")}</span>
+    <div>
+      {peripherals.error ? (
+        <div className="mb-4 rounded border border-status-error/50 bg-status-error/10 px-4 py-3 text-sm text-status-error">
+          {peripherals.error}
         </div>
-        <h1 className="mb-6 text-2xl font-semibold text-text-primary">
-          {t("peripherals.title")}
-        </h1>
+      ) : null}
 
-        <HardwareTabs />
-
-        {peripherals.error ? (
-          <div className="mb-4 rounded border border-status-error/50 bg-status-error/10 px-4 py-3 text-sm text-status-error">
-            {peripherals.error}
-          </div>
-        ) : null}
-
-        {rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded border border-border-primary bg-surface-secondary px-6 py-16 text-center">
-            <p className="max-w-md text-sm text-text-secondary">
-              {t("peripherals.emptyState")}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded border border-border-primary">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-secondary text-left text-xs uppercase text-text-secondary">
-                <tr>
-                  <th className="px-3 py-2">{t("peripherals.name")}</th>
-                  <th className="px-3 py-2">{t("peripherals.transport")}</th>
-                  <th className="px-3 py-2">{t("peripherals.connected")}</th>
-                  <th className="px-3 py-2">
-                    {t("peripherals.capabilities")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((p: PeripheralSummary) => {
-                  const isOpen = expandedId === p.id;
-                  const detail = peripherals.detail[p.id];
-                  return (
-                    <PeripheralRow
-                      key={p.id}
-                      summary={p}
-                      isOpen={isOpen}
-                      detail={detail}
-                      onToggle={() => onToggleRow(p.id)}
-                    />
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {rows.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-border-primary/60 bg-surface-secondary py-16 text-center">
+          <Plug className="h-8 w-8 text-text-tertiary" />
+          <p className="text-sm font-medium text-text-secondary">
+            {t("peripherals.emptyState")}
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded border border-border-primary/60">
+          <table className="w-full text-sm">
+            <thead className="bg-surface-secondary text-left text-xs uppercase text-text-secondary">
+              <tr>
+                <th className="px-3 py-2">{t("peripherals.name")}</th>
+                <th className="px-3 py-2">{t("peripherals.transport")}</th>
+                <th className="px-3 py-2">{t("peripherals.connected")}</th>
+                <th className="px-3 py-2">
+                  {t("peripherals.capabilities")}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((p: PeripheralSummary) => {
+                const isOpen = expandedId === p.id;
+                const detail = peripherals.detail[p.id];
+                return (
+                  <PeripheralRow
+                    key={p.id}
+                    summary={p}
+                    isOpen={isOpen}
+                    detail={detail}
+                    onToggle={() => onToggleRow(p.id)}
+                  />
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

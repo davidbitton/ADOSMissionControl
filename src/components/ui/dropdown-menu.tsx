@@ -40,7 +40,7 @@ export function DropdownMenu({ trigger, items, onSelect, align = "left" }: Dropd
       {open && (
         <div
           className={cn(
-            "absolute top-full mt-1 z-50 min-w-[160px] bg-bg-secondary border border-border-default py-1",
+            "absolute top-full mt-1 z-[2000] min-w-[160px] bg-bg-secondary border border-border-default py-1",
             align === "right" ? "right-0" : "left-0"
           )}
         >

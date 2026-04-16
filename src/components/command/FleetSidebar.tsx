@@ -421,7 +421,7 @@ function FleetSidebarBase({
       {contextMenu && (
         <div
           ref={contextMenuRef}
-          className="fixed z-50 bg-bg-secondary border border-border-default rounded shadow-lg py-1 min-w-[140px]"
+          className="fixed z-[2000] bg-bg-secondary border border-border-default rounded shadow-lg py-1 min-w-[140px]"
           style={{ left: contextMenu.x, top: contextMenu.y }}
         >
           {(() => {

@@ -136,7 +136,7 @@ export function PicWidget() {
     : "No pilot";
 
   return (
-    <section className="mb-5 rounded-lg border border-border-primary bg-surface-secondary p-5">
+    <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-medium text-text-primary">Pilot in Command</h2>
         {iHoldPic ? (

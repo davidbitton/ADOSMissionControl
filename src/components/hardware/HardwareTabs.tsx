@@ -3,8 +3,8 @@
 /**
  * @module HardwareTabs
  * @description Secondary nav for the Hardware tab: Overview, Network,
- * Physical UI, Gamepads (agent-side device list + BT pairing), Controllers
- * (browser-side calibration + tuning).
+ * Physical UI, Controllers (agent-side device list + browser calibration),
+ * Peripherals.
  * @license GPL-3.0-only
  */
 
@@ -17,11 +17,8 @@ const TABS: { href: string; key: string }[] = [
   { href: "/hardware", key: "overview" },
   { href: "/hardware/network", key: "network" },
   { href: "/hardware/ui", key: "physicalUi" },
-  { href: "/hardware/gamepads", key: "gamepads" },
   { href: "/hardware/controllers", key: "controllers" },
   { href: "/hardware/peripherals", key: "peripherals" },
-  { href: "/hardware/edge", key: "edge" },
-  { href: "/hardware/android-rc", key: "androidRc" },
 ];
 
 export function HardwareTabs() {
@@ -29,7 +26,7 @@ export function HardwareTabs() {
   const t = useTranslations("hardware.tabs");
 
   return (
-    <nav className="mb-5 flex flex-wrap gap-1 border-b border-border-primary">
+    <nav className="mb-5 flex flex-wrap gap-1 border-b border-border-primary/60">
       {TABS.map((tab) => {
         const active = pathname === tab.href;
         return (
