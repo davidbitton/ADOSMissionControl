@@ -45,7 +45,10 @@
       "title": "준비 완료.",
       "openApp": "Mission Control 열기",
       "joinDiscord": "Discord에서 파일럿 만나기",
-      "starGitHub": "GitHub에서 Star 누르기"
+      "starGitHub": "GitHub에서 Star 누르기",
+      "docsHeading": "Read the docs",
+      "docsDescription": "Guides, API reference, and tutorials to get your drone flying.",
+      "browseDocs": "Browse docs"
     },
     "steps": {
       "language": "언어",
@@ -235,6 +238,7 @@
     "joinDiscord": "Discord 참여",
     "starOnGitHub": "GitHub Star",
     "star": "Star",
+    "docs": "Docs",
     "flashTool": "플래시 도구",
     "settings": "설정",
     "exitImmersive": "몰입 모드 종료 (Esc)",

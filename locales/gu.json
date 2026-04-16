@@ -82,7 +82,10 @@
       "title": "તમે તૈયાર છો.",
       "openApp": "Mission Control ખોલો",
       "joinDiscord": "Discord પર પાયલોટ્સ સાથે જોડાઓ",
-      "starGitHub": "GitHub પર Star આપો"
+      "starGitHub": "GitHub પર Star આપો",
+      "docsHeading": "Read the docs",
+      "docsDescription": "Guides, API reference, and tutorials to get your drone flying.",
+      "browseDocs": "Browse docs"
     },
     "steps": {
       "language": "ભાષા",
@@ -235,6 +238,7 @@
     "joinDiscord": "Discord જોડાઓ",
     "starOnGitHub": "GitHub પર Star આપો",
     "star": "Star",
+    "docs": "Docs",
     "flashTool": "Flash ટૂલ",
     "settings": "સેટિંગ્સ",
     "exitImmersive": "ઇમર્સિવ મોડ બંધ કરો (Esc)",

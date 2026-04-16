@@ -45,7 +45,10 @@
       "title": "準備完了。",
       "openApp": "Mission Controlを開く",
       "joinDiscord": "Discordでパイロットに参加",
-      "starGitHub": "GitHubでスターする"
+      "starGitHub": "GitHubでスターする",
+      "docsHeading": "Read the docs",
+      "docsDescription": "Guides, API reference, and tutorials to get your drone flying.",
+      "browseDocs": "Browse docs"
     },
     "steps": {
       "language": "言語",
@@ -235,6 +238,7 @@
     "joinDiscord": "Discordに参加",
     "starOnGitHub": "GitHubでスター",
     "star": "スター",
+    "docs": "Docs",
     "flashTool": "書き込みツール",
     "settings": "設定",
     "exitImmersive": "没入モードを終了 (Esc)",

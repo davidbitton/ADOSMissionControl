@@ -10,6 +10,7 @@ Command any drone from any browser. ADOS Mission Control is a full-stack ground 
 
 <p align="center">
   <strong><a href="https://command.altnautica.com">Live App</a></strong> |
+  <strong><a href="https://docs.altnautica.com">Docs</a></strong> |
   <strong><a href="https://command.altnautica.com/community/changelog">Changelog</a></strong> |
   <strong><a href="https://discord.gg/uxbvuD4d5q">Discord</a></strong> |
   <strong><a href="mailto:team@altnautica.com">Email</a></strong> |

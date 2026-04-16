@@ -82,7 +82,10 @@
       "title": "一切就绪。",
       "openApp": "打开任务控制",
       "joinDiscord": "加入 Discord 飞行员社区",
-      "starGitHub": "在 GitHub 上给我们点星"
+      "starGitHub": "在 GitHub 上给我们点星",
+      "docsHeading": "Read the docs",
+      "docsDescription": "Guides, API reference, and tutorials to get your drone flying.",
+      "browseDocs": "Browse docs"
     },
     "steps": {
       "language": "语言",
@@ -186,6 +189,7 @@
     "joinDiscord": "加入 Discord",
     "starOnGitHub": "在 GitHub 上点星",
     "star": "Star",
+    "docs": "Docs",
     "flashTool": "刷写工具",
     "settings": "设置",
     "exitImmersive": "退出沉浸模式 (Esc)",

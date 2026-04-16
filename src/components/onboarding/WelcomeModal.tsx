@@ -1135,7 +1135,7 @@ export function WelcomeModal() {
             </p>
 
             {/* Community cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-left">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 text-left">
               {/* Discord card */}
               <a
                 href="https://discord.gg/uxbvuD4d5q"
@@ -1186,6 +1186,32 @@ export function WelcomeModal() {
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                   </svg>
                   {t("ready.starGitHub")} &rarr;
+                </span>
+              </a>
+
+              {/* Docs card */}
+              <a
+                href="https://docs.altnautica.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group border border-border-default bg-bg-secondary rounded-lg p-4 hover:border-accent-primary/50 transition-colors"
+              >
+                <div className="flex items-center gap-2.5 mb-2">
+                  <div className="w-8 h-8 rounded-lg bg-accent-primary/10 flex items-center justify-center shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-primary">
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-text-primary group-hover:text-accent-primary transition-colors">{t("ready.docsHeading")}</p>
+                  </div>
+                </div>
+                <p className="text-[11px] text-text-tertiary leading-relaxed mb-3">
+                  {t("ready.docsDescription")}
+                </p>
+                <span className="text-[11px] font-medium text-accent-primary group-hover:underline">
+                  {t("ready.browseDocs")} &rarr;
                 </span>
               </a>
             </div>

@@ -82,7 +82,10 @@
       "title": "Tu es prêt.",
       "openApp": "Ouvrir Mission Control",
       "joinDiscord": "Rejoindre les pilotes sur Discord",
-      "starGitHub": "Nous étoiler sur GitHub"
+      "starGitHub": "Nous étoiler sur GitHub",
+      "docsHeading": "Read the docs",
+      "docsDescription": "Guides, API reference, and tutorials to get your drone flying.",
+      "browseDocs": "Browse docs"
     },
     "steps": {
       "language": "Langue",
@@ -186,6 +189,7 @@
     "joinDiscord": "Rejoindre Discord",
     "starOnGitHub": "Étoiler sur GitHub",
     "star": "Étoile",
+    "docs": "Docs",
     "flashTool": "Outil de flash",
     "settings": "Paramètres",
     "exitImmersive": "Quitter le mode immersif (Esc)",

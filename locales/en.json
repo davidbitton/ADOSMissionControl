@@ -144,7 +144,10 @@
       "joinDiscord": "Join the Discord",
       "githubHeading": "Help the project grow",
       "githubDescription": "A star on GitHub helps more people find this project. It takes two seconds and makes a real difference.",
-      "starGitHub": "Star on GitHub"
+      "starGitHub": "Star on GitHub",
+      "docsHeading": "Read the docs",
+      "docsDescription": "Guides, API reference, and tutorials to get your drone flying.",
+      "browseDocs": "Browse docs"
     },
     "steps": {
       "language": "Language",
@@ -330,6 +333,7 @@
     "joinDiscord": "Join Discord",
     "starOnGitHub": "Star on GitHub",
     "star": "Star",
+    "docs": "Docs",
     "flashTool": "Flash Tool",
     "settings": "Settings",
     "exitImmersive": "Exit immersive mode (Esc)",

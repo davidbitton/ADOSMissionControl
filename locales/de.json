@@ -82,7 +82,10 @@
       "title": "Alles ist bereit.",
       "openApp": "Mission Control öffnen",
       "joinDiscord": "Piloten auf Discord treffen",
-      "starGitHub": "Auf GitHub mit Stern markieren"
+      "starGitHub": "Auf GitHub mit Stern markieren",
+      "docsHeading": "Read the docs",
+      "docsDescription": "Guides, API reference, and tutorials to get your drone flying.",
+      "browseDocs": "Browse docs"
     },
     "steps": {
       "language": "Sprache",
@@ -186,6 +189,7 @@
     "joinDiscord": "Discord beitreten",
     "starOnGitHub": "Auf GitHub mit Stern markieren",
     "star": "Stern",
+    "docs": "Docs",
     "flashTool": "Flash-Tool",
     "settings": "Einstellungen",
     "exitImmersive": "Immersiven Modus beenden (Esc)",

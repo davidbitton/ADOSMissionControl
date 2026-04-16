@@ -82,7 +82,10 @@
       "title": "எல்லாம் தயாராகிவிட்டது.",
       "openApp": "Mission Control-ஐ திறக்கவும்",
       "joinDiscord": "Discord-ல் பைலட்களுடன் இணையவும்",
-      "starGitHub": "GitHub-ல் ஸ்டார் கொடுக்கவும்"
+      "starGitHub": "GitHub-ல் ஸ்டார் கொடுக்கவும்",
+      "docsHeading": "Read the docs",
+      "docsDescription": "Guides, API reference, and tutorials to get your drone flying.",
+      "browseDocs": "Browse docs"
     },
     "steps": {
       "language": "மொழி",
@@ -186,6 +189,7 @@
     "joinDiscord": "Discord-ல் இணையவும்",
     "starOnGitHub": "GitHub-ல் ஸ்டார் கொடுக்கவும்",
     "star": "ஸ்டார்",
+    "docs": "Docs",
     "flashTool": "ஃப்ளாஷ் கருவி",
     "settings": "அமைப்புகள்",
     "exitImmersive": "இம்மர்சிவ் பயன்முறையிலிருந்து வெளியேறு (Esc)",

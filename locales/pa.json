@@ -45,7 +45,10 @@
       "title": "You're good to go.",
       "openApp": "Mission Control ਖੋਲ੍ਹੋ",
       "joinDiscord": "Join the Discord",
-      "starGitHub": "GitHub 'ਤੇ ਸਟਾਰ ਦਿਓ"
+      "starGitHub": "GitHub 'ਤੇ ਸਟਾਰ ਦਿਓ",
+      "docsHeading": "Read the docs",
+      "docsDescription": "Guides, API reference, and tutorials to get your drone flying.",
+      "browseDocs": "Browse docs"
     },
     "steps": {
       "language": "ਭਾਸ਼ਾ",
@@ -220,6 +223,7 @@
     "joinDiscord": "Join Discord",
     "starOnGitHub": "GitHub 'ਤੇ ਸਟਾਰ ਦਿਓ",
     "star": "ਸਟਾਰ",
+    "docs": "Docs",
     "flashTool": "ਫਲੈਸ਼ ਟੂਲ",
     "settings": "ਸੈਟਿੰਗਾਂ",
     "exitImmersive": "ਇਮਰਸਿਵ ਮੋਡ ਤੋਂ ਬਾਹਰ ਨਿਕਲੋ (Esc)",

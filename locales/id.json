@@ -45,7 +45,10 @@
       "title": "Anda siap.",
       "openApp": "Buka Mission Control",
       "joinDiscord": "Bergabung dengan pilot di Discord",
-      "starGitHub": "Beri bintang di GitHub"
+      "starGitHub": "Beri bintang di GitHub",
+      "docsHeading": "Read the docs",
+      "docsDescription": "Guides, API reference, and tutorials to get your drone flying.",
+      "browseDocs": "Browse docs"
     },
     "steps": {
       "language": "Bahasa",
@@ -235,6 +238,7 @@
     "joinDiscord": "Bergabung di Discord",
     "starOnGitHub": "Beri bintang di GitHub",
     "star": "Bintang",
+    "docs": "Docs",
     "flashTool": "Alat Flash",
     "settings": "Pengaturan",
     "exitImmersive": "Keluar mode imersif (Esc)",
