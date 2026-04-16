@@ -12,6 +12,8 @@ import type {
   RosNodeInfo,
   RosTopicInfo,
   RosVioHealth,
+  RosWorkspaceInfo,
+  RosRecording,
 } from "@/lib/agent/ros-types";
 import { RosClient } from "@/lib/agent/ros-client";
 
@@ -42,6 +44,12 @@ interface RosStoreState {
   // VIO health
   vio: RosVioHealth | null;
 
+  // Workspace
+  workspace: RosWorkspaceInfo | null;
+
+  // Recordings
+  recordings: RosRecording[];
+
   // Init progress
   initProgress: { step: string; message: string }[];
   initInProgress: boolean;
@@ -66,6 +74,10 @@ interface RosStoreActions {
   pollStatus: () => Promise<void>;
   pollNodes: () => Promise<void>;
   pollTopics: () => Promise<void>;
+
+  // Workspace + recording polling
+  pollWorkspace: () => Promise<void>;
+  pollRecordings: () => Promise<void>;
 
   // Actions
   initialize: (profile: string, middleware: string) => Promise<void>;
@@ -95,6 +107,8 @@ const INITIAL_STATE: RosStoreState = {
   topics: [],
   topicsCount: 0,
   vio: null,
+  workspace: null,
+  recordings: [],
   initProgress: [],
   initInProgress: false,
   activeSubView: "overview",
@@ -157,6 +171,30 @@ export const useRosStore = create<RosStoreState & RosStoreActions>((set, get) =>
     try {
       const topics = await client.getTopics();
       set({ topics, topicsCount: topics.length });
+    } catch {
+      // Non-fatal
+    }
+  },
+
+  pollWorkspace: async () => {
+    const { client, rosState } = get();
+    if (!client || rosState !== "running") return;
+
+    try {
+      const workspace = await client.getWorkspace();
+      set({ workspace });
+    } catch {
+      // Non-fatal, Phase 4 endpoints may not be live yet
+    }
+  },
+
+  pollRecordings: async () => {
+    const { client, rosState } = get();
+    if (!client || rosState !== "running") return;
+
+    try {
+      const recordings = await client.getRecordings();
+      set({ recordings });
     } catch {
       // Non-fatal
     }

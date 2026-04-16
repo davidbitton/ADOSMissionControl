@@ -29,6 +29,8 @@ import { RosInitWizard } from "./RosInitWizard";
 import { RosOverview } from "./RosOverview";
 import { RosNodeGraph } from "./RosNodeGraph";
 import { RosTopics } from "./RosTopics";
+import { RosWorkspace } from "./RosWorkspace";
+import { RosRecordings } from "./RosRecordings";
 
 const SUB_VIEWS: { id: RosSubView; icon: typeof LayoutGrid; label: string }[] = [
   { id: "overview", icon: LayoutGrid, label: "Overview" },
@@ -146,12 +148,8 @@ export function RosTab() {
         {activeSubView === "overview" && <RosOverview />}
         {activeSubView === "node-graph" && <RosNodeGraph />}
         {activeSubView === "topics" && <RosTopics />}
-        {activeSubView === "workspace" && (
-          <div className="text-text-secondary text-sm">Workspace management coming in Phase 4.</div>
-        )}
-        {activeSubView === "recordings" && (
-          <div className="text-text-secondary text-sm">MCAP recording management coming in Phase 4.</div>
-        )}
+        {activeSubView === "workspace" && <RosWorkspace />}
+        {activeSubView === "recordings" && <RosRecordings />}
         {activeSubView === "settings" && (
           <div className="text-text-secondary text-sm">ROS settings coming in Phase 5.</div>
         )}
