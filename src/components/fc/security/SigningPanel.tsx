@@ -34,6 +34,8 @@ import {
   uploadKey,
 } from "@/lib/api/signing-cloud-sync";
 import { emitSigningEvent } from "@/lib/api/signing-events";
+import { getPrefs, setCloudSyncIntent } from "@/lib/protocol/signing-prefs";
+import { detectPrivateBrowsing } from "@/lib/protocol/private-browsing";
 import {
   EnrollmentProgress,
   ENROLL_FAIL_MS,
@@ -43,6 +45,7 @@ import { ExportKeyModal } from "./ExportKeyModal";
 import { ImportKeyModal } from "./ImportKeyModal";
 import { KeyAgeNudge } from "./KeyAgeNudge";
 import { SigningHistorySection } from "./SigningHistorySection";
+import { SigningDebugSection } from "./SigningDebugSection";
 
 export function SigningPanel() {
   const client = useAgentConnectionStore((s) => s.client);
@@ -61,9 +64,28 @@ export function SigningPanel() {
   const [enrollFailed, setEnrollFailed] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [cloudSyncOn, setCloudSyncOn] = useState(false);
+  // Whether a cloud row currently exists on Convex for this drone.
+  const [cloudRowPresent, setCloudRowPresent] = useState(false);
+  // Whether the operator has opted in to cloud sync. This is the
+  // persisted intent flag. Set independently of cloudRowPresent:
+  // operator flips intent on, next rotation uploads, cloudRowPresent
+  // then becomes true. Flipping intent off deletes the row immediately.
+  const [cloudSyncIntent, setCloudSyncIntentState] = useState(false);
   const [cloudSyncBusy, setCloudSyncBusy] = useState(false);
   const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
+  const [privateBrowsing, setPrivateBrowsing] = useState(false);
+
+  // Private-window detection. Fires once per panel mount; there's no
+  // reason the answer would change during a session.
+  useEffect(() => {
+    let cancelled = false;
+    detectPrivateBrowsing().then((v) => {
+      if (!cancelled) setPrivateBrowsing(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const convexClient = useConvex();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -116,20 +138,29 @@ export function SigningPanel() {
     };
   }, [client, droneId, setCapability, setRequireOnFc, setBrowserKey, setEnrollmentState]);
 
-  // Poll cloud-sync state for this drone on drone change. Only meaningful
-  // when the user is authenticated; otherwise the toggle is locked off.
+  // Read local intent flag (persists across sessions) and the current
+  // cloud-row presence on every drone change. Intent and presence can
+  // disagree: operator opts in → intent=true, no row yet. After first
+  // rotation → intent=true, row=true. Operator opts out → both false.
   useEffect(() => {
-    if (!droneId || !isAuthenticated || !convexClient) {
-      setCloudSyncOn(false);
+    if (!droneId) {
+      setCloudRowPresent(false);
+      setCloudSyncIntentState(false);
       return;
     }
     let cancelled = false;
     (async () => {
+      const prefs = await getPrefs(droneId);
+      if (!cancelled) setCloudSyncIntentState(prefs.cloudSyncIntent);
+      if (!isAuthenticated || !convexClient) {
+        if (!cancelled) setCloudRowPresent(false);
+        return;
+      }
       try {
         const row = await getCloudKeyForDrone(convexClient, droneId);
-        if (!cancelled) setCloudSyncOn(row !== null);
+        if (!cancelled) setCloudRowPresent(row !== null);
       } catch {
-        if (!cancelled) setCloudSyncOn(false);
+        if (!cancelled) setCloudRowPresent(false);
       }
     })();
     return () => {
@@ -138,20 +169,28 @@ export function SigningPanel() {
   }, [droneId, isAuthenticated, convexClient]);
 
   const handleCloudSyncToggle = useCallback(async () => {
-    if (!droneId || !convexClient) return;
+    if (!droneId) return;
     if (!isAuthenticated) {
       setCloudSyncError("Sign in to manage cloud sync.");
       return;
     }
     setCloudSyncBusy(true);
     setCloudSyncError(null);
+    const newIntent = !cloudSyncIntent;
     try {
-      if (cloudSyncOn) {
-        // Opt out: delete the Convex row. Local key stays so this browser
-        // keeps signing. Other devices that already pulled the key keep
-        // working until next rotation.
-        await removeCloudKey(convexClient, droneId);
-        setCloudSyncOn(false);
+      // Persist intent first so UI reflects the user's choice
+      // immediately, regardless of what happens on the cloud side.
+      await setCloudSyncIntent(droneId, newIntent);
+      setCloudSyncIntentState(newIntent);
+
+      if (!newIntent) {
+        // Opt out: remove the cloud row if present. Local key stays so
+        // this browser keeps signing. Other devices that already pulled
+        // the key keep working until next rotation on any device.
+        if (convexClient && cloudRowPresent) {
+          await removeCloudKey(convexClient, droneId);
+          setCloudRowPresent(false);
+        }
         void emitSigningEvent(convexClient, isAuthenticated, {
           droneId,
           eventType: "cloud_sync_off",
@@ -159,21 +198,31 @@ export function SigningPanel() {
         });
         return;
       }
-      // Opt in: upload this browser's current key. The non-extractable
-      // CryptoKey cannot be exported, so we can only cloud-sync keys
-      // enrolled in the current session where we still have raw bytes.
-      // For existing enrolled keys where we dropped the raw buffer, the
-      // operator needs to Rotate the key first, which generates fresh
-      // bytes and enrolls them. We surface that hint here.
-      setCloudSyncError(
-        "Cloud sync uploads a key during enrollment or rotation. Rotate the key (Rotate key button) to push it to cloud sync.",
-      );
+
+      // Opt in: we flip the toggle and emit the event immediately. The
+      // actual key upload happens on the next enroll or rotate, since
+      // that is the only moment raw key bytes are legible in JS memory.
+      // If there is no browser key yet, the upload happens on the first
+      // enrollment. If there is one, the panel nudges the user to
+      // rotate to push it.
+      void emitSigningEvent(convexClient, isAuthenticated, {
+        droneId,
+        eventType: "cloud_sync_on",
+        keyIdOld: state?.keyId ?? undefined,
+      });
     } catch (e) {
       setCloudSyncError(e instanceof Error ? e.message : String(e));
+      // Roll back the intent flag if anything failed on our side.
+      try {
+        await setCloudSyncIntent(droneId, cloudSyncIntent);
+        setCloudSyncIntentState(cloudSyncIntent);
+      } catch {
+        // nothing to roll back to
+      }
     } finally {
       setCloudSyncBusy(false);
     }
-  }, [cloudSyncOn, convexClient, droneId, isAuthenticated]);
+  }, [cloudSyncIntent, cloudRowPresent, convexClient, droneId, isAuthenticated, state?.keyId]);
 
   const supported = state?.capability?.supported ?? false;
   const reason = state?.capability?.reason ?? "unknown";
@@ -236,7 +285,7 @@ export function SigningPanel() {
       // scope — importAndStore zeroizes rawBytes, and the non-extractable
       // CryptoKey cannot be exported back. This is the one moment the
       // raw material is legible in JS memory.
-      if (cloudSyncOn && convexClient && isAuthenticated) {
+      if (cloudSyncIntent && convexClient && isAuthenticated) {
         try {
           await uploadKey(convexClient, {
             droneId,
@@ -245,11 +294,7 @@ export function SigningPanel() {
             linkIdOwner: linkId,
             enrolledAt: result.enrolled_at,
           });
-          void emitSigningEvent(convexClient, isAuthenticated, {
-            droneId,
-            eventType: "cloud_sync_on",
-            keyIdNew: result.key_id,
-          });
+          setCloudRowPresent(true);
         } catch (e) {
           // Non-fatal: the FC is enrolled and the local store will be
           // populated. Surface a toast but don't roll back the enrollment.
@@ -291,7 +336,7 @@ export function SigningPanel() {
       clearTimeout(timeoutId);
       setBusy(false);
     }
-  }, [client, droneId, setBrowserKey, setEnrollmentState, cloudSyncOn, convexClient, isAuthenticated]);
+  }, [client, droneId, setBrowserKey, setEnrollmentState, cloudSyncIntent, convexClient, isAuthenticated, state?.keyId]);
 
   const handleDisable = useCallback(async () => {
     if (!client || !droneId) return;
@@ -465,7 +510,7 @@ export function SigningPanel() {
         <div className="border-t border-border-default pt-3 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-start gap-2">
-              {cloudSyncOn ? (
+              {cloudSyncIntent && cloudRowPresent ? (
                 <Cloud size={14} aria-hidden="true" className="text-accent-primary mt-0.5" />
               ) : (
                 <CloudOff size={14} aria-hidden="true" className="text-text-tertiary mt-0.5" />
@@ -473,23 +518,25 @@ export function SigningPanel() {
               <div>
                 <p className="text-sm font-medium text-text-primary">Sync to cloud</p>
                 <p className="text-xs text-text-tertiary">
-                  {isAuthenticated
-                    ? "Share this key with your other signed-in browsers."
-                    : "Sign in to enable cloud key sync across devices."}
+                  {!isAuthenticated
+                    ? "Sign in to enable cloud key sync across devices."
+                    : cloudSyncIntent && !cloudRowPresent
+                      ? "Will sync on next rotation. Click Rotate key to upload the current key now."
+                      : "Share this key with your other signed-in browsers."}
                 </p>
               </div>
             </div>
             <button
               type="button"
               role="switch"
-              aria-checked={cloudSyncOn}
-              aria-label={cloudSyncOn ? "Turn cloud sync off" : "Turn cloud sync on"}
+              aria-checked={cloudSyncIntent}
+              aria-label={cloudSyncIntent ? "Turn cloud sync off" : "Turn cloud sync on"}
               disabled={!isAuthenticated || authLoading || cloudSyncBusy}
               onClick={handleCloudSyncToggle}
-              className={`relative inline-flex h-5 w-9 shrink-0 items-center border transition-colors disabled:opacity-40 ${cloudSyncOn ? "bg-accent-primary border-accent-primary" : "bg-bg-primary border-border-default"}`}
+              className={`relative inline-flex h-5 w-9 shrink-0 items-center border transition-colors disabled:opacity-40 ${cloudSyncIntent ? "bg-accent-primary border-accent-primary" : "bg-bg-primary border-border-default"}`}
             >
               <span
-                className={`inline-block h-3 w-3 transform bg-white transition-transform ${cloudSyncOn ? "translate-x-5" : "translate-x-1"}`}
+                className={`inline-block h-3 w-3 transform bg-white transition-transform ${cloudSyncIntent ? "translate-x-5" : "translate-x-1"}`}
               />
             </button>
           </div>
@@ -547,9 +594,10 @@ export function SigningPanel() {
           </button>
         </div>
         <SigningHistorySection droneId={droneId} />
+        <SigningDebugSection droneId={droneId} />
       </div>
     );
-  }, [busy, droneId, error, firmware, handleDisable, handleEnable, handleRequireToggle, handleRotate, reason, state, supported, enrollStartedAt, enrollFailed, cloudSyncOn, cloudSyncBusy, cloudSyncError, isAuthenticated, authLoading, handleCloudSyncToggle]);
+  }, [busy, droneId, error, firmware, handleDisable, handleEnable, handleRequireToggle, handleRotate, reason, state, supported, enrollStartedAt, enrollFailed, cloudSyncIntent, cloudRowPresent, cloudSyncBusy, cloudSyncError, isAuthenticated, authLoading, handleCloudSyncToggle]);
 
   return (
     <div className="h-full overflow-y-auto">
@@ -563,6 +611,14 @@ export function SigningPanel() {
             </p>
           </div>
         </div>
+        {privateBrowsing && (
+          <div
+            role="note"
+            className="border border-status-warning/40 bg-status-warning/5 px-3 py-2 text-xs text-text-secondary"
+          >
+            Private browsing detected. Signing keys enrolled in this window are scoped to the session. They will be lost when the window closes.
+          </div>
+        )}
         {bodyNode}
       </div>
       {client && droneId && exportOpen && (

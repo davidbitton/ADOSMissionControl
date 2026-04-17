@@ -3,9 +3,11 @@ import { describe, it, expect, vi } from "vitest";
 import { emitSigningEvent } from "@/lib/api/signing-events";
 
 function fakeClient() {
+  const mutation = vi.fn().mockResolvedValue({ _id: "ev1" });
   return {
-    mutation: vi.fn().mockResolvedValue({ _id: "ev1" }),
-  } as unknown as Parameters<typeof emitSigningEvent>[0];
+    client: { mutation } as unknown as NonNullable<Parameters<typeof emitSigningEvent>[0]>,
+    mutation,
+  };
 }
 
 describe("emitSigningEvent", () => {
@@ -18,7 +20,7 @@ describe("emitSigningEvent", () => {
   });
 
   it("returns false when user is not authenticated", async () => {
-    const client = fakeClient();
+    const { client } = fakeClient();
     const ok = await emitSigningEvent(client, false, {
       droneId: "drone-a",
       eventType: "enrollment",
@@ -27,7 +29,7 @@ describe("emitSigningEvent", () => {
   });
 
   it("calls the append mutation with the supplied event fields", async () => {
-    const client = fakeClient();
+    const { client, mutation } = fakeClient();
     const ok = await emitSigningEvent(client, true, {
       droneId: "drone-a",
       eventType: "rotation",
@@ -35,8 +37,8 @@ describe("emitSigningEvent", () => {
       keyIdNew: "e5f60708",
     });
     expect(ok).toBe(true);
-    expect(client.mutation).toHaveBeenCalledTimes(1);
-    const [, args] = (client.mutation as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(mutation).toHaveBeenCalledTimes(1);
+    const [, args] = mutation.mock.calls[0];
     expect(args.droneId).toBe("drone-a");
     expect(args.eventType).toBe("rotation");
     expect(args.keyIdOld).toBe("a1b2c3d4");
@@ -45,9 +47,8 @@ describe("emitSigningEvent", () => {
   });
 
   it("never throws when the mutation errors", async () => {
-    const client = {
-      mutation: vi.fn().mockRejectedValue(new Error("convex down")),
-    } as unknown as Parameters<typeof emitSigningEvent>[0];
+    const mutation = vi.fn().mockRejectedValue(new Error("convex down"));
+    const client = { mutation } as unknown as NonNullable<Parameters<typeof emitSigningEvent>[0]>;
     const ok = await emitSigningEvent(client, true, {
       droneId: "drone-a",
       eventType: "enrollment",
@@ -56,13 +57,13 @@ describe("emitSigningEvent", () => {
   });
 
   it("never includes keyHex in the outgoing payload", async () => {
-    const client = fakeClient();
+    const { client, mutation } = fakeClient();
     await emitSigningEvent(client, true, {
       droneId: "drone-a",
       eventType: "enrollment",
       keyIdNew: "e5f60708",
     });
-    const [, args] = (client.mutation as ReturnType<typeof vi.fn>).mock.calls[0];
+    const [, args] = mutation.mock.calls[0];
     // Defensive: the types don't allow keyHex, but ensure nobody snuck
     // a raw key into the payload via any type sleight.
     expect((args as Record<string, unknown>).keyHex).toBeUndefined();

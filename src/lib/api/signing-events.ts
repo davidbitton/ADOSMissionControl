@@ -16,7 +16,7 @@
 
 import type { ConvexReactClient } from "convex/react";
 import { cmdSigningEventsApi } from "@/lib/community-api-drones";
-import { currentTabId } from "@/lib/protocol/mavlink-signer";
+import { getOrCreateDeviceId } from "@/lib/protocol/link-id-allocator";
 
 export type SigningEventType =
   | "enrollment"
@@ -61,7 +61,7 @@ export async function emitSigningEvent(
       eventType: args.eventType,
       keyIdOld: args.keyIdOld,
       keyIdNew: args.keyIdNew,
-      deviceFingerprint: shortFingerprint(currentTabId()),
+      deviceFingerprint: shortFingerprint(getOrCreateDeviceId()),
     });
     return true;
   } catch (err) {
@@ -73,9 +73,10 @@ export async function emitSigningEvent(
 }
 
 /**
- * Short fingerprint of the per-tab id. 12 hex chars is enough to
- * distinguish sibling tabs in the audit log without leaking the full
- * random UUID.
+ * Short fingerprint of the stable per-browser device id. 12 hex chars is
+ * enough to group same-device events in the audit log without leaking
+ * the full random UUID. Stable across page reloads because the source
+ * id is persisted to localStorage under `ados-device-id`.
  */
 function shortFingerprint(tabId: string): string {
   // Simple polynomial hash → 12 hex chars. Not cryptographic; the goal

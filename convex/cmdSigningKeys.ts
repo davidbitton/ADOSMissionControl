@@ -13,6 +13,12 @@
  * sha256 fingerprint) and `droneId` only. Any `console.log` with
  * `keyHex` in scope is a bug.
  *
+ * **Rate limiting:** not implemented in v1. The GCS has no automatic
+ * retry loop that could spam these endpoints: every call path is
+ * driven by an explicit operator click. A future v1.1 should add a
+ * sliding-window limiter keyed by userId if these mutations become
+ * reachable by third-party clients or background sync cadences.
+ *
  * @license GPL-3.0-only
  */
 

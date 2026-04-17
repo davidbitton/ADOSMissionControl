@@ -11,6 +11,11 @@
  * 8-char keyId fingerprint. Any attempt to pass keyHex through `append`
  * is rejected at the mutation boundary.
  *
+ * **Rate limiting:** not implemented in v1. Every call is driven by an
+ * operator action (no GCS loops), and Convex sits behind HMAC-authed
+ * user identity so an abusive client already has bigger leverage
+ * elsewhere. v1.1 may add a sliding-window limiter keyed by userId.
+ *
  * @license GPL-3.0-only
  */
 

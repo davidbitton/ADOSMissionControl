@@ -40,6 +40,10 @@ import type { AgentClient } from "@/lib/agent/client";
 import { useSigningStore } from "@/stores/signing-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { emitSigningEvent } from "@/lib/api/signing-events";
+import {
+  getCloudKeyForDrone,
+  uploadKey,
+} from "@/lib/api/signing-cloud-sync";
 
 interface Props {
   client: AgentClient;
@@ -123,6 +127,28 @@ export function ExportKeyModal({ client, droneId, linkId, open, onClose }: Props
         enrolledAt: result.enrolled_at,
         enrollmentState: "enrolled",
       });
+      // If this drone was opt-in for cloud sync, upload the new key now
+      // while keyHex is still in scope. The non-extractable CryptoKey we
+      // just created cannot be exported again, so this is the one
+      // window. Without this, cloud-synced browsers would pull the old
+      // (now-dead) key from Convex on next refresh.
+      if (isAuthenticated && convexClient) {
+        try {
+          const existingRow = await getCloudKeyForDrone(convexClient, droneId);
+          if (existingRow !== null) {
+            await uploadKey(convexClient, {
+              droneId,
+              keyHex,
+              keyId: result.key_id,
+              linkIdOwner: linkId,
+              enrolledAt: result.enrolled_at,
+            });
+          }
+        } catch {
+          // Non-fatal. The local rotation already succeeded; cloud row
+          // is stale until the next rotation retries.
+        }
+      }
       void emitSigningEvent(convexClient, isAuthenticated, {
         droneId,
         eventType: "export",
