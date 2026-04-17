@@ -253,4 +253,73 @@ export class AgentClient {
       method: "POST",
     });
   }
+
+  // ── MAVLink signing ───────────────────────────────────────────
+  //
+  // The agent holds no key material. These endpoints cover capability
+  // detection, one-shot FC enrollment (key_hex zeroized after), FC
+  // clearing, SIGNING_REQUIRE toggle, and passive signed-frame counters.
+
+  async getSigningCapability(): Promise<SigningCapability> {
+    return this.request<SigningCapability>("/api/mavlink/signing/capability");
+  }
+
+  async enrollSigningKey(keyHex: string, linkId: number): Promise<SigningEnrollResult> {
+    return this.request<SigningEnrollResult>("/api/mavlink/signing/enroll-fc", {
+      method: "POST",
+      body: JSON.stringify({ key_hex: keyHex, link_id: linkId }),
+    });
+  }
+
+  async disableSigningOnFc(): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>("/api/mavlink/signing/disable-on-fc", {
+      method: "POST",
+    });
+  }
+
+  async getSigningRequire(): Promise<{ require: boolean | null }> {
+    return this.request<{ require: boolean | null }>("/api/mavlink/signing/require");
+  }
+
+  async setSigningRequire(require: boolean): Promise<{ success: boolean; require: boolean }> {
+    return this.request<{ success: boolean; require: boolean }>("/api/mavlink/signing/require", {
+      method: "PUT",
+      body: JSON.stringify({ require }),
+    });
+  }
+
+  async getSigningCounters(): Promise<SigningCounters> {
+    return this.request<SigningCounters>("/api/mavlink/signing/counters");
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Signing response shapes
+// ──────────────────────────────────────────────────────────────
+
+export interface SigningCapability {
+  supported: boolean;
+  reason:
+    | "ok"
+    | "fc_not_connected"
+    | "firmware_not_supported"
+    | "firmware_too_old"
+    | "firmware_px4_no_persistent_store"
+    | "msp_protocol"
+    | string;
+  firmware_name: string | null;
+  firmware_version: string | null;
+  signing_params_present: boolean;
+}
+
+export interface SigningEnrollResult {
+  success: boolean;
+  key_id: string;
+  enrolled_at: string;
+}
+
+export interface SigningCounters {
+  tx_signed_count: number;
+  rx_signed_count: number;
+  last_signed_rx_at: number | null;
 }

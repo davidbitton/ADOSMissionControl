@@ -569,6 +569,9 @@ function PairingDialogBase({
               <p className="text-[11px] text-text-tertiary">
                 {t("connectingAutomatically")}
               </p>
+              <p className="text-[11px] text-text-tertiary text-center mt-2 max-w-xs">
+                To enable MAVLink message signing, open Configure then Security after the drone connects.
+              </p>
             </div>
           )}
 

@@ -27,6 +27,7 @@ import { useConvexAvailable } from "@/app/ConvexClientProvider";
 import { cmdDronesApi } from "@/lib/community-api-drones";
 import { usePairingStore, type PairedDrone } from "@/stores/pairing-store";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
+import { SigningStatusBadge } from "./SigningStatusBadge";
 import {
   STALE_THRESHOLD_MS,
   OFFLINE_THRESHOLD_MS,
@@ -391,6 +392,7 @@ function FleetSidebarBase({
                         {tierLabel(drone.tier)}
                       </span>
                     )}
+                    <SigningStatusBadge droneId={drone._id} compact />
                   </div>
                 </>
               )}

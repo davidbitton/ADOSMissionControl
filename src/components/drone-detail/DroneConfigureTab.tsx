@@ -51,6 +51,7 @@ const BlackboxPanel = dynamic(() => import("@/components/fc/comms/BlackboxPanel"
 const RateProfilePanel = dynamic(() => import("@/components/fc/betaflight/RateProfilePanel").then(m => ({ default: m.RateProfilePanel })), { ssr: false, ...panelLoading });
 const AdjustmentsPanel = dynamic(() => import("@/components/fc/betaflight/AdjustmentsPanel").then(m => ({ default: m.AdjustmentsPanel })), { ssr: false, ...panelLoading });
 const CanMonitorPanel = dynamic(() => import("@/components/fc/can/CanMonitorPanel").then(m => ({ default: m.CanMonitorPanel })), { ssr: false, ...panelLoading });
+const SigningPanel = dynamic(() => import("@/components/fc/security/SigningPanel").then(m => ({ default: m.SigningPanel })), { ssr: false, ...panelLoading });
 import type { ReactNode } from "react";
 import type { ProtocolCapabilities } from "@/lib/protocol/types";
 import {
@@ -128,6 +129,7 @@ const FC_NAV_ITEMS: FcNavItem[] = [
   { id: "ports", label: "Ports", icon: <Cable size={14} />, requiredCapability: "supportsPorts", section: "System" },
   { id: "radio", label: "Radio Config", icon: <Wifi size={14} />, section: "System" },
   { id: "bf-config", label: "Configuration", icon: <Settings size={14} />, requiredCapability: "supportsBetaflightConfig", section: "System" },
+  { id: "signing", label: "MAVLink Signing", icon: <Shield size={14} />, section: "Security" },
   { id: "firmware", label: "Firmware", icon: <Zap size={14} />, requiredCapability: "supportsFirmwareFlash", section: "System" },
   { id: "cli", label: "CLI", icon: <Terminal size={14} />, requiredCapability: "supportsCliShell", section: "System", labelOverride: { px4: "Shell" } },
   // --- Debug ---
@@ -163,6 +165,7 @@ export function DroneConfigureTab({ droneId, droneName, isConnected }: DroneConf
     Tuning: t("tuningSection"),
     Display: t("displaySection"),
     System: t("systemSection"),
+    Security: "Security",
     Debug: t("debugSection"),
   };
 
@@ -199,6 +202,7 @@ export function DroneConfigureTab({ droneId, droneName, isConnected }: DroneConf
     diagnostics: t("diagnostics"),
     logs: t("logAnalysis"),
     can: "DroneCAN Monitor",
+    signing: "MAVLink Signing",
   };
 
   // Persist active panel to settings store
@@ -347,6 +351,7 @@ export function DroneConfigureTab({ droneId, droneName, isConnected }: DroneConf
             {activePanel === "radio" && <TelRadioPanel />}
             {activePanel === "bf-config" && <BetaflightConfigPanel />}
             {activePanel === "firmware" && <FirmwarePanel />}
+            {activePanel === "signing" && <SigningPanel />}
             {activePanel === "cli" && (firmwareType === 'px4' ? <MavlinkShellPanel /> : <CliPanel />)}
             {activePanel === "mavlink" && <MavlinkInspectorPanel />}
             {activePanel === "blackbox" && <BlackboxPanel />}

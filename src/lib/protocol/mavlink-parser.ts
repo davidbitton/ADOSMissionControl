@@ -73,6 +73,26 @@ export interface MAVLinkFrame {
 
 type FrameCallback = (frame: MAVLinkFrame) => void;
 
+/**
+ * Observer called each time a MAVLink v2 frame with the signed bit set
+ * is accepted (CRC valid). Phase 1 uses this purely for observability
+ * (rxSignedCount). Phase 2 will add async HMAC verification by wrapping
+ * this observer in a signer-backed validator.
+ */
+export type SignedFrameObserver = (ctx: {
+  msgId: number;
+  systemId: number;
+  componentId: number;
+  linkId: number;
+  /** The 13-byte signature tail (link_id + timestamp + sig). */
+  sigTail: Uint8Array;
+  /**
+   * The signed region that was hashed: header excluding STX, payload, CRC.
+   * A copy, safe to retain past the callback return.
+   */
+  signedRegion: Uint8Array;
+}) => void;
+
 // ── Parser ──────────────────────────────────────────────────
 
 /**
@@ -96,6 +116,7 @@ export class MAVLinkParser {
   private buffer: Uint8Array;
   private writePos = 0;
   private callbacks: FrameCallback[] = [];
+  private signedObservers: SignedFrameObserver[] = [];
 
   constructor(initialCapacity = 4096) {
     this.buffer = new Uint8Array(initialCapacity);
@@ -118,6 +139,19 @@ export class MAVLinkParser {
     return () => {
       const idx = this.callbacks.indexOf(callback);
       if (idx !== -1) this.callbacks.splice(idx, 1);
+    };
+  }
+
+  /**
+   * Subscribe to signed v2 frames for counter / verification hooks. The
+   * observer fires AFTER CRC validation and AFTER regular frame callbacks.
+   * Returns an unsubscribe function.
+   */
+  onSignedFrame(observer: SignedFrameObserver): () => void {
+    this.signedObservers.push(observer);
+    return () => {
+      const idx = this.signedObservers.indexOf(observer);
+      if (idx !== -1) this.signedObservers.splice(idx, 1);
     };
   }
 
@@ -222,6 +256,25 @@ export class MAVLinkParser {
       // Emit
       for (const cb of this.callbacks) {
         cb(frame);
+      }
+
+      // Signed-frame observers: fire after frame emission. Copy the
+      // signed region and signature tail into fresh buffers so observers
+      // can retain them past this tick without aliasing into our rolling
+      // parse buffer.
+      if (signatureLen === 13 && this.signedObservers.length > 0) {
+        const signedStart = readPos + 1;
+        const signedEnd = readPos + HEADER_SIZE + payloadLen + CRC_SIZE;
+        const signedRegion = this.buffer.slice(signedStart, signedEnd);
+        const sigTail = this.buffer.slice(signedEnd, signedEnd + 13);
+        const linkId = sigTail[0];
+        for (const obs of this.signedObservers) {
+          try {
+            obs({ msgId, systemId: sysId, componentId: compId, linkId, sigTail, signedRegion });
+          } catch {
+            // Observers must not take down the parser.
+          }
+        }
       }
 
       readPos += totalLen;

@@ -156,6 +156,10 @@ Real-time attitude, GPS, battery, EKF status, vibration, RSSI, and sensor health
 
 Works standalone in field mode (direct WebSocket or WebSerial). Cloud mode adds fleet management, mission sync, and MQTT telemetry relay. When paired with ADOS Drone Agent, the GCS receives live telemetry at 2Hz+ and can send commands through a three-layer relay: Convex HTTP (baseline), MQTT real-time, and WebSocket video streaming.
 
+### Manage a ground station
+
+When the paired agent is running in ground-station profile, a Hardware tab appears with sub-views for Network (uplink priority and AP management), Distributed RX (single-node link stats, relay list, combined stream stats), Mesh (batman-adv health, neighbors, gateways, pairing accept window, pending approvals), Physical UI (OLED screens and button mappings), Peripherals (connected USB and GPIO hardware), and Controllers (paired joysticks and gamepads). A role badge sits in the top bar at all times so operators can see at a glance whether a paired node is running as `direct`, `relay`, or `receiver`. Mesh events (neighbor seen, neighbor lost, gateway change, pair approved) surface as non-blocking toasts.
+
 ---
 
 ## Firmware Support
