@@ -33,6 +33,7 @@ import Link from "next/link";
 
 // MAVLink bridge persists across all tabs — direct import (renders null, no hydration issue)
 import { AgentMavlinkBridge } from "@/components/command/AgentMavlinkBridge";
+import { MeshToastBridge } from "@/components/command/MeshToastBridge";
 import { RoleBadge } from "@/components/command/RoleBadge";
 
 /**
@@ -331,6 +332,7 @@ function CommandShellInner({ children }: { children: React.ReactNode }) {
         <FailsafeAlertBanner />
         {children}
         <AgentMavlinkBridge />
+        <MeshToastBridge />
       </main>
     </div>
   );

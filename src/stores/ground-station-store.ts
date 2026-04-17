@@ -159,12 +159,20 @@ export interface DistributedRxSlice {
   error: string | null;
 }
 
+export interface MeshTransientEvent {
+  kind: string;
+  payload: Record<string, unknown>;
+  ts: number;
+}
+
 export interface MeshSlice {
   health: MeshHealth | null;
   neighbors: MeshNeighbor[];
   routes: MeshRoute[];
   gateways: MeshGateway[];
   selectedGateway: string | null;
+  /** Latest transient (toast-worthy) event the WS surfaced. */
+  lastTransientEvent: MeshTransientEvent | null;
   loading: boolean;
   error: string | null;
 }
@@ -418,6 +426,7 @@ const INITIAL_MESH: MeshSlice = {
   routes: [],
   gateways: [],
   selectedGateway: null,
+  lastTransientEvent: null,
   loading: false,
   error: null,
 };
@@ -1487,6 +1496,20 @@ export const useGroundStationStore = create<GroundStationState>((set, get) => ({
               mesh: { ...state.mesh, health: { ...state.mesh.health, partition: false } },
             });
           }
+        } else if (
+          evt.kind === "receiver_unreachable"
+          || evt.kind === "relay_disconnected"
+        ) {
+          set({
+            mesh: {
+              ...state.mesh,
+              lastTransientEvent: {
+                kind: evt.kind,
+                payload: evt.payload,
+                ts: evt.timestamp_ms || Date.now(),
+              },
+            },
+          });
         }
       } else if (evt.bus === "pair") {
         if (evt.kind === "accept_window_opened") {
@@ -1503,6 +1526,17 @@ export const useGroundStationStore = create<GroundStationState>((set, get) => ({
               pairingWindowOpen: false,
               pairingWindowExpiresAt: null,
               pendingRequests: [],
+            },
+          });
+        } else if (evt.kind === "revoked") {
+          set({
+            mesh: {
+              ...state.mesh,
+              lastTransientEvent: {
+                kind: "relay_revoked",
+                payload: evt.payload,
+                ts: evt.timestamp_ms || Date.now(),
+              },
             },
           });
         }
