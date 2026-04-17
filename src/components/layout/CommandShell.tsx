@@ -33,6 +33,7 @@ import Link from "next/link";
 
 // MAVLink bridge persists across all tabs — direct import (renders null, no hydration issue)
 import { AgentMavlinkBridge } from "@/components/command/AgentMavlinkBridge";
+import { RoleBadge } from "@/components/command/RoleBadge";
 
 /**
  * User menu with sign-out. Must only mount when ConvexAuthNextjsProvider exists
@@ -204,6 +205,9 @@ function CommandShellInner({ children }: { children: React.ReactNode }) {
 
         {/* Right — Status indicators */}
         <div className={cn("flex items-center gap-3", isElectron && !isLinux && "[-webkit-app-region:no-drag]")}>
+          {/* Ground-station role badge */}
+          <RoleBadge />
+
           {/* Alert count */}
           {alertCount > 0 && (
             <Tooltip content={t("unacknowledgedAlerts")} position="bottom">
