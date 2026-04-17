@@ -26,6 +26,10 @@ import {
   zeroize,
 } from "@/lib/protocol/mavlink-signer";
 import { allocateLocalLinkId } from "@/lib/protocol/link-id-allocator";
+import {
+  EnrollmentProgress,
+  ENROLL_FAIL_MS,
+} from "./EnrollmentProgress";
 
 export function SigningPanel() {
   const client = useAgentConnectionStore((s) => s.client);
@@ -40,6 +44,8 @@ export function SigningPanel() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [enrollStartedAt, setEnrollStartedAt] = useState<number | null>(null);
+  const [enrollFailed, setEnrollFailed] = useState(false);
 
   // On drone change, refresh capability + local key presence.
   useEffect(() => {
@@ -84,11 +90,30 @@ export function SigningPanel() {
     if (!client || !droneId) return;
     setBusy(true);
     setError(null);
+    setEnrollStartedAt(Date.now());
+    setEnrollFailed(false);
     const rawBytes = generateRandomKey();
     const linkId = allocateLocalLinkId();
+
+    // Hard deadline. If the agent's enroll-fc call has not resolved by
+    // ENROLL_FAIL_MS, surface the "failed" tier and stop polling. The
+    // in-flight promise still settles eventually; the UI just stops
+    // waiting for it.
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+      timedOut = true;
+      setEnrollFailed(true);
+    }, ENROLL_FAIL_MS);
+
     try {
       const keyHex = keyBytesToHex(rawBytes);
       const result = await client.enrollSigningKey(keyHex, linkId);
+      if (timedOut) {
+        // The deadline already fired; the operator saw the failure UI.
+        // Discard the late success so the next action is clean.
+        zeroize(rawBytes);
+        return;
+      }
       // Agent zeroizes its copy. Now import browser-side as non-extractable
       // and then zeroize the local raw buffer.
       await importAndStore({
@@ -102,10 +127,15 @@ export function SigningPanel() {
         enrolledAt: result.enrolled_at,
         enrollmentState: "enrolled",
       });
+      setEnrollStartedAt(null);
+      setEnrollFailed(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      if (!timedOut) {
+        setError(e instanceof Error ? e.message : String(e));
+      }
       zeroize(rawBytes);
     } finally {
+      clearTimeout(timeoutId);
       setBusy(false);
     }
   }, [client, droneId, setBrowserKey]);
@@ -186,14 +216,31 @@ export function SigningPanel() {
             Enable signing to require a 32-byte HMAC key on every command sent to this drone.
             The key lives only in this browser. A copy is pushed to the flight controller once.
           </p>
-          <button
-            type="button"
-            className="px-4 py-2 bg-accent-primary text-white text-sm font-medium disabled:opacity-50"
-            onClick={handleEnable}
-            disabled={busy}
-          >
-            {busy ? "Enrolling..." : "Enable signing"}
-          </button>
+          {enrollStartedAt !== null ? (
+            <EnrollmentProgress
+              startedAt={enrollStartedAt}
+              failed={enrollFailed}
+              onRetry={() => {
+                setEnrollStartedAt(null);
+                setEnrollFailed(false);
+                void handleEnable();
+              }}
+              onCancel={() => {
+                setEnrollStartedAt(null);
+                setEnrollFailed(false);
+                setBusy(false);
+              }}
+            />
+          ) : (
+            <button
+              type="button"
+              className="px-4 py-2 bg-accent-primary text-white text-sm font-medium disabled:opacity-50"
+              onClick={handleEnable}
+              disabled={busy}
+            >
+              Enable signing
+            </button>
+          )}
         </div>
       );
     }
@@ -263,7 +310,7 @@ export function SigningPanel() {
         </div>
       </div>
     );
-  }, [busy, droneId, error, firmware, handleDisable, handleEnable, handleRequireToggle, handleRotate, reason, state, supported]);
+  }, [busy, droneId, error, firmware, handleDisable, handleEnable, handleRequireToggle, handleRotate, reason, state, supported, enrollStartedAt, enrollFailed]);
 
   return (
     <div className="h-full overflow-y-auto">
