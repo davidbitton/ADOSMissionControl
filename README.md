@@ -311,6 +311,7 @@ Building and testing ADOS Mission Control on real hardware. Want to get involved
 ## Community
 
 - **[Discord](https://discord.gg/uxbvuD4d5q)** — Join the community, ask questions, share builds
+- **[LinkedIn](https://www.linkedin.com/company/altnautica/)** — Follow company updates
 - **[Email](mailto:team@altnautica.com)** — team@altnautica.com
 - **[Changelog](https://command.altnautica.com/community/changelog)** — What shipped and when
 - **[GitHub Issues](https://github.com/altnautica/ADOSMissionControl/issues)** — Bug reports and technical discussions
