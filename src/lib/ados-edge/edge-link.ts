@@ -166,6 +166,36 @@ export class EdgeLinkClient {
     if (!resp.ok) throw new Error(resp.error || "factory reset failed");
   }
 
+  /* ── mixer.* ──────────────────────────────────────────── */
+
+  /** Read one section of the active model as YAML. Firmware v0.0.22+
+   * supports `setup`, `mixes`, `gvs`, and `flight_modes`; other section
+   * names return a rejection until schema v2 ships. */
+  async mixerGet(section: MixerSectionSlug): Promise<string> {
+    const resp = await this.cdc.sendCommand(`MIXER GET ${section}`, { timeoutMs: 3000 });
+    if (!resp.ok) throw new Error(resp.error || `MIXER GET ${section} failed`);
+    const yaml = resp.yaml;
+    if (typeof yaml !== "string") {
+      throw new Error(`MIXER GET ${section} returned no yaml field`);
+    }
+    return yaml;
+  }
+
+  /** Write one section of the active model. The firmware merges the
+   * payload into the current model, emits + persists the full YAML to
+   * flash, and flips the in-memory active model so the next MIXER GET
+   * reflects the write. `yaml` is raw (real newlines); the wire
+   * encoding escapes newlines + backslashes so the CDC line parser
+   * can carry a multiline payload on one line. */
+  async mixerSet(section: MixerSectionSlug, yaml: string): Promise<void> {
+    const encoded = yaml.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
+    const resp = await this.cdc.sendCommand(
+      `MIXER SET ${section} ${encoded}`,
+      { timeoutMs: 5000 },
+    );
+    if (!resp.ok) throw new Error(resp.error || `MIXER SET ${section} failed`);
+  }
+
   /** Streaming frame subscription. Returns an unsubscribe. */
   onStream(listener: StreamListener): () => void {
     return this.cdc.onStream(listener);
@@ -290,3 +320,33 @@ export class EdgeLinkClient {
     return this.cdc.sendCommand(line, { timeoutMs });
   }
 }
+
+/** Section identifiers accepted by the firmware `MIXER GET / SET`
+ * commands. These mirror the `model_section_from_slug` dictionary in
+ * the firmware so additions stay in lock-step. */
+export type MixerSectionSlug =
+  | "setup"
+  | "mixes"
+  | "gvs"
+  | "flight_modes"
+  /* Planned for schema v2 on the firmware side. Using one of these
+   * against v0.0.22 firmware returns `unknown section`. */
+  | "inputs"
+  | "outputs"
+  | "curves"
+  | "ls"
+  | "sf"
+  | "failsafe"
+  | "trims"
+  | "timers"
+  | "telemetry"
+  | "gvars";
+
+/** Sections the firmware currently supports. The UI uses this to
+ * feature-gate tabs until schema v2. */
+export const SUPPORTED_MIXER_SECTIONS: ReadonlyArray<MixerSectionSlug> = [
+  "setup",
+  "mixes",
+  "gvs",
+  "flight_modes",
+];
