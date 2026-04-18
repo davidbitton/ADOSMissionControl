@@ -2,17 +2,17 @@
 
 /**
  * @module HardwarePeripheralsPage
- * @description Phase 4 Wave 3 Peripherals sub-view. Lists registered
- * peripheral plugins reported by the agent's Peripheral Manager. When no
- * plugins are registered the backend returns {peripherals: [], count: 0}
- * and we render an empty state. Manifest-driven form rendering for the
- * per-plugin config_schema is deferred to Track B.
+ * @description Peripherals sub-view. Lists registered peripheral plugins
+ * reported by the agent's Peripheral Manager. When no plugins are
+ * registered the backend returns {peripherals: [], count: 0} and we
+ * render an empty state.
  * @license GPL-3.0-only
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Plug } from "lucide-react";
+import { PageIntro } from "@/components/hardware/PageIntro";
 import { Button } from "@/components/ui/button";
 import { groundStationApiFromAgent } from "@/lib/api/ground-station-api";
 import type { PeripheralSummary } from "@/lib/api/ground-station-api";
@@ -78,7 +78,11 @@ export default function HardwarePeripheralsPage() {
   const rows = useMemo(() => peripherals.list, [peripherals.list]);
 
   return (
-    <div>
+    <div className="flex flex-col">
+      <PageIntro
+        title="Peripherals"
+        description="Plugin-managed peripherals declared by the agent: cameras, sensors, custom hardware. Per-plugin configuration support arrives one plugin at a time."
+      />
       {peripherals.error ? (
         <div className="mb-4 rounded border border-status-error/50 bg-status-error/10 px-4 py-3 text-sm text-status-error">
           {peripherals.error}
@@ -86,16 +90,22 @@ export default function HardwarePeripheralsPage() {
       ) : null}
 
       {rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-border-primary/60 bg-surface-secondary py-16 text-center">
-          <Plug className="h-8 w-8 text-text-tertiary" />
-          <p className="text-sm font-medium text-text-secondary">
+        <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-border-default bg-bg-secondary text-text-tertiary">
+            <Plug size={24} />
+          </div>
+          <h2 className="text-sm font-display font-semibold text-text-primary">
             {t("peripherals.emptyState")}
+          </h2>
+          <p className="mt-2 max-w-md text-xs text-text-tertiary leading-relaxed">
+            The agent has not declared any peripheral plugins yet. Plug a sensor,
+            camera, or other peripheral and the entry will appear here.
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded border border-border-primary/60">
+        <div className="overflow-hidden rounded border border-border-default">
           <table className="w-full text-sm">
-            <thead className="bg-surface-secondary text-left text-xs uppercase text-text-secondary">
+            <thead className="bg-bg-secondary text-left text-xs uppercase text-text-secondary">
               <tr>
                 <th className="px-3 py-2">{t("peripherals.name")}</th>
                 <th className="px-3 py-2">{t("peripherals.transport")}</th>
@@ -138,7 +148,7 @@ function PeripheralRow({ summary, isOpen, detail, onToggle }: RowProps) {
   return (
     <>
       <tr
-        className="cursor-pointer border-t border-border-primary hover:bg-surface-secondary"
+        className="cursor-pointer border-t border-border-default hover:bg-bg-secondary"
         onClick={onToggle}
       >
         <td className="px-3 py-2 text-text-primary">{summary.display_name}</td>
@@ -161,7 +171,7 @@ function PeripheralRow({ summary, isOpen, detail, onToggle }: RowProps) {
         </td>
       </tr>
       {isOpen ? (
-        <tr className="border-t border-border-primary bg-surface-secondary/50">
+        <tr className="border-t border-border-default bg-bg-secondary/50">
           <td colSpan={4} className="px-4 py-3">
             {detail ? (
               <div className="space-y-2 text-xs text-text-secondary">

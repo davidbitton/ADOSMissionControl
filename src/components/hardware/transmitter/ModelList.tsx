@@ -85,7 +85,7 @@ export function ModelList() {
                           {isActive ? "Active" : "Activate"}
                         </Button>
                         <Link
-                          href={`/hardware/controllers/transmitter/models/${i}`}
+                          href={`/hardware/edge/models/${i}`}
                           className="inline-flex h-8 items-center rounded border border-border px-3 text-xs text-text-primary hover:bg-surface-hover"
                         >
                           Open

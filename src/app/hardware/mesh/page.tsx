@@ -20,6 +20,8 @@ import { MeshNeighborsTable } from "@/components/hardware/MeshNeighborsTable";
 import { MeshGatewaysTable } from "@/components/hardware/MeshGatewaysTable";
 import { MeshLogAggregator } from "@/components/hardware/MeshLogAggregator";
 import { RoleChangeCard } from "@/components/hardware/RoleChangeCard";
+import { PageIntro } from "@/components/hardware/PageIntro";
+import { HintChip } from "@/components/hardware/HintChip";
 import { Button } from "@/components/ui/button";
 
 const POLL_INTERVAL_MS = 3000;
@@ -52,9 +54,18 @@ export default function HardwareMeshPage() {
 
   if (role === "direct") {
     return (
-      <div className="px-4 py-6 flex flex-col gap-4">
-        <div className="text-text-secondary">{t("emptyDirect")}</div>
-        <RoleChangeCard variant="empty" />
+      <div className="flex flex-col">
+        <PageIntro
+          title="Mesh"
+          description="Self-healing wireless mesh between ground nodes. Watch neighbours, gateways, and route health."
+          trailing={
+            <HintChip>Gateway election picks the node with the best cloud uplink.</HintChip>
+          }
+        />
+        <div className="flex flex-col gap-4">
+          <div className="text-text-secondary">{t("emptyDirect")}</div>
+          <RoleChangeCard variant="empty" />
+        </div>
       </div>
     );
   }
@@ -65,7 +76,15 @@ export default function HardwareMeshPage() {
   };
 
   return (
-    <div className="px-4 py-4 flex flex-col gap-4">
+    <div className="flex flex-col">
+      <PageIntro
+        title="Mesh"
+        description="Self-healing wireless mesh between ground nodes. Watch neighbours, gateways, and route health."
+        trailing={
+          <HintChip>Gateway election picks the node with the best cloud uplink.</HintChip>
+        }
+      />
+      <div className="flex flex-col gap-4">
       <MeshHealthCard />
       <MeshNeighborsTable />
       <MeshGatewaysTable />
@@ -82,6 +101,7 @@ export default function HardwareMeshPage() {
           </Button>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

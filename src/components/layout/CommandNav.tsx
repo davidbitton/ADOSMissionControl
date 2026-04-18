@@ -11,8 +11,8 @@ const tabs = [
   { icon: Terminal, labelKey: "command", href: "/command" },
   { icon: Route, labelKey: "plan", href: "/plan" },
   { icon: Play, labelKey: "simulate", href: "/simulate" },
-  { icon: History, labelKey: "history", href: "/history" },
   { icon: Cable, labelKey: "hardware", href: "/hardware" },
+  { icon: History, labelKey: "history", href: "/flight-logs" },
 ];
 
 export function CommandNav() {

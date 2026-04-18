@@ -6,7 +6,7 @@
     "command": "Command",
     "hardware": "Hardware",
     "configure": "Configure",
-    "history": "History",
+    "history": "Flight Logs",
     "community": "Community"
   },
   "welcome": {
@@ -1408,7 +1408,7 @@
     "lockCameraHeading": "Lock camera heading"
   },
   "history": {
-    "title": "Flight History",
+    "title": "Flight Logs",
     "noFlights": "No flight records",
     "emptyTitle": "No flights recorded yet",
     "emptySubtitle": "Connect a drone and arm to start your first recording. Imported logs and live recordings will appear here.",
@@ -2128,9 +2128,61 @@
       "wfbNg": "WFB-ng Radio",
       "physicalUi": "Physical UI",
       "controllers": "Controllers",
+      "edge": "ADOS Edge",
       "peripherals": "Peripherals",
       "distributedRx": "Distributed RX",
       "mesh": "Mesh"
+    },
+    "sidebar": {
+      "heading": "Hardware",
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar",
+      "localOnly": "Local",
+      "agentConnected": "Agent connected",
+      "agentOffline": "Agent offline"
+    },
+    "intro": {
+      "edgeTitle": "ADOS Edge",
+      "edgeDescription": "Open-source RC transmitter firmware. Connect a flashed Pocket over USB-C to manage models, calibrate sticks, watch live input, stream telemetry, and flash new builds."
+    },
+    "edge": {
+      "tabs": {
+        "dashboard": "Dashboard",
+        "models": "Models",
+        "live": "Live input",
+        "telemetry": "Telemetry",
+        "calibrate": "Calibrate",
+        "firmware": "Firmware",
+        "backup": "Backup",
+        "system": "System",
+        "advanced": "Advanced"
+      },
+      "shell": {
+        "connected": "Connected",
+        "disconnected": "Not connected",
+        "firmwareLabel": "firmware",
+        "alpha": "Alpha"
+      },
+      "alpha": {
+        "title": "Alpha release.",
+        "body": "ADOS Edge firmware is in active development. Pending a beta release once stable. Expect rough edges and breaking changes between builds."
+      },
+      "connect": {
+        "title": "Connect transmitter",
+        "body": "Plug a flashed transmitter in over USB-C, click Connect, and pick the device from the browser prompt.",
+        "buttonConnect": "Connect device",
+        "buttonConnecting": "Connecting...",
+        "buttonDemo": "Connect (demo)",
+        "demoBadge": "Demo",
+        "webserialWarning": "WebSerial needed. Try Chrome, Edge, or Opera on desktop."
+      },
+      "help": {
+        "heading": "Help and reference",
+        "overview": "ADOS Edge overview",
+        "flashing": "Flashing your transmitter",
+        "protocol": "CDC protocol reference",
+        "comingSoon": "Coming soon"
+      }
     },
     "role": {
       "direct": "Direct",
@@ -2389,12 +2441,6 @@
       "transport": "Transport",
       "connected": "Connected",
       "capabilities": "Capabilities"
-    },
-    "edge": {
-      "title": "ADOS Edge RC Controller",
-      "stubHeading": "Product in development",
-      "stubBody": "The ADOS Edge open-source RC controller is in active development. This panel will light up when the firmware ships. Follow progress at altnautica/ADOSEdge.",
-      "stubBadge": "Phase 4 Track B"
     },
     "androidRc": {
       "title": "ADOS Android RC Controller",

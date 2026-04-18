@@ -16,6 +16,8 @@ import { useGroundStationStore } from "@/stores/ground-station-store";
 import { PairModal } from "@/components/hardware/PairModal";
 import { PicWidget } from "@/components/hardware/PicWidget";
 import { OverviewUplinkWidget } from "@/components/hardware/OverviewUplinkWidget";
+import { PageIntro } from "@/components/hardware/PageIntro";
+import { HintChip } from "@/components/hardware/HintChip";
 import { Button } from "@/components/ui/button";
 import { useGroundStationSubscriptions } from "@/hooks/use-ground-station-subscriptions";
 
@@ -122,78 +124,94 @@ export default function HardwarePage() {
   const hasAgent = Boolean(agentUrl);
   const hasData = lastFetchedAt != null && hasAgent;
 
-  // No agent connected: single empty state
-  if (!hasAgent) {
-    return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-border-primary/60 bg-surface-secondary py-16 text-center">
-        <Radio className="h-8 w-8 text-text-tertiary" />
-        <p className="text-sm font-medium text-text-secondary">
-          No ground station connected
-        </p>
-        <p className="max-w-sm text-xs text-text-tertiary">
-          Connect to an ADOS ground station agent to manage hardware, radios,
-          and peripherals.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-4">
-      {/* Top row: PIC + Uplink side by side */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <PicWidget />
-        <OverviewUplinkWidget />
-      </div>
+    <div className="flex flex-col">
+      <PageIntro
+        title="Overview"
+        description="At-a-glance status of your ground station: who is paired, where uplink is going, and how the radio link is performing."
+        trailing={
+          <HintChip>Drag uplinks in Network to change priority</HintChip>
+        }
+      />
 
-      {/* Ground Station Overview */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-medium text-text-primary">
-            Ground Station
+      {!hasAgent ? (
+        <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-border-default bg-bg-secondary text-text-tertiary">
+            <Radio size={24} />
+          </div>
+          <h2 className="text-sm font-display font-semibold text-text-primary">
+            No ground station connected
           </h2>
-          <div className="flex items-center gap-3">
-            {loading ? (
-              <span className="text-xs text-text-secondary">Loading...</span>
-            ) : null}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setPairOpen(true)}
-            >
-              Pair with drone
-            </Button>
-          </div>
+          <p className="mt-2 max-w-md text-xs text-text-tertiary leading-relaxed">
+            Connect to an ADOS ground station agent to manage hardware, radios,
+            and peripherals.
+          </p>
+          <Button
+            variant="primary"
+            size="sm"
+            className="mt-4"
+            onClick={() => setPairOpen(true)}
+          >
+            Connect ground station
+          </Button>
+          <PairModal open={pairOpen} onClose={() => setPairOpen(false)} />
         </div>
-
-        {lastError && !hasData ? (
-          <div className="rounded border border-status-error/40 bg-status-error/10 px-3 py-2 text-sm text-status-error">
-            {lastError}
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <PicWidget />
+            <OverviewUplinkWidget />
           </div>
-        ) : null}
 
-        {hasData ? (
-          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-            <StatRow label="Paired drone" value={status.paired_drone ?? "None"} />
-            <StatRow label="Profile" value={formatProfile(status.profile)} />
-            <StatRow label="Uplink active" value={status.uplink_active ?? EMPTY} />
-            <StatRow label="Link RSSI" value={formatRssi(linkHealth.rssi_dbm)} />
-            <StatRow label="Bitrate" value={formatBitrate(linkHealth.bitrate_mbps)} />
-            <StatRow label="Channel" value={formatChannel(linkHealth.channel)} />
-            <StatRow label="FEC recovered" value={String(linkHealth.fec_rec)} />
-            <StatRow label="FEC lost" value={String(linkHealth.fec_lost)} />
-          </dl>
-        ) : null}
-      </section>
+          <section className="rounded border border-border-default bg-bg-secondary p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-text-primary">
+                Ground Station
+              </h2>
+              <div className="flex items-center gap-3">
+                {loading ? (
+                  <span className="text-xs text-text-secondary">Loading...</span>
+                ) : null}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setPairOpen(true)}
+                >
+                  Pair with drone
+                </Button>
+              </div>
+            </div>
 
-      <PairModal open={pairOpen} onClose={() => setPairOpen(false)} />
+            {lastError && !hasData ? (
+              <div className="rounded border border-status-error/40 bg-status-error/10 px-3 py-2 text-sm text-status-error">
+                {lastError}
+              </div>
+            ) : null}
+
+            {hasData ? (
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+                <StatRow label="Paired drone" value={status.paired_drone ?? "None"} />
+                <StatRow label="Profile" value={formatProfile(status.profile)} />
+                <StatRow label="Uplink active" value={status.uplink_active ?? EMPTY} />
+                <StatRow label="Link RSSI" value={formatRssi(linkHealth.rssi_dbm)} />
+                <StatRow label="Bitrate" value={formatBitrate(linkHealth.bitrate_mbps)} />
+                <StatRow label="Channel" value={formatChannel(linkHealth.channel)} />
+                <StatRow label="FEC recovered" value={String(linkHealth.fec_rec)} />
+                <StatRow label="FEC lost" value={String(linkHealth.fec_lost)} />
+              </dl>
+            ) : null}
+          </section>
+
+          <PairModal open={pairOpen} onClose={() => setPairOpen(false)} />
+        </div>
+      )}
     </div>
   );
 }
 
 function StatRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between border-b border-border-primary/40 py-1.5">
+    <div className="flex items-baseline justify-between border-b border-border-default py-1.5">
       <dt className="text-xs uppercase tracking-wide text-text-secondary">{label}</dt>
       <dd className="font-mono text-sm text-text-primary">{value}</dd>
     </div>

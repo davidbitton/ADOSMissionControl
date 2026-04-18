@@ -2,14 +2,16 @@
 
 /**
  * @module HardwareUiPage
- * @description Phase 1 Physical UI sub-view. OLED live card, Buttons and
- * Screens are read-only placeholders (remapping and reorder ship in Phase 2).
+ * @description Physical UI sub-view. OLED live card, Buttons and
+ * Screens are read-only placeholders (remapping and reorder ship later).
  * @license GPL-3.0-only
  */
 
 import { useEffect, useRef, useState } from "react";
 import { Monitor } from "lucide-react";
 import { BluetoothPairModal } from "@/components/hardware/BluetoothPairModal";
+import { PageIntro } from "@/components/hardware/PageIntro";
+import { HintChip } from "@/components/hardware/HintChip";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { useToast } from "@/components/ui/toast";
@@ -108,23 +110,39 @@ export default function HardwareUiPage() {
 
   if (!hasAgent) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-border-primary/60 bg-surface-secondary py-16 text-center">
-        <Monitor className="h-8 w-8 text-text-tertiary" />
-        <p className="text-sm font-medium text-text-secondary">
-          No ground station connected
-        </p>
-        <p className="max-w-sm text-xs text-text-tertiary">
-          Connect to an ADOS ground station agent to configure the physical UI.
-        </p>
+      <div className="flex flex-col">
+        <PageIntro
+          title="Physical UI"
+          description="Live preview of the OLED screen and four front buttons on the ground station box. Pair Bluetooth peripherals here too."
+        />
+        <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-border-default bg-bg-secondary text-text-tertiary">
+            <Monitor size={24} />
+          </div>
+          <h2 className="text-sm font-display font-semibold text-text-primary">
+            No ground station connected
+          </h2>
+          <p className="mt-2 max-w-md text-xs text-text-tertiary leading-relaxed">
+            Connect to an ADOS ground station agent to configure the physical UI.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
+      <PageIntro
+        title="Physical UI"
+        description="Live preview of the OLED screen and four front buttons on the ground station box. Pair Bluetooth peripherals here too."
+      />
+      <div className="flex flex-col gap-4">
       {/* OLED card */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
-        <h2 className="mb-4 text-lg font-medium text-text-primary">OLED Display</h2>
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-medium text-text-primary">OLED Display</h2>
+          <HintChip>Refreshes once per second</HintChip>
+        </div>
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
@@ -177,9 +195,12 @@ export default function HardwareUiPage() {
       </section>
 
       {/* Buttons card (read-only) */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
-        <h2 className="mb-4 text-lg font-medium text-text-primary">Buttons</h2>
-        <div className="overflow-hidden rounded border border-border-primary/60">
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-medium text-text-primary">Buttons</h2>
+          <HintChip>Long-press is remappable. Short-press is fixed by profile.</HintChip>
+        </div>
+        <div className="overflow-hidden rounded border border-border-default">
           <table className="w-full text-sm">
             <thead className="bg-bg-tertiary text-xs uppercase tracking-wide text-text-secondary">
               <tr>
@@ -192,7 +213,7 @@ export default function HardwareUiPage() {
               {buttonIds.map((id) => {
                 const binding = buttonEntries[id] ?? {};
                 return (
-                  <tr key={id} className="border-t border-border-primary/40">
+                  <tr key={id} className="border-t border-border-default">
                     <td className="px-3 py-2 font-mono text-text-primary">{id}</td>
                     <td className="px-3 py-2 text-text-secondary">
                       {binding.short_press ?? "unassigned"}
@@ -207,18 +228,18 @@ export default function HardwareUiPage() {
           </table>
         </div>
         <p className="mt-3 text-xs text-text-secondary">
-          Remapping ships in Phase 2.
+          Remapping ships in a follow-up release.
         </p>
       </section>
 
       {/* Screens card (read-only) */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
         <h2 className="mb-4 text-lg font-medium text-text-primary">Screens</h2>
         <ol className="space-y-1">
           {screenOrder.map((name, idx) => (
             <li
               key={name}
-              className="flex items-center justify-between rounded border border-border-primary/40 px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded border border-border-default px-3 py-2 text-sm"
             >
               <span className="font-mono text-text-primary">
                 {idx + 1}. {name}
@@ -236,12 +257,12 @@ export default function HardwareUiPage() {
           ))}
         </ol>
         <p className="mt-3 text-xs text-text-secondary">
-          Enable and reorder ships in Phase 2.
+          Enable and reorder ships in a follow-up release.
         </p>
       </section>
 
-      {/* Bluetooth card (Phase 2, Wave C) */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+      {/* Bluetooth pairing */}
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-medium text-text-primary">Bluetooth</h2>
           <Button variant="primary" size="sm" onClick={() => setBtPairOpen(true)}>
@@ -257,7 +278,7 @@ export default function HardwareUiPage() {
             {bluetooth.paired.map((dev) => (
               <li
                 key={dev.mac}
-                className="flex items-center justify-between rounded border border-border-primary/40 px-3 py-2"
+                className="flex items-center justify-between rounded border border-border-default px-3 py-2"
               >
                 <div className="flex flex-col">
                   <span className="text-sm text-text-primary">{dev.name || "Unknown"}</span>
@@ -277,6 +298,7 @@ export default function HardwareUiPage() {
       </section>
 
       <BluetoothPairModal open={btPairOpen} onClose={() => setBtPairOpen(false)} />
+      </div>
     </div>
   );
 }

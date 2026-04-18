@@ -47,9 +47,9 @@ export default function ReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border-default shrink-0">
         <div className="flex items-center gap-3">
-          <Link href="/history">
+          <Link href="/flight-logs">
             <Button variant="ghost" size="sm" icon={<ArrowLeft size={14} />}>
-              History
+              Flight Logs
             </Button>
           </Link>
           <h2 className="text-sm font-semibold text-text-primary uppercase tracking-wider">

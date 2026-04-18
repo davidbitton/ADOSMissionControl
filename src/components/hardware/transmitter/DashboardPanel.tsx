@@ -117,14 +117,14 @@ export function DashboardPanel() {
 
       <div className="flex flex-wrap gap-3">
         {[
-          { label: "Models", href: "/hardware/controllers/transmitter/models" },
-          { label: "Live input", href: "/hardware/controllers/transmitter/live" },
-          { label: "Telemetry", href: "/hardware/controllers/transmitter/telemetry" },
-          { label: "Calibrate", href: "/hardware/controllers/transmitter/calibrate" },
-          { label: "Firmware update", href: "/hardware/controllers/transmitter/firmware" },
-          { label: "Backup + restore", href: "/hardware/controllers/transmitter/backup" },
-          { label: "System settings", href: "/hardware/controllers/transmitter/system" },
-          { label: "Advanced editors", href: "/hardware/controllers/transmitter/advanced" },
+          { label: "Models", href: "/hardware/edge/models" },
+          { label: "Live input", href: "/hardware/edge/live" },
+          { label: "Telemetry", href: "/hardware/edge/telemetry" },
+          { label: "Calibrate", href: "/hardware/edge/calibrate" },
+          { label: "Firmware update", href: "/hardware/edge/firmware" },
+          { label: "Backup + restore", href: "/hardware/edge/backup" },
+          { label: "System settings", href: "/hardware/edge/system" },
+          { label: "Advanced editors", href: "/hardware/edge/advanced" },
         ].map((action) => (
           <Link
             key={action.href}

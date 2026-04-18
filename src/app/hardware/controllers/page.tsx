@@ -13,6 +13,8 @@ import Link from "next/link";
 import { Gamepad2, Radio } from "lucide-react";
 import { BluetoothPairModal } from "@/components/hardware/BluetoothPairModal";
 import { ControllersSection } from "@/components/hardware/ControllersSection";
+import { PageIntro } from "@/components/hardware/PageIntro";
+import { HintChip } from "@/components/hardware/HintChip";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { useToast } from "@/components/ui/toast";
@@ -111,36 +113,21 @@ export default function HardwareControllersPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* ADOS Edge transmitter entry */}
-      <section className="rounded-lg border border-accent-primary/40 bg-accent-primary/5 p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <Radio className="mt-0.5 h-6 w-6 text-accent-primary" />
-            <div>
-              <h2 className="text-lg font-medium text-text-primary">ADOS Edge RC transmitter</h2>
-              <p className="mt-1 text-sm text-text-secondary">
-                Plug your flashed Pocket via USB-C + open the Controller Panel. Dashboard, live
-                input monitor, 10-tab model editor, calibration wizard, backup + restore,
-                system settings, pin probe, telemetry, firmware update.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/hardware/controllers/transmitter"
-            className="inline-flex h-9 shrink-0 items-center rounded border border-accent-primary bg-accent-primary px-4 text-sm text-surface-primary hover:opacity-90"
-          >
-            Open Controller Panel
-          </Link>
-        </div>
-      </section>
-
+    <div className="flex flex-col">
+      <PageIntro
+        title="Controllers"
+        description="Game controllers, joysticks, and HOTAS devices connected to the ground station agent or directly to your browser."
+      />
+      <div className="flex flex-col gap-4">
       {/* Agent-side device list */}
       {hasAgent ? (
         <>
-          <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-medium text-text-primary">Devices</h2>
+          <section className="rounded border border-border-default bg-bg-secondary p-5">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-medium text-text-primary">Devices</h2>
+                <HintChip>Set a primary controller to send sticks to the drone.</HintChip>
+              </div>
               <Button variant="primary" size="sm" onClick={() => setPairOpen(true)}>
                 Scan Bluetooth
               </Button>
@@ -157,7 +144,7 @@ export default function HardwareControllersPage() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-hidden rounded border border-border-primary/60">
+              <div className="overflow-hidden rounded border border-border-default">
                 <table className="w-full text-sm">
                   <thead className="bg-bg-tertiary text-xs uppercase tracking-wide text-text-secondary">
                     <tr>
@@ -172,7 +159,7 @@ export default function HardwareControllersPage() {
                     {gamepads.devices.map((dev) => {
                       const isPrimary = dev.device_id === gamepads.primary_id;
                       return (
-                        <tr key={dev.device_id} className="border-t border-border-primary/40">
+                        <tr key={dev.device_id} className="border-t border-border-default">
                           <td className="px-3 py-2">
                             <div className="flex items-center gap-2">
                               <span className="text-text-primary">{dev.name}</span>
@@ -222,7 +209,7 @@ export default function HardwareControllersPage() {
             )}
           </section>
 
-          <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+          <section className="rounded border border-border-default bg-bg-secondary p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-lg font-medium text-text-primary">HDMI kiosk auto-claim</h2>
@@ -239,7 +226,7 @@ export default function HardwareControllersPage() {
             </div>
           </section>
 
-          <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+          <section className="rounded border border-border-default bg-bg-secondary p-5">
             <h2 className="mb-4 text-lg font-medium text-text-primary">Paired Bluetooth devices</h2>
             {bluetooth.paired.length === 0 ? (
               <div className="py-4 text-center text-sm text-text-secondary">
@@ -250,7 +237,7 @@ export default function HardwareControllersPage() {
                 {bluetooth.paired.map((dev) => (
                   <li
                     key={dev.mac}
-                    className="flex items-center justify-between rounded border border-border-primary/40 px-3 py-2"
+                    className="flex items-center justify-between rounded border border-border-default px-3 py-2"
                   >
                     <div className="flex flex-col">
                       <span className="text-sm text-text-primary">{dev.name || "Unknown"}</span>
@@ -272,15 +259,31 @@ export default function HardwareControllersPage() {
       ) : null}
 
       {/* Browser-side calibration and tuning (always available) */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
-        <h2 className="mb-4 text-lg font-medium text-text-primary">Browser Input</h2>
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-medium text-text-primary">Browser Input</h2>
+          <HintChip>Browser controllers only feed sticks while this tab is open.</HintChip>
+        </div>
         <p className="mb-4 text-xs text-text-secondary">
           Calibrate and tune controllers connected directly to this browser via the Web Gamepad API.
         </p>
         <ControllersSection />
       </section>
 
+      {/* Pointer to ADOS Edge category */}
+      <div className="rounded border border-border-default bg-bg-secondary p-3 text-xs text-text-secondary">
+        <span className="inline-flex items-center gap-2">
+          <Radio size={13} className="text-accent-primary" />
+          Looking for the ADOS Edge transmitter? Open the{" "}
+          <Link href="/hardware/edge" className="text-accent-primary hover:underline">
+            Edge tab on the left
+          </Link>
+          .
+        </span>
+      </div>
+
       <BluetoothPairModal open={pairOpen} onClose={() => setPairOpen(false)} />
+      </div>
     </div>
   );
 }

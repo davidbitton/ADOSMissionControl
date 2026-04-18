@@ -2,7 +2,7 @@
 
 /**
  * @module HardwareNetworkPage
- * @description Phase 3 Network sub-view. Live cards for AP, WiFi Client,
+ * @description Network sub-view. Live cards for AP, WiFi Client,
  * Ethernet, and 4G Modem, plus an uplink priority reorder list, recent
  * failover timeline, and share-uplink toggle. Polls /network at 2 Hz. The
  * Overview page owns the uplink WS subscription.
@@ -16,6 +16,8 @@ import { WifiScanModal } from "@/components/hardware/WifiScanModal";
 import { EthernetConfigModal } from "@/components/hardware/EthernetConfigModal";
 import { UplinkPriorityList } from "@/components/hardware/UplinkPriorityList";
 import { DataUsageBar } from "@/components/hardware/DataUsageBar";
+import { PageIntro } from "@/components/hardware/PageIntro";
+import { HintChip } from "@/components/hardware/HintChip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
@@ -249,22 +251,35 @@ export default function HardwareNetworkPage() {
 
   if (!hasAgent) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border border-border-primary/60 bg-surface-secondary py-16 text-center">
-        <Radio className="h-8 w-8 text-text-tertiary" />
-        <p className="text-sm font-medium text-text-secondary">
-          No ground station connected
-        </p>
-        <p className="max-w-sm text-xs text-text-tertiary">
-          Connect to an ADOS ground station agent to configure network settings.
-        </p>
+      <div className="flex flex-col">
+        <PageIntro
+          title="Network"
+          description="Manage every uplink path: WiFi access point, WiFi client, Ethernet, and 4G modem. The active uplink decides which network the agent uses for cloud relay."
+        />
+        <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-border-default bg-bg-secondary text-text-tertiary">
+            <Radio size={24} />
+          </div>
+          <h2 className="text-sm font-display font-semibold text-text-primary">
+            No ground station connected
+          </h2>
+          <p className="mt-2 max-w-md text-xs text-text-tertiary leading-relaxed">
+            Connect to an ADOS ground station agent to configure network settings.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
+      <PageIntro
+        title="Network"
+        description="Manage every uplink path: WiFi access point, WiFi client, Ethernet, and 4G modem. The active uplink decides which network the agent uses for cloud relay."
+      />
+      <div className="flex flex-col gap-4">
       {/* AP card (live) */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-medium text-text-primary">Access Point</h2>
           <span className="text-xs text-text-secondary">
@@ -364,7 +379,7 @@ export default function HardwareNetworkPage() {
       </section>
 
       {/* WiFi Client card (live) */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-medium text-text-primary">WiFi Client</h2>
           <div className="flex items-center gap-2">
@@ -403,7 +418,7 @@ export default function HardwareNetworkPage() {
       </section>
 
       {/* Ethernet card (live) */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-medium text-text-primary">Ethernet</h2>
           <Button
@@ -436,7 +451,7 @@ export default function HardwareNetworkPage() {
       </section>
 
       {/* 4G Modem card (live) */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-medium text-text-primary">4G Modem</h2>
           <Button
@@ -473,8 +488,11 @@ export default function HardwareNetworkPage() {
 
             {modem.data_cap && modem.data_cap.cap_mb > 0 ? (
               <div className="mt-1">
-                <div className="mb-1 text-xs uppercase tracking-wide text-text-secondary">
-                  Data usage
+                <div className="mb-1 flex items-center gap-2">
+                  <span className="text-xs uppercase tracking-wide text-text-secondary">
+                    Data usage
+                  </span>
+                  <HintChip>Caps apply to 4G only. WiFi and Ethernet are uncapped.</HintChip>
                 </div>
                 <DataUsageBar
                   usedMb={modem.data_cap.used_mb}
@@ -488,9 +506,12 @@ export default function HardwareNetworkPage() {
       </section>
 
       {/* Uplink priority */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-medium text-text-primary">Uplink priority</h2>
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-medium text-text-primary">Uplink priority</h2>
+            <HintChip>Drag a row to reorder. The top entry wins on next failover.</HintChip>
+          </div>
           <span className="text-xs text-text-secondary">
             Active: {ifaceLabel(uplink.active)}
           </span>
@@ -515,7 +536,7 @@ export default function HardwareNetworkPage() {
               {recentFailovers.map((entry, idx) => (
                 <li
                   key={entry.timestamp + "-" + idx}
-                  className="flex items-center justify-between rounded border border-border-primary/30 px-2 py-1.5 text-xs"
+                  className="flex items-center justify-between rounded border border-border-default px-2 py-1.5 text-xs"
                 >
                   <span className="text-text-primary">
                     {ifaceLabel(entry.from)} to {ifaceLabel(entry.to)}
@@ -531,7 +552,7 @@ export default function HardwareNetworkPage() {
       </section>
 
       {/* Share uplink advanced toggle */}
-      <section className="rounded-lg border border-border-primary/60 bg-surface-secondary p-5">
+      <section className="rounded border border-border-default bg-bg-secondary p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-medium text-text-primary">Share uplink with AP clients</h2>
@@ -633,6 +654,7 @@ export default function HardwareNetworkPage() {
           />
         </div>
       </Modal>
+      </div>
     </div>
   );
 }
@@ -647,7 +669,7 @@ function StatRow({
   valueClass?: string;
 }) {
   return (
-    <div className="flex items-baseline justify-between border-b border-border-primary/40 py-1.5">
+    <div className="flex items-baseline justify-between border-b border-border-default py-1.5">
       <dt className="text-xs uppercase tracking-wide text-text-secondary">{label}</dt>
       <dd className={"font-mono text-sm " + (valueClass ?? "text-text-primary")}>{value}</dd>
     </div>

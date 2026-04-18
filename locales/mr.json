@@ -2274,10 +2274,43 @@
       "capabilities": "क्षमताएं"
     },
     "edge": {
-      "title": "ADOS Edge RC कंट्रोलर",
-      "stubHeading": "उत्पाद विकास में",
-      "stubBody": "ADOS Edge ओपन-सोर्स RC कंट्रोलर सक्रिय विकास में है। फर्मवेयर रिलीज़ होने पर यह पैनल सक्रिय होगा। altnautica/ADOSEdge पर प्रगति देखें।",
-      "stubBadge": "चरण 4 ट्रैक B"
+      "tabs": {
+        "dashboard": "Dashboard",
+        "models": "Models",
+        "live": "Live input",
+        "telemetry": "Telemetry",
+        "calibrate": "Calibrate",
+        "firmware": "Firmware",
+        "backup": "Backup",
+        "system": "System",
+        "advanced": "Advanced"
+      },
+      "shell": {
+        "connected": "Connected",
+        "disconnected": "Not connected",
+        "firmwareLabel": "firmware",
+        "alpha": "Alpha"
+      },
+      "connect": {
+        "title": "Connect transmitter",
+        "body": "Plug a flashed transmitter in over USB-C, click Connect, and pick the device from the browser prompt.",
+        "buttonConnect": "Connect device",
+        "buttonConnecting": "Connecting...",
+        "buttonDemo": "Connect (demo)",
+        "demoBadge": "Demo",
+        "webserialWarning": "WebSerial needed. Try Chrome, Edge, or Opera on desktop."
+      },
+      "help": {
+        "heading": "Help and reference",
+        "overview": "ADOS Edge overview",
+        "flashing": "Flashing your transmitter",
+        "protocol": "CDC protocol reference",
+        "comingSoon": "Coming soon"
+      },
+      "alpha": {
+        "title": "Alpha release.",
+        "body": "ADOS Edge firmware is in active development. Pending a beta release once stable. Expect rough edges and breaking changes between builds."
+      }
     },
     "androidRc": {
       "title": "ADOS Android RC कंट्रोलर",
@@ -2293,7 +2326,8 @@
       "controllers": "Controllers",
       "peripherals": "Peripherals",
       "distributedRx": "Distributed RX",
-      "mesh": "Mesh"
+      "mesh": "Mesh",
+      "edge": "ADOS Edge"
     },
     "confirms": {
       "unpair": {
@@ -2401,6 +2435,18 @@
       "downloadLogsComingSoon": "Backend bundle endpoint not yet available.",
       "emptyDirect": "This node is in direct mode. Set the role to relay or receiver to view the mesh.",
       "pinHint": "पिन मेश सेवा पुन्हा सुरू झाल्यावर लागू होते. ऑटो परत आणते."
+    },
+    "sidebar": {
+      "heading": "Hardware",
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar",
+      "localOnly": "Local",
+      "agentConnected": "Agent connected",
+      "agentOffline": "Agent offline"
+    },
+    "intro": {
+      "edgeTitle": "ADOS Edge",
+      "edgeDescription": "Open-source RC transmitter firmware. Connect a flashed Pocket over USB-C to manage models, calibrate sticks, watch live input, stream telemetry, and flash new builds."
     }
   },
   "toast": {

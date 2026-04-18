@@ -2274,10 +2274,43 @@
       "capabilities": "功能"
     },
     "edge": {
-      "title": "ADOS Edge RC 控制器",
-      "stubHeading": "产品开发中",
-      "stubBody": "ADOS Edge 开源 RC 控制器正在积极开发中。固件发布后此面板将可用。请在 altnautica/ADOSEdge 跟踪进展。",
-      "stubBadge": "第 4 阶段 B 轨道"
+      "tabs": {
+        "dashboard": "Dashboard",
+        "models": "Models",
+        "live": "Live input",
+        "telemetry": "Telemetry",
+        "calibrate": "Calibrate",
+        "firmware": "Firmware",
+        "backup": "Backup",
+        "system": "System",
+        "advanced": "Advanced"
+      },
+      "shell": {
+        "connected": "Connected",
+        "disconnected": "Not connected",
+        "firmwareLabel": "firmware",
+        "alpha": "Alpha"
+      },
+      "connect": {
+        "title": "Connect transmitter",
+        "body": "Plug a flashed transmitter in over USB-C, click Connect, and pick the device from the browser prompt.",
+        "buttonConnect": "Connect device",
+        "buttonConnecting": "Connecting...",
+        "buttonDemo": "Connect (demo)",
+        "demoBadge": "Demo",
+        "webserialWarning": "WebSerial needed. Try Chrome, Edge, or Opera on desktop."
+      },
+      "help": {
+        "heading": "Help and reference",
+        "overview": "ADOS Edge overview",
+        "flashing": "Flashing your transmitter",
+        "protocol": "CDC protocol reference",
+        "comingSoon": "Coming soon"
+      },
+      "alpha": {
+        "title": "Alpha release.",
+        "body": "ADOS Edge firmware is in active development. Pending a beta release once stable. Expect rough edges and breaking changes between builds."
+      }
     },
     "androidRc": {
       "title": "ADOS 安卓 RC 控制器",
@@ -2293,7 +2326,8 @@
       "controllers": "Controllers",
       "peripherals": "Peripherals",
       "distributedRx": "Distributed RX",
-      "mesh": "Mesh"
+      "mesh": "Mesh",
+      "edge": "ADOS Edge"
     },
     "confirms": {
       "unpair": {
@@ -2401,6 +2435,18 @@
       "downloadLogsComingSoon": "Backend bundle endpoint not yet available.",
       "emptyDirect": "This node is in direct mode. Set the role to relay or receiver to view the mesh.",
       "pinHint": "Pin 在下次网格服务重启时生效。使用 Auto 恢复。"
+    },
+    "sidebar": {
+      "heading": "Hardware",
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar",
+      "localOnly": "Local",
+      "agentConnected": "Agent connected",
+      "agentOffline": "Agent offline"
+    },
+    "intro": {
+      "edgeTitle": "ADOS Edge",
+      "edgeDescription": "Open-source RC transmitter firmware. Connect a flashed Pocket over USB-C to manage models, calibrate sticks, watch live input, stream telemetry, and flash new builds."
     }
   },
   "toast": {

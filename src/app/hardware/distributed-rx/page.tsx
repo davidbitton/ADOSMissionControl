@@ -13,6 +13,8 @@ import { useGroundStationStore } from "@/stores/ground-station-store";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { groundStationApiFromAgent } from "@/lib/api/ground-station-api";
 import { DistributedRxPanel } from "@/components/hardware/DistributedRxPanel";
+import { PageIntro } from "@/components/hardware/PageIntro";
+import { HintChip } from "@/components/hardware/HintChip";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -40,7 +42,14 @@ export default function HardwareDistributedRxPage() {
   }, [agentUrl, apiKey, loadRole, loadDistributedRx]);
 
   return (
-    <div className="px-4 py-4">
+    <div className="flex flex-col">
+      <PageIntro
+        title="Distributed RX"
+        description="Combine multiple ground nodes into one radio receive surface. Set this node's role and watch streams merge."
+        trailing={
+          <HintChip>Direct = solo. Relay forwards. Receiver combines.</HintChip>
+        }
+      />
       <DistributedRxPanel />
     </div>
   );

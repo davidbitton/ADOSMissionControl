@@ -33,7 +33,7 @@ export function CommandPalette() {
   const actions: CommandAction[] = [
     { id: "nav-dashboard", label: t("goToDashboard"), category: t("navigation"), icon: <LayoutDashboard size={14} />, action: () => router.push("/") },
     { id: "nav-plan", label: t("goToPlan"), category: t("navigation"), icon: <Route size={14} />, action: () => router.push("/plan") },
-    { id: "nav-history", label: t("goToHistory"), category: t("navigation"), icon: <History size={14} />, action: () => router.push("/history") },
+    { id: "nav-history", label: t("goToHistory"), category: t("navigation"), icon: <History size={14} />, action: () => router.push("/flight-logs") },
     { id: "nav-analytics", label: t("goToAnalytics"), category: t("navigation"), icon: <BarChart3 size={14} />, action: () => router.push("/analytics") },
     { id: "nav-config", label: t("goToConfig"), category: t("navigation"), icon: <Settings size={14} />, action: () => router.push("/config") },
     { id: "nav-wizard", label: t("goToWizard"), category: t("navigation"), icon: <HeartPulse size={14} />, action: () => router.push("/wizard") },
