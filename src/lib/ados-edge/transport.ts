@@ -81,34 +81,50 @@ export class AdosEdgeTransport {
           filters: [{ usbVendorId: ADOS_EDGE_USB_VID, usbProductId: ADOS_EDGE_USB_PID }],
         }));
 
-      /* Chrome caches the `SerialPort` object per (origin, device). If a
-       * prior session left it with locked streams or a stuck `open()`
-       * transaction, `port.open()` below throws with InvalidStateError
-       * or "already in progress". Probe the stream-lock state first and
-       * surface a clear recovery path. */
+      /* Chrome caches the SerialPort object per (origin, device). If a
+       * prior session left it with locked streams, try to recover by
+       * forgetting the cached grant and re-requesting a fresh port.
+       * Works in Chrome 103+. */
       if (this.port.readable?.locked || this.port.writable?.locked) {
-        throw new Error(
-          "Connection state stuck in the browser. Unplug USB, close this tab fully, and reopen.",
-        );
+        await this.recoverStuckPort();
       }
 
-      if (this.port.readable) {
+      if (this.port && this.port.readable && !this.port.readable.locked) {
         await this.port.close().catch(() => {});
       }
 
       try {
+        if (!this.port) throw new Error("No port selected");
         await this.port.open({ baudRate: ADOS_EDGE_CDC_BAUD });
       } catch (err) {
+        /* Surface the actual DOMException name + message so the user can
+         * see exactly what the browser is complaining about. Generic
+         * "stuck in browser" wording hid the real diagnostic for too long. */
+        const name = err instanceof DOMException ? err.name : "Error";
         const msg = err instanceof Error ? err.message : String(err);
-        if (
-          (err instanceof DOMException && err.name === "InvalidStateError") ||
-          msg.toLowerCase().includes("already in progress")
-        ) {
-          throw new Error(
-            "Connection state stuck in the browser. Unplug USB, close this tab fully, and reopen.",
-          );
+        const detail = `${name}: ${msg}`;
+
+        if (name === "InvalidStateError" || msg.toLowerCase().includes("already in progress")) {
+          /* Port is stuck open from a prior session. Try the forget+retry
+           * recovery once more before surfacing a user-facing error. */
+          const recovered = await this.recoverStuckPort().then(() => true).catch(() => false);
+          if (recovered && this.port) {
+            try {
+              await this.port.open({ baudRate: ADOS_EDGE_CDC_BAUD });
+            } catch (retryErr) {
+              const retryDetail = retryErr instanceof DOMException
+                ? `${retryErr.name}: ${retryErr.message}`
+                : String(retryErr);
+              throw new Error(`WebSerial open failed after recovery. ${retryDetail}`);
+            }
+          } else {
+            throw new Error(`WebSerial open failed: ${detail}. Try unplugging the USB cable and reopening this tab.`);
+          }
+        } else if (name === "NetworkError") {
+          throw new Error(`WebSerial cannot claim the port (${msg}). Another app may have it open. Close Arduino IDE, Serial Monitor, minicom, screen, or any other tool that might be attached.`);
+        } else {
+          throw new Error(`WebSerial open failed: ${detail}`);
         }
-        throw err;
       }
 
       this._connected = true;
@@ -126,6 +142,23 @@ export class AdosEdgeTransport {
     } finally {
       this._opening = false;
     }
+  }
+
+  /* Revoke the cached WebSerial grant and re-request a fresh SerialPort.
+   * Used to unstick cases where a prior tab left the port with locked
+   * streams or a half-open state the browser cannot cancel on its own.
+   * port.forget() is Chrome 103+. If unavailable, leave port as-is. */
+  private async recoverStuckPort(): Promise<void> {
+    if (!this.port) return;
+    const oldPort = this.port;
+    type ForgettableSerialPort = SerialPort & { forget?: () => Promise<void> };
+    const forgetFn = (oldPort as ForgettableSerialPort).forget;
+    if (typeof forgetFn === "function") {
+      await forgetFn.call(oldPort).catch(() => {});
+    }
+    this.port = await navigator.serial.requestPort({
+      filters: [{ usbVendorId: ADOS_EDGE_USB_VID, usbProductId: ADOS_EDGE_USB_PID }],
+    });
   }
 
   private installUnloadHandler(): void {

@@ -32,6 +32,7 @@ import {
   Cesium3DTileset,
   Cesium3DTileStyle,
   type Viewer as CesiumViewer,
+  type TileProviderError,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 
@@ -48,16 +49,47 @@ interface CesiumSceneProps {
   terrainExaggeration?: number;
 }
 
-/** Create dark CARTO imagery layer */
+// Replace Cesium's default `console.error({})` on tile failures with a readable line.
+// The listener must not throw.
+function attachImageryErrorListener(
+  provider: UrlTemplateImageryProvider,
+  label: string
+) {
+  provider.errorEvent.addEventListener((error: TileProviderError) => {
+    try {
+      console.warn("[Cesium imagery]", label, {
+        message: error?.message,
+        x: error?.x,
+        y: error?.y,
+        level: error?.level,
+        timesRetried: error?.timesRetried ?? 0,
+        error: error?.error,
+      });
+    } catch {
+      /* swallow */
+    }
+  });
+}
+
 function createDarkCartoLayer(): ImageryLayer {
-  return new ImageryLayer(
-    new UrlTemplateImageryProvider({
-      url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-      credit: "CARTO",
-      minimumLevel: 0,
-      maximumLevel: 18,
-    })
-  );
+  const provider = new UrlTemplateImageryProvider({
+    url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+    credit: "CARTO",
+    minimumLevel: 0,
+    maximumLevel: 18,
+  });
+  attachImageryErrorListener(provider, "carto-dark");
+  return new ImageryLayer(provider);
+}
+
+function createEsriSatelliteLayer(): ImageryLayer {
+  const provider = new UrlTemplateImageryProvider({
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    credit: new Credit("Esri, Maxar, Earthstar Geographics"),
+    maximumLevel: 18,
+  });
+  attachImageryErrorListener(provider, "esri-world-imagery");
+  return new ImageryLayer(provider);
 }
 
 export default function CesiumScene({
@@ -121,14 +153,16 @@ export default function CesiumScene({
       viewer.imageryLayers.removeAll();
       viewer.imageryLayers.add(createDarkCartoLayer());
 
-      // ArcGIS terrain as initial fallback (upgraded to Cesium World Terrain when token arrives)
-      viewer.scene.setTerrain(
-        new Terrain(
-          ArcGISTiledElevationTerrainProvider.fromUrl(
-            "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer"
-          )
-        )
+      // ArcGIS terrain as initial fallback (upgraded to Cesium World Terrain when token arrives).
+      // Attach a .catch on the provider promise so a rejection surfaces as a readable warning
+      // instead of an unhandled promise rejection that Cesium's error path prints as `{}`.
+      const arcgisTerrainPromise = ArcGISTiledElevationTerrainProvider.fromUrl(
+        "https://elevation3d.arcgis.com/arcgis/rest/services/WorldElevation3D/Terrain3D/ImageServer"
       );
+      arcgisTerrainPromise.catch((err: unknown) => {
+        console.warn("[Cesium terrain] ArcGIS fallback failed", err);
+      });
+      viewer.scene.setTerrain(new Terrain(arcgisTerrainPromise));
 
       // Terrain rendering settings
       viewer.scene.globe.depthTestAgainstTerrain = true;
@@ -161,12 +195,14 @@ export default function CesiumScene({
     if (!viewer || viewer.isDestroyed() || !effectiveToken) return;
 
     Ion.defaultAccessToken = effectiveToken;
-    viewer.scene.setTerrain(
-      Terrain.fromWorldTerrain({
-        requestVertexNormals: true,
-        requestWaterMask: true,
-      })
-    );
+    const worldTerrain = Terrain.fromWorldTerrain({
+      requestVertexNormals: true,
+      requestWaterMask: true,
+    });
+    worldTerrain.errorEvent.addEventListener((err: unknown) => {
+      console.warn("[Cesium terrain] Cesium World Terrain failed", err);
+    });
+    viewer.scene.setTerrain(worldTerrain);
     viewer.scene.requestRender();
   }, [effectiveToken]);
 
@@ -208,15 +244,8 @@ export default function CesiumScene({
     }
 
     if (imageryMode === "satellite") {
-      // Esri World Imagery — free, no token needed, same provider as Leaflet maps
-      const esriLayer = new ImageryLayer(
-        new UrlTemplateImageryProvider({
-          url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-          credit: new Credit("Esri, Maxar, Earthstar Geographics"),
-          maximumLevel: 18,
-        })
-      );
-      crossFade(esriLayer);
+      // Esri World Imagery. Free, no token needed, same provider as Leaflet maps.
+      crossFade(createEsriSatelliteLayer());
     } else {
       crossFade(createDarkCartoLayer());
     }
