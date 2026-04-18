@@ -128,6 +128,24 @@ export class MockCdcClient extends CdcClient {
       if (trimmed.startsWith("FACTORY RESET")) {
         return { ok: true };
       }
+      if (trimmed.startsWith("METRICS ON")) {
+        const parts = trimmed.split(/\s+/);
+        const interval = parts.length >= 3 ? Number(parts[2]) : 100;
+        this.startMetricsTimer(Number.isFinite(interval) ? interval : 100);
+        return { ok: true };
+      }
+      if (trimmed === "METRICS OFF") {
+        this.stopMetricsTimer();
+        return { ok: true };
+      }
+      if (trimmed === "LOGS ON") {
+        this.startLogsTimer();
+        return { ok: true };
+      }
+      if (trimmed === "LOGS OFF") {
+        this.stopLogsTimer();
+        return { ok: true };
+      }
     }
     return { ok: true };
   }
@@ -296,9 +314,98 @@ export class MockCdcClient extends CdcClient {
     this.telemTimer = null;
   }
 
+  private metricsTimer: ReturnType<typeof setInterval> | null = null;
+  private logsTimer: ReturnType<typeof setInterval> | null = null;
+  private logSeq = 0;
+
+  private startMetricsTimer(intervalMs: number): void {
+    if (this.metricsTimer) return;
+    const period = Math.max(20, Math.min(1000, intervalMs));
+    this.metricsTimer = setInterval(() => {
+      const t = (Date.now() - this.startedAt) / 1000;
+      /* Swing the scheduler timings slightly so sparklines have life in
+       * the demo. Occasional spike on the mixer slot exercises the
+       * red-band worst-us indicator. */
+      const wobble = (base: number, amp: number) =>
+        Math.round(base + amp * Math.sin(t + base));
+      const mixerLast = wobble(420, 80);
+      const mixerWorst = Math.max(mixerLast, 900 + (Math.random() < 0.02 ? 800 : 0));
+      this.emit({
+        type: "metrics",
+        sched: {
+          mixer_us: mixerLast,
+          mixer_worst: mixerWorst,
+          crsf_us: wobble(180, 40),
+          crsf_worst: 260,
+          input_us: wobble(110, 30),
+          input_worst: 180,
+          menu_us: wobble(240, 60),
+          menu_worst: 340,
+          telemetry_us: wobble(90, 20),
+          telemetry_worst: 150,
+          usb_us: wobble(70, 15),
+          usb_worst: 120,
+        },
+        crsf_tx: {
+          rate_hz: 500,
+          drops: 0,
+          err: 0,
+        },
+        usb: {
+          cdc_tx: 12000 + Math.round(t * 10),
+          cdc_rx: 8000 + Math.round(t * 4),
+          hid_tx: 168000 + Math.round(t * 50),
+        },
+        iwdg_kicks: Math.round(t * 2),
+        batt: {
+          raw: 2700,
+          mv: 7850 + Math.round(40 * Math.sin(t / 30)),
+          pct: Math.max(0, Math.min(100, Math.round(62 + 3 * Math.sin(t / 40)))),
+        },
+        mcu_temp_c: Math.round(38 + 2 * Math.sin(t / 20)),
+      });
+    }, period);
+  }
+
+  private stopMetricsTimer(): void {
+    if (!this.metricsTimer) return;
+    clearInterval(this.metricsTimer);
+    this.metricsTimer = null;
+  }
+
+  private startLogsTimer(): void {
+    if (this.logsTimer) return;
+    const lines = [
+      { level: "info", msg: "crsf: tx frame 0x16 16ch" },
+      { level: "info", msg: "mixer: tick 500 Hz" },
+      { level: "info", msg: "telem: link rssi -48 dBm lq 100" },
+      { level: "warn", msg: "sched: slot mixer worst 1612 us" },
+      { level: "info", msg: "settings: load ok crc valid" },
+      { level: "error", msg: "elrs: tree-walk timeout on field 11" },
+    ];
+    this.logsTimer = setInterval(() => {
+      const pick = lines[this.logSeq % lines.length];
+      this.logSeq++;
+      this.emit({
+        type: "log",
+        t: Date.now() - this.startedAt,
+        level: pick.level,
+        msg: pick.msg,
+      });
+    }, 600);
+  }
+
+  private stopLogsTimer(): void {
+    if (!this.logsTimer) return;
+    clearInterval(this.logsTimer);
+    this.logsTimer = null;
+  }
+
   shutdown(): void {
     this.stopChannelTimer();
     this.stopTelemTimer();
+    this.stopMetricsTimer();
+    this.stopLogsTimer();
     this.listeners.clear();
   }
 }
