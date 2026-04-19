@@ -104,9 +104,18 @@ export class AdosEdgeTransport {
         const msg = err instanceof Error ? err.message : String(err);
         const detail = `${name}: ${msg}`;
 
-        if (name === "InvalidStateError" || msg.toLowerCase().includes("already in progress")) {
-          /* Port is stuck open from a prior session. Try the forget+retry
-           * recovery once more before surfacing a user-facing error. */
+        if (
+          name === "InvalidStateError" ||
+          name === "NetworkError" ||
+          msg.toLowerCase().includes("already in progress")
+        ) {
+          /* Both branches share the same remedy: revoke the browser's
+           * cached port grant, re-request a port from the picker, and
+           * retry open(). InvalidStateError usually means a prior
+           * session left the port half-open; NetworkError on macOS
+           * typically means the CDC file descriptor has not released
+           * yet after a recent close. Either way forget+retry clears
+           * the stuck state. */
           const recovered = await this.recoverStuckPort().then(() => true).catch(() => false);
           if (recovered && this.port) {
             try {
@@ -115,13 +124,24 @@ export class AdosEdgeTransport {
               const retryDetail = retryErr instanceof DOMException
                 ? `${retryErr.name}: ${retryErr.message}`
                 : String(retryErr);
+              if (name === "NetworkError") {
+                throw new Error(
+                  `WebSerial could not claim the port (${retryDetail}). ` +
+                  `This is usually a transient macOS CDC release. ` +
+                  `Wait 2 seconds and try again, or reload this tab (Cmd+Shift+R) if it persists.`,
+                );
+              }
               throw new Error(`WebSerial open failed after recovery. ${retryDetail}`);
             }
+          } else if (name === "NetworkError") {
+            throw new Error(
+              `WebSerial could not claim the port (${msg}). ` +
+              `If no other app has it open, this is a transient macOS CDC release. ` +
+              `Wait 2 seconds and try again, or reload this tab (Cmd+Shift+R).`,
+            );
           } else {
             throw new Error(`WebSerial open failed: ${detail}. Try unplugging the USB cable and reopening this tab.`);
           }
-        } else if (name === "NetworkError") {
-          throw new Error(`WebSerial cannot claim the port (${msg}). Another app may have it open. Close Arduino IDE, Serial Monitor, minicom, screen, or any other tool that might be attached.`);
         } else {
           throw new Error(`WebSerial open failed: ${detail}`);
         }
@@ -223,13 +243,37 @@ export class AdosEdgeTransport {
   }
 
   private async readLoop(): Promise<void> {
+    /* macOS CDC occasionally surfaces a transient done=true under load
+     * when multiple panels mount and fire commands back to back. Treat
+     * a single done=true as a warning: wait a beat, try to re-acquire
+     * the reader, and keep going. Only if the second read also fails
+     * do we accept the stream as genuinely closed and emit close. */
+    let transientDoneAlreadyAbsorbed = false;
+
     while (this._connected && this.reader) {
       try {
         const { value, done } = await this.reader.read();
         if (done) {
+          if (!this._closing && !transientDoneAlreadyAbsorbed && this.port?.readable) {
+            transientDoneAlreadyAbsorbed = true;
+            /* Release the current locked reader so we can re-acquire. */
+            try {
+              this.reader.releaseLock();
+            } catch {
+              /* lock may already be released by the browser */
+            }
+            await new Promise((r) => setTimeout(r, 50));
+            if (this.port?.readable && !this.port.readable.locked) {
+              this.reader = this.port.readable.getReader();
+              continue;
+            }
+          }
           break;
         }
         if (!value) continue;
+        /* Successful read resets the transient budget so the next
+         * real close-after-a-long-idle still fires once (not twice). */
+        transientDoneAlreadyAbsorbed = false;
         this.readBuffer += this.decoder.decode(value, { stream: true });
 
         let newlineAt = this.readBuffer.indexOf("\n");
