@@ -1,6 +1,6 @@
 /**
  * GPS waypoint routes for demo drones.
- * Each path is a closed loop — drone cycles through waypoints continuously.
+ * Each path is a closed loop : drone cycles through waypoints continuously.
  */
 
 export interface PathWaypoint {
@@ -11,7 +11,7 @@ export interface PathWaypoint {
 }
 
 /**
- * Path 0: Alpha-1 — Security patrol loop (Bangalore, HAL area).
+ * Path 0: Alpha-1 : Security patrol loop (Bangalore, HAL area).
  */
 const PATROL_LOOP_A: PathWaypoint[] = [
   { lat: 12.950, lon: 77.666, alt: 40, speed: 8 },
@@ -25,7 +25,7 @@ const PATROL_LOOP_A: PathWaypoint[] = [
 ];
 
 /**
- * Path 1: Bravo-2 — Survey grid pattern (Bangalore, Whitefield area).
+ * Path 1: Bravo-2 : Survey grid pattern (Bangalore, Whitefield area).
  */
 const SURVEY_GRID_A: PathWaypoint[] = [
   { lat: 12.955, lon: 77.673, alt: 80, speed: 5 },
@@ -43,7 +43,7 @@ const SURVEY_GRID_A: PathWaypoint[] = [
 ];
 
 /**
- * Path 2: Echo-5 — SAR search pattern (Bangalore, south of HAL).
+ * Path 2: Echo-5 : SAR search pattern (Bangalore, south of HAL).
  */
 const SAR_SEARCH_A: PathWaypoint[] = [
   { lat: 12.940, lon: 77.683, alt: 60, speed: 10 },
@@ -57,7 +57,7 @@ const SAR_SEARCH_A: PathWaypoint[] = [
 ];
 
 /**
- * Path 3: Foxtrot — iNav quadcopter survey loop (SW Bangalore offset).
+ * Path 3: Foxtrot : iNav quadcopter survey loop (SW Bangalore offset).
  */
 const INAV_QUAD_LOOP: PathWaypoint[] = [
   { lat: 12.925, lon: 77.600, alt: 50, speed: 6 },
@@ -69,7 +69,7 @@ const INAV_QUAD_LOOP: PathWaypoint[] = [
 ];
 
 /**
- * Path 4: Golf — iNav fixed-wing circuit (SW Bangalore, wider loop).
+ * Path 4: Golf : iNav fixed-wing circuit (SW Bangalore, wider loop).
  */
 const INAV_FW_CIRCUIT: PathWaypoint[] = [
   { lat: 12.920, lon: 77.595, alt: 80, speed: 15 },

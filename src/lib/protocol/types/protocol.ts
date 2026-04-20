@@ -1,5 +1,5 @@
 /**
- * Main DroneProtocol interface — the top-level API surface for the GCS.
+ * Main DroneProtocol interface : the top-level API surface for the GCS.
  *
  * @module protocol/types/protocol
  */
@@ -30,7 +30,7 @@ import type {
 } from './callbacks';
 import type { MissionItem, LogEntry, LogDownloadProgressCallback } from './mission';
 import type { FirmwareHandler } from './firmware';
-// iNav-specific types — optional so MAVLink adapter needs no changes
+// iNav-specific types : optional so MAVLink adapter needs no changes
 import type { INavSafehome, INavGeozone, INavGeozoneVertex } from '../msp/msp-decoders-inav';
 
 /**

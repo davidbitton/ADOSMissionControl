@@ -31,11 +31,11 @@ const ZONE_SHAPE_OPTIONS = [
 ];
 
 const FENCE_ACTION_OPTIONS = [
-  { value: "0", label: "0 — None" },
-  { value: "1", label: "1 — Avoid" },
-  { value: "2", label: "2 — RTH on breach" },
-  { value: "3", label: "3 — Poshold indefinite" },
-  { value: "4", label: "4 — Poshold timed" },
+  { value: "0", label: "0 : None" },
+  { value: "1", label: "1 : Avoid" },
+  { value: "2", label: "2 : RTH on breach" },
+  { value: "3", label: "3 : Poshold indefinite" },
+  { value: "4", label: "4 : Poshold timed" },
 ];
 
 // ── Component ─────────────────────────────────────────────────
@@ -138,7 +138,7 @@ export function GeozonePanel() {
 
         {dirty && (
           <p className="text-[10px] font-mono text-status-warning">
-            Unsaved changes — use Write to FC to persist.
+            Unsaved changes : use Write to FC to persist.
           </p>
         )}
 

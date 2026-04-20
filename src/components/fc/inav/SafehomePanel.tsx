@@ -99,7 +99,7 @@ export function SafehomePanel() {
 
         {dirty && (
           <p className="text-[10px] font-mono text-status-warning">
-            Unsaved changes — use Write to FC to persist.
+            Unsaved changes : use Write to FC to persist.
           </p>
         )}
 

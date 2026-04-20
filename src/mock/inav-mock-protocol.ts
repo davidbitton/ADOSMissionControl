@@ -1,5 +1,5 @@
 /**
- * INavMockProtocol — DroneProtocol implementation for iNav demo mode.
+ * INavMockProtocol : DroneProtocol implementation for iNav demo mode.
  *
  * Simulates an iNav flight controller over MSP, with in-memory state for
  * settings, waypoint missions, safehomes, and geozones. Telemetry fires at
@@ -232,7 +232,7 @@ export class INavMockProtocol implements DroneProtocol {
   /**
    * Write a named iNav setting into in-memory state.
    *
-   * Throws if the name is unknown (matches FC behaviour — the real FC rejects
+   * Throws if the name is unknown (matches FC behaviour : the real FC rejects
    * unknown setting names). Type coercion: numeric types accept numbers;
    * string type accepts strings; passing a string to a numeric type throws.
    */
@@ -291,7 +291,7 @@ export class INavMockProtocol implements DroneProtocol {
   async setCurrentMissionItem(): Promise<CommandResult> { return ok("Mission item set"); }
   async clearMission(): Promise<CommandResult> { this.waypoints = []; return ok("Mission cleared"); }
 
-  /** Read the raw INavWaypoint slots — used by tests and iNav-specific panels. */
+  /** Read the raw INavWaypoint slots : used by tests and iNav-specific panels. */
   getINavWaypoints(): INavWaypoint[] { return [...this.waypoints]; }
 
   // ── Safehome CRUD (iNav-only surface) ───────────────────────

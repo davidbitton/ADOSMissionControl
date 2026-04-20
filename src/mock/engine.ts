@@ -1,5 +1,5 @@
 /**
- * MockFlightEngine — Core simulation loop for demo mode.
+ * MockFlightEngine : Core simulation loop for demo mode.
  *
  * Writes directly to Zustand stores at configurable tick rate.
  * Components consume store data identically whether mock or real.
@@ -267,7 +267,7 @@ class MockFlightEngine {
       fleetStore.updateDrone(cfg.id, droneUpdate);
 
       if (cfg.id === selectedId && state.protocol instanceof MockProtocol) {
-        // DroneCAN bus simulation — feeds CAN_FRAME events into the
+        // DroneCAN bus simulation : feeds CAN_FRAME events into the
         // selected drone's protocol so the CAN Monitor panel lights up.
         mockCanBus.tick(state.protocol, now);
 
