@@ -27,6 +27,7 @@ import { createCallbackStore, bindCallbackMethods } from './mavlink-adapter-call
 import { dispatchMspTelemetry } from './msp-adapter-telemetry'
 import * as cmds from './msp-adapter-commands'
 import * as prm from './msp-adapter-params'
+import { SettingsClient } from './msp/settings'
 
 function u8(buf: Uint8Array, offset: number): number { return buf[offset] }
 
@@ -45,6 +46,7 @@ export class MSPAdapter implements DroneProtocol {
   private modeRanges: ModeRange[] = []
   private paramCache: Map<number, Uint8Array> = new Map()
   private paramNameCache: string[] = []
+  private settingsClient: SettingsClient | null = null
   private cbs = createCallbackStore()
   private cbm = bindCallbackMethods(this.cbs)
   private dataHandler: ((data: Uint8Array) => void) | null = null
@@ -65,6 +67,7 @@ export class MSPAdapter implements DroneProtocol {
     transport.on('close', this.closeHandler as (data: void) => void)
 
     this.queue = new MspSerialQueue(transport.send.bind(transport), this.parser, 1000, 2)
+    this.settingsClient = new SettingsClient(this.queue)
 
     const apiVersionFrame = await this.queue.send(MSP.MSP_API_VERSION)
     const apiVersionMajor = u8(apiVersionFrame.payload, 1)
@@ -119,7 +122,7 @@ export class MSPAdapter implements DroneProtocol {
     this._connected = false
     if (this.poller) { this.poller.stop(); this.poller = null }
     if (this.queue) { this.queue.destroy(); this.queue = null }
-    this.parser.reset(); this.paramCache.clear(); this.paramNameCache = []; this.inCliMode = false
+    this.parser.reset(); this.paramCache.clear(); this.paramNameCache = []; this.inCliMode = false; this.settingsClient = null
     if (this.transport && this.dataHandler) {
       this.transport.off('data', this.dataHandler)
       this.transport.off('close', this.closeHandler as (data: void) => void)
@@ -167,6 +170,29 @@ export class MSPAdapter implements DroneProtocol {
   async getParameter(name: string) { return prm.mspGetParameter(this.prmCtx, name) }
   async setParameter(name: string, value: number, _type?: number) { return prm.mspSetParameter(this.prmCtx, name, value) }
   getCachedParameterNames(): string[] { return this.paramNameCache }
+
+  // ── iNav name-based settings ────────────────────────────────
+  /**
+   * Read a named iNav setting. Returns the raw bytes.
+   * Only available when connected to iNav firmware.
+   * Throws if not connected or if the setting is unknown.
+   */
+  async getSetting(name: string): Promise<Uint8Array> {
+    if (!this.settingsClient) throw new Error('Not connected')
+    return this.settingsClient.getRaw(name)
+  }
+
+  /**
+   * Write a named iNav setting by raw bytes.
+   * Only available when connected to iNav firmware.
+   */
+  async setSetting(name: string, rawValue: Uint8Array): Promise<void> {
+    if (!this.settingsClient) throw new Error('Not connected')
+    return this.settingsClient.setRaw(name, rawValue)
+  }
+
+  /** Direct access to the SettingsClient for callers that need typed reads. */
+  get settings(): SettingsClient | null { return this.settingsClient }
 
   // ── Serial Passthrough ──────────────────────────────────────
   sendSerialData(text: string): void {
@@ -224,6 +250,12 @@ export class MSPAdapter implements DroneProtocol {
       supportsBetaflightConfig: false, supportsGpsConfig: false,
       supportsRateProfiles: false, supportsAdjustments: false,
       supportsMavlinkSigning: false,
+      supportsMultiMission: false, supportsSafehome: false, supportsGeozone: false,
+      supportsLogicConditions: false, supportsGlobalVariables: false, supportsProgrammingPid: false,
+      supportsEzTune: false, supportsFwApproach: false, supportsCustomOsd: false,
+      supportsMixerProfile: false, supportsBatteryProfile: false, supportsTempSensors: false,
+      supportsServoMixer: false, supportsOutputMappingExt: false, supportsRateDynamics: false,
+      supportsMcBraking: false, supportsSettings: false,
       manualControlHz: 50, parameterCount: 0,
     }
   }
