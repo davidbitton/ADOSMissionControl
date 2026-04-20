@@ -78,6 +78,24 @@ export const ARDUPILOT_CAPABILITIES: ProtocolCapabilities = {
   // Defaults to true here because ArduPilot 4.0+ is the primary target
   // and the runtime check will downgrade old or stripped builds.
   supportsMavlinkSigning: true,
+  // iNav-specific capabilities
+  supportsMultiMission: false,
+  supportsSafehome: false,
+  supportsGeozone: false,
+  supportsLogicConditions: false,
+  supportsGlobalVariables: false,
+  supportsProgrammingPid: false,
+  supportsEzTune: false,
+  supportsFwApproach: false,
+  supportsCustomOsd: false,
+  supportsMixerProfile: false,
+  supportsBatteryProfile: false,
+  supportsTempSensors: false,
+  supportsServoMixer: false,
+  supportsOutputMappingExt: false,
+  supportsRateDynamics: false,
+  supportsMcBraking: false,
+  supportsSettings: false,
   manualControlHz: 50,
   parameterCount: 1500,
 }

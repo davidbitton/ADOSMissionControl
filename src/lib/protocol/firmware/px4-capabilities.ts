@@ -53,6 +53,24 @@ export const PX4_CAPABILITIES: ProtocolCapabilities = {
   // Operators would have to re-provision the key on every reboot. Not
   // supported until upstream lands persistent storage.
   supportsMavlinkSigning: false,
+  // iNav-specific capabilities
+  supportsMultiMission: false,
+  supportsSafehome: false,
+  supportsGeozone: false,
+  supportsLogicConditions: false,
+  supportsGlobalVariables: false,
+  supportsProgrammingPid: false,
+  supportsEzTune: false,
+  supportsFwApproach: false,
+  supportsCustomOsd: false,
+  supportsMixerProfile: false,
+  supportsBatteryProfile: false,
+  supportsTempSensors: false,
+  supportsServoMixer: false,
+  supportsOutputMappingExt: false,
+  supportsRateDynamics: false,
+  supportsMcBraking: false,
+  supportsSettings: false,
   manualControlHz: 50,
   parameterCount: 1000,
 }

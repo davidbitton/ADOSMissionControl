@@ -96,6 +96,41 @@ export interface ProtocolCapabilities {
    * PX4 false for now (no persistent on-board key store).
    */
   supportsMavlinkSigning: boolean;
+  // iNav-specific capabilities
+  /** Multi-mission storage and selection */
+  supportsMultiMission: boolean;
+  /** Safehome positions (fallback landing sites) */
+  supportsSafehome: boolean;
+  /** Geofence zones with polygon and circular shapes */
+  supportsGeozone: boolean;
+  /** Logic conditions (programmable IF/THEN rules) */
+  supportsLogicConditions: boolean;
+  /** Global variables (shared numeric state for logic conditions) */
+  supportsGlobalVariables: boolean;
+  /** Programming PIDs (programmable PID controllers) */
+  supportsProgrammingPid: boolean;
+  /** EzTune (simplified tuning interface) */
+  supportsEzTune: boolean;
+  /** Fixed-wing approach configuration per safehome */
+  supportsFwApproach: boolean;
+  /** Custom OSD elements (user-defined screen items) */
+  supportsCustomOsd: boolean;
+  /** Mixer profile switching */
+  supportsMixerProfile: boolean;
+  /** Battery profile switching */
+  supportsBatteryProfile: boolean;
+  /** Temperature sensor configuration and readings */
+  supportsTempSensors: boolean;
+  /** Servo mixer rule configuration */
+  supportsServoMixer: boolean;
+  /** Extended output mapping (timer/function labels) */
+  supportsOutputMappingExt: boolean;
+  /** Rate dynamics (input filter for rate control) */
+  supportsRateDynamics: boolean;
+  /** Multicopter braking configuration */
+  supportsMcBraking: boolean;
+  /** Name-based settings via MSP2_COMMON_SETTING */
+  supportsSettings: boolean;
   // Metadata
   manualControlHz: number;
   parameterCount: number;

@@ -3,7 +3,8 @@
  *
  * iNav uses MSP protocol (like Betaflight) but adds navigation modes
  * (NAV POSHOLD, NAV RTH, NAV WP, NAV CRUISE, NAV LAUNCH) on top of
- * the standard Betaflight box-mode system.
+ * the standard Betaflight box-mode system. Extended capabilities include
+ * safehomes, geozones, logic conditions, programming PIDs, and more.
  *
  * Mode encoding uses iNav box IDs. iNav activates modes via AUX channel
  * ranges (same mechanism as Betaflight), but the box IDs differ for
@@ -63,6 +64,23 @@ const MODE_TO_INAV_BOX: Partial<Record<UnifiedFlightMode, number>> = {
 }
 
 // ---------------------------------------------------------------------------
+// Version helpers
+// ---------------------------------------------------------------------------
+
+/** Minimum iNav major version we officially support. */
+export const INAV_MIN_MAJOR = 7;
+
+/**
+ * Check whether a firmware version string such as "iNav 7.0.1" or
+ * "INAV 7.1.0 (MSP API 2.5)" meets the minimum supported major version.
+ */
+export function meetsInavMinimum(firmwareVersionString: string): boolean {
+  const m = firmwareVersionString.match(/(\d+)\.(\d+)\.(\d+)/);
+  if (!m) return false;
+  return Number(m[1]) >= INAV_MIN_MAJOR;
+}
+
+// ---------------------------------------------------------------------------
 // iNav capabilities
 // ---------------------------------------------------------------------------
 
@@ -105,6 +123,24 @@ const INAV_CAPABILITIES: ProtocolCapabilities = {
   supportsRateProfiles: true,
   supportsAdjustments: true,
   supportsMavlinkSigning: false,
+  // iNav-specific capabilities
+  supportsMultiMission: true,
+  supportsSafehome: true,
+  supportsGeozone: true,
+  supportsLogicConditions: true,
+  supportsGlobalVariables: true,
+  supportsProgrammingPid: true,
+  supportsEzTune: true,
+  supportsFwApproach: true,
+  supportsCustomOsd: true,
+  supportsMixerProfile: true,
+  supportsBatteryProfile: true,
+  supportsTempSensors: true,
+  supportsServoMixer: true,
+  supportsOutputMappingExt: true,
+  supportsRateDynamics: true,
+  supportsMcBraking: true,
+  supportsSettings: true,
   manualControlHz: 50,
   parameterCount: 400,
 }
