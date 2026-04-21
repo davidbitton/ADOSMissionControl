@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * @module DroneNetEnrollmentCard
- * @description Shows DroneNet enrollment status or enrollment form.
+ * @module MeshNetEnrollmentCard
+ * @description Shows MeshNet enrollment status or enrollment form.
  * @license GPL-3.0-only
  */
 
@@ -11,7 +11,7 @@ import { Globe, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAgentScriptsStore } from "@/stores/agent-scripts-store";
 
-export function DroneNetEnrollmentCard() {
+export function MeshNetEnrollmentCard() {
   const enrollment = useAgentScriptsStore((s) => s.enrollment);
   const fetchEnrollment = useAgentScriptsStore((s) => s.fetchEnrollment);
 
@@ -27,7 +27,7 @@ export function DroneNetEnrollmentCard() {
         <div className="flex items-center gap-2 mb-3">
           <Globe size={14} className="text-accent-primary" />
           <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-            DroneNet Enrollment
+            MeshNet Enrollment
           </h3>
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium rounded bg-status-success/15 text-status-success ml-auto">
             <Check size={10} />
@@ -69,12 +69,12 @@ export function DroneNetEnrollmentCard() {
       <div className="flex items-center gap-2 mb-3">
         <Globe size={14} className="text-text-tertiary" />
         <h3 className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-          DroneNet Enrollment
+          MeshNet Enrollment
         </h3>
         <span className="text-[10px] text-text-tertiary ml-auto">Not enrolled</span>
       </div>
       <p className="text-xs text-text-tertiary mb-3">
-        Join a DroneNet fleet for cloud telemetry, fleet management, and swarm coordination.
+        Join a MeshNet fleet for cloud telemetry, fleet management, and swarm coordination.
       </p>
       <button className="px-3 py-1.5 text-xs bg-accent-primary text-white rounded hover:opacity-90 transition-opacity">
         Enroll Now

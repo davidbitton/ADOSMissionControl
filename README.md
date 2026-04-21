@@ -83,7 +83,7 @@ Command any drone from any browser. ADOS Mission Control is a full-stack ground 
     </td>
     <td width="50%">
       <img src="public/screenshots/drone-agent-fleet.png" alt="Fleet Network" height="220" width="100%"><br>
-      <sub>DroneNet fleet enrollment, MQTT gateway status, mesh radio peers, and network topology</sub>
+      <sub>MeshNet fleet enrollment, MQTT gateway status, mesh radio peers, and network topology</sub>
     </td>
   </tr>
   <tr>

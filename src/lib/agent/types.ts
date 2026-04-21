@@ -129,7 +129,7 @@ export interface SuiteInfo {
   category: "security" | "mapping" | "agriculture" | "logistics" | "rescue" | "inspection";
 }
 
-export interface DroneNetEnrollment {
+export interface MeshNetEnrollment {
   enrolled: boolean;
   droneId?: string;
   fleetName?: string;

@@ -14,7 +14,7 @@ import type {
   ScriptInfo,
   ScriptRunResult,
   SuiteInfo,
-  DroneNetEnrollment,
+  MeshNetEnrollment,
   NetworkPeer,
   PairingInfo,
   ClaimResponse,
@@ -231,7 +231,7 @@ export const MOCK_SUITES: SuiteInfo[] = [
 
 // ── Mock Enrollment ─────────────────────────────────────────
 
-export const MOCK_ENROLLMENT: DroneNetEnrollment = {
+export const MOCK_ENROLLMENT: MeshNetEnrollment = {
   enrolled: true,
   droneId: "ados-alpha-1-cm4",
   fleetName: "Alpha Fleet",
@@ -585,7 +585,7 @@ export class MockAgentClient {
 
   // ── Fleet ───────────────────────────────────────────────
 
-  async getEnrollment(): Promise<DroneNetEnrollment> {
+  async getEnrollment(): Promise<MeshNetEnrollment> {
     await delay(60);
     return { ...MOCK_ENROLLMENT };
   }

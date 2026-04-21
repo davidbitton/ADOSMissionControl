@@ -9,7 +9,7 @@ import type {
   ScriptInfo,
   ScriptRunResult,
   SuiteInfo,
-  DroneNetEnrollment,
+  MeshNetEnrollment,
   NetworkPeer,
 } from "@/lib/agent/types";
 import { getBuiltInSamples } from "@/lib/agent/sample-scripts";
@@ -33,7 +33,7 @@ interface AgentScriptsState {
   scriptOutput: ScriptRunResult | null;
   runningScript: string | null;
   suites: SuiteInfo[];
-  enrollment: DroneNetEnrollment | null;
+  enrollment: MeshNetEnrollment | null;
   peers: NetworkPeer[];
 }
 

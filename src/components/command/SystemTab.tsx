@@ -42,7 +42,7 @@ import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
 import { AgentDisconnectedPage } from "./AgentDisconnectedPage";
 import { BoardPinoutView } from "./shared/BoardPinoutView";
 import { ServiceTable } from "./shared/ServiceTable";
-import { DroneNetEnrollmentCard } from "./shared/DroneNetEnrollmentCard";
+import { MeshNetEnrollmentCard } from "./shared/MeshNetEnrollmentCard";
 import type { PeripheralInfo } from "@/lib/agent/types";
 
 // ── Category colors for peripheral cards ──
@@ -538,8 +538,8 @@ export function SystemTab() {
         defaultOpen={false}
         badge={peers.length > 0 ? peers.length : undefined}
       >
-        {/* DroneNet Enrollment */}
-        <DroneNetEnrollmentCard />
+        {/* MeshNet Enrollment */}
+        <MeshNetEnrollmentCard />
 
         {/* MQTT Status & Config */}
         <div className="border border-border-default rounded-lg p-4 bg-bg-secondary">

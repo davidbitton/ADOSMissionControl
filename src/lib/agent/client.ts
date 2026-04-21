@@ -15,7 +15,7 @@ import type {
   ScriptInfo,
   ScriptRunResult,
   SuiteInfo,
-  DroneNetEnrollment,
+  MeshNetEnrollment,
   NetworkPeer,
   PairingInfo,
   ClaimResponse,
@@ -203,8 +203,8 @@ export class AgentClient {
 
   // ── Fleet ───────────────────────────────────────────────
 
-  async getEnrollment(): Promise<DroneNetEnrollment> {
-    return this.request<DroneNetEnrollment>("/api/fleet/enrollment");
+  async getEnrollment(): Promise<MeshNetEnrollment> {
+    return this.request<MeshNetEnrollment>("/api/fleet/enrollment");
   }
 
   async getPeers(): Promise<NetworkPeer[]> {
