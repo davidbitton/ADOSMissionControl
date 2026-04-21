@@ -78,15 +78,15 @@ export const INAV_MSP = {
   // MSPv1 iNav navigation commands
   MSP_NAV_POSHOLD: 0x0c,
   MSP_SET_NAV_POSHOLD: 0x0d,
-  MSP_RTH_AND_LAND_CONFIG: 0x14,
-  MSP_SET_RTH_AND_LAND_CONFIG: 0x15,
-  MSP_FW_CONFIG: 0x16,
-  MSP_SET_FW_CONFIG: 0x17,
+  MSP_RTH_AND_LAND_CONFIG: 21,
+  MSP_SET_RTH_AND_LAND_CONFIG: 22,
+  MSP_FW_CONFIG: 23,
+  MSP_SET_FW_CONFIG: 24,
 
   // Waypoint mission storage
-  MSP_WP_MISSION_LOAD: 0x1d2,
-  MSP_WP_MISSION_SAVE: 0x1d3,
-  MSP_WP_GETINFO: 0x1f4,
+  MSP_WP_MISSION_LOAD: 18,
+  MSP_WP_MISSION_SAVE: 19,
+  MSP_WP_GETINFO: 20,
   MSP_SET_HOME_POSITION: 0xd9,
 
   // MSP2 common settings system
@@ -1110,8 +1110,9 @@ export function decodeMspINavServoMixer(dv: DataView): INavServoMixerRule[] {
  */
 export function decodeMspINavLogicConditions(dv: DataView): INavLogicCondition[] {
   const result: INavLogicCondition[] = [];
+  const ENTRY = 14;
   let offset = 0;
-  while (offset + 12 <= dv.byteLength) {
+  while (offset + ENTRY <= dv.byteLength) {
     result.push({
       enabled: readU8(dv, offset) !== 0,
       activatorId: readU8(dv, offset + 1),
@@ -1119,10 +1120,10 @@ export function decodeMspINavLogicConditions(dv: DataView): INavLogicCondition[]
       operandAType: readU8(dv, offset + 3),
       operandAValue: readS32(dv, offset + 4),
       operandBType: readU8(dv, offset + 8),
-      operandBValue: dv.byteLength >= offset + 13 ? readS32(dv, offset + 9) : 0,
-      flags: dv.byteLength >= offset + 14 ? readU8(dv, offset + 13) : 0,
+      operandBValue: readS32(dv, offset + 9),
+      flags: readU8(dv, offset + 13),
     });
-    offset += 14;
+    offset += ENTRY;
   }
   return result;
 }
@@ -1138,13 +1139,14 @@ export function decodeMspINavLogicConditions(dv: DataView): INavLogicCondition[]
  */
 export function decodeMspINavLogicConditionsStatus(dv: DataView): INavLogicConditionsStatus[] {
   const result: INavLogicConditionsStatus[] = [];
+  const ENTRY = 5;
   let offset = 0;
-  while (offset + 4 < dv.byteLength) {
+  while (offset + ENTRY <= dv.byteLength) {
     result.push({
       id: readU8(dv, offset),
       value: readS32(dv, offset + 1),
     });
-    offset += 5;
+    offset += ENTRY;
   }
   return result;
 }
@@ -1182,8 +1184,9 @@ export function decodeMspINavGvarStatus(dv: DataView): INavGvarStatus {
  */
 export function decodeMspINavProgrammingPid(dv: DataView): INavProgrammingPid[] {
   const result: INavProgrammingPid[] = [];
+  const ENTRY = 15;
   let offset = 0;
-  while (offset + 14 <= dv.byteLength) {
+  while (offset + ENTRY <= dv.byteLength) {
     result.push({
       enabled: readU8(dv, offset) !== 0,
       setpointType: readU8(dv, offset + 1),
@@ -1191,13 +1194,13 @@ export function decodeMspINavProgrammingPid(dv: DataView): INavProgrammingPid[] 
       measurementType: readU8(dv, offset + 6),
       measurementValue: readS32(dv, offset + 7),
       gains: {
-        P: dv.byteLength >= offset + 15 ? readU8(dv, offset + 11) : 0,
-        I: dv.byteLength >= offset + 16 ? readU8(dv, offset + 12) : 0,
-        D: dv.byteLength >= offset + 17 ? readU8(dv, offset + 13) : 0,
-        FF: dv.byteLength >= offset + 18 ? readU8(dv, offset + 14) : 0,
+        P: readU8(dv, offset + 11),
+        I: readU8(dv, offset + 12),
+        D: readU8(dv, offset + 13),
+        FF: readU8(dv, offset + 14),
       },
     });
-    offset += 15;
+    offset += ENTRY;
   }
   return result;
 }
@@ -1213,13 +1216,14 @@ export function decodeMspINavProgrammingPid(dv: DataView): INavProgrammingPid[] 
  */
 export function decodeMspINavProgrammingPidStatus(dv: DataView): INavProgrammingPidStatus[] {
   const result: INavProgrammingPidStatus[] = [];
+  const ENTRY = 5;
   let offset = 0;
-  while (offset + 4 < dv.byteLength) {
+  while (offset + ENTRY <= dv.byteLength) {
     result.push({
       id: readU8(dv, offset),
       output: readS32(dv, offset + 1),
     });
-    offset += 5;
+    offset += ENTRY;
   }
   return result;
 }

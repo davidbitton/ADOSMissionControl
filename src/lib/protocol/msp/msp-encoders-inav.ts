@@ -262,7 +262,7 @@ export function encodeMspINavSelectMixerProfile(idx: number): Uint8Array {
  * U8  flags
  */
 export function encodeMspINavSetServoConfig(idx: number, cfg: INavServoConfig): Uint8Array {
-  const buf = new Uint8Array(12)
+  const buf = new Uint8Array(13)
   const dv = new DataView(buf.buffer)
 
   writeU8(dv, 0, idx & 0xff)
@@ -272,6 +272,7 @@ export function encodeMspINavSetServoConfig(idx: number, cfg: INavServoConfig): 
   dv.setInt16(7, cfg.middle, true)
   writeU8(dv, 9, cfg.forwardFromChannel)
   writeU16(dv, 10, cfg.reversedInputSources)
+  writeU8(dv, 12, cfg.flags)
 
   return buf
 }

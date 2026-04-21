@@ -217,16 +217,24 @@ function encodeSettingValue(value: number | string, type: number): Uint8Array {
     case SettingType.INT8: {
       return new Uint8Array([Number(value) & 0xff])
     }
-    case SettingType.UINT16:
-    case SettingType.INT16: {
+    case SettingType.UINT16: {
       const buf = new Uint8Array(2)
       new DataView(buf.buffer).setUint16(0, Number(value), true)
       return buf
     }
-    case SettingType.UINT32:
-    case SettingType.INT32: {
+    case SettingType.INT16: {
+      const buf = new Uint8Array(2)
+      new DataView(buf.buffer).setInt16(0, Number(value), true)
+      return buf
+    }
+    case SettingType.UINT32: {
       const buf = new Uint8Array(4)
       new DataView(buf.buffer).setUint32(0, Number(value), true)
+      return buf
+    }
+    case SettingType.INT32: {
+      const buf = new Uint8Array(4)
+      new DataView(buf.buffer).setInt32(0, Number(value), true)
       return buf
     }
     case SettingType.FLOAT: {
