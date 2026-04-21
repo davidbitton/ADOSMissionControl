@@ -35,7 +35,9 @@ import type {
   INavSafehome, INavGeozone, INavGeozoneVertex,
   INavBatteryConfig, INavMixer, INavServoConfig,
   INavMcBraking, INavRateDynamics, INavTimerOutputModeEntry, INavOutputMappingExt2Entry,
-  INavTempSensorConfigEntry,
+  INavTempSensorConfigEntry, INavLogicCondition, INavLogicConditionsStatus,
+  INavGvarStatus, INavProgrammingPid, INavProgrammingPidStatus,
+  INavEzTune, INavFwApproach, INavOsdAlarms, INavOsdPreferences, INavOsdLayoutsHeader,
 } from '../msp/msp-decoders-inav';
 
 /**
@@ -127,6 +129,25 @@ export interface DroneProtocol {
   setMcBraking?(b: INavMcBraking): Promise<CommandResult>;
   getRateDynamics?(): Promise<INavRateDynamics>;
   setRateDynamics?(r: INavRateDynamics): Promise<CommandResult>;
+  getEzTune?(): Promise<INavEzTune>;
+  setEzTune?(cfg: INavEzTune): Promise<CommandResult>;
+  getFwApproach?(): Promise<INavFwApproach[]>;
+  setFwApproach?(a: INavFwApproach): Promise<CommandResult>;
+  getOsdLayoutsHeader?(): Promise<INavOsdLayoutsHeader>;
+  getOsdAlarms?(): Promise<INavOsdAlarms>;
+  setOsdAlarms?(a: INavOsdAlarms): Promise<CommandResult>;
+  getOsdPreferences?(): Promise<INavOsdPreferences>;
+  setOsdPreferences?(p: INavOsdPreferences): Promise<CommandResult>;
+  setCustomOsdElement?(el: { index: number; visible: boolean; text: string }): Promise<CommandResult>;
+
+  // ── iNav Programming Framework ────────────────────────────
+  downloadLogicConditions?(): Promise<INavLogicCondition[]>;
+  uploadLogicCondition?(idx: number, rule: INavLogicCondition): Promise<CommandResult>;
+  downloadLogicConditionsStatus?(): Promise<INavLogicConditionsStatus[]>;
+  downloadGvarStatus?(): Promise<INavGvarStatus>;
+  downloadProgrammingPids?(): Promise<INavProgrammingPid[]>;
+  uploadProgrammingPid?(idx: number, rule: INavProgrammingPid): Promise<CommandResult>;
+  downloadProgrammingPidStatus?(): Promise<INavProgrammingPidStatus[]>;
 
   // ── Guided Flight ─────────────────────────────────────────
   sendPositionTarget?(lat: number, lon: number, alt: number): void;

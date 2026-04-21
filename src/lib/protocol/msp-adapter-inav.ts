@@ -40,6 +40,26 @@ import {
   type INavTimerOutputModeEntry,
   type INavOutputMappingExt2Entry,
   type INavTempSensorConfigEntry,
+  type INavEzTune,
+  type INavFwApproach,
+  type INavOsdAlarms,
+  type INavOsdPreferences,
+  type INavOsdLayoutsHeader,
+  decodeMspINavEzTune,
+  decodeMspINavFwApproach,
+  decodeMspINavOsdAlarms,
+  decodeMspINavOsdPreferences,
+  decodeMspINavOsdLayoutsHeader,
+  decodeMspINavLogicConditions,
+  decodeMspINavLogicConditionsStatus,
+  decodeMspINavGvarStatus,
+  decodeMspINavProgrammingPid,
+  decodeMspINavProgrammingPidStatus,
+  type INavLogicCondition,
+  type INavLogicConditionsStatus,
+  type INavGvarStatus,
+  type INavProgrammingPid,
+  type INavProgrammingPidStatus,
 } from './msp/msp-decoders-inav'
 import {
   encodeMspSetWp,
@@ -53,6 +73,13 @@ import {
   encodeMspINavSetServoConfig,
   encodeMspINavSetMcBraking,
   encodeMspINavSetRateDynamics,
+  encodeMspINavSetEzTune,
+  encodeMspINavSetFwApproach,
+  encodeMspINavSetOsdAlarms,
+  encodeMspINavSetOsdPreferences,
+  encodeMspINavSetCustomOsdElement,
+  encodeMspINavSetLogicCondition,
+  encodeMspINavSetProgrammingPid,
 } from './msp/msp-encoders-inav'
 import {
   translateToInavWaypoints,
@@ -420,4 +447,165 @@ export async function inavSetRateDynamics(queue: MspSerialQueue | null, r: INavR
   } catch (err) {
     return { success: false, resultCode: -1, message: formatErrorMessage(err) }
   }
+}
+
+// ── EZ Tune ──────────────────────────────────────────────────
+
+export async function inavGetEzTune(queue: MspSerialQueue | null): Promise<INavEzTune> {
+  if (!queue) throw new Error('Not connected')
+  const frame = await queue.send(INAV_MSP.MSP2_INAV_EZ_TUNE)
+  return decodeMspINavEzTune(dv(frame.payload))
+}
+
+export async function inavSetEzTune(queue: MspSerialQueue | null, cfg: INavEzTune): Promise<CommandResult> {
+  if (!queue) return NOT_CONNECTED
+  try {
+    await queue.send(INAV_MSP.MSP2_INAV_EZ_TUNE_SET, encodeMspINavSetEzTune(cfg))
+    return { success: true, resultCode: 0, message: 'EZ Tune saved' }
+  } catch (err) {
+    return { success: false, resultCode: -1, message: formatErrorMessage(err) }
+  }
+}
+
+// ── FW Approach ──────────────────────────────────────────────
+
+export async function inavGetFwApproach(queue: MspSerialQueue | null): Promise<INavFwApproach[]> {
+  if (!queue) throw new Error('Not connected')
+  const frame = await queue.send(INAV_MSP.MSP2_INAV_FW_APPROACH)
+  return decodeMspINavFwApproach(dv(frame.payload))
+}
+
+export async function inavSetFwApproach(queue: MspSerialQueue | null, a: INavFwApproach): Promise<CommandResult> {
+  if (!queue) return NOT_CONNECTED
+  try {
+    await queue.send(INAV_MSP.MSP2_INAV_SET_FW_APPROACH, encodeMspINavSetFwApproach(a))
+    return { success: true, resultCode: 0, message: 'FW approach saved' }
+  } catch (err) {
+    return { success: false, resultCode: -1, message: formatErrorMessage(err) }
+  }
+}
+
+// ── OSD layouts / alarms / preferences ───────────────────────
+
+export async function inavGetOsdLayoutsHeader(queue: MspSerialQueue | null): Promise<INavOsdLayoutsHeader> {
+  if (!queue) throw new Error('Not connected')
+  const frame = await queue.send(INAV_MSP.MSP2_INAV_OSD_LAYOUTS)
+  return decodeMspINavOsdLayoutsHeader(dv(frame.payload))
+}
+
+export async function inavGetOsdAlarms(queue: MspSerialQueue | null): Promise<INavOsdAlarms> {
+  if (!queue) throw new Error('Not connected')
+  const frame = await queue.send(INAV_MSP.MSP2_INAV_OSD_ALARMS)
+  return decodeMspINavOsdAlarms(dv(frame.payload))
+}
+
+export async function inavSetOsdAlarms(queue: MspSerialQueue | null, a: INavOsdAlarms): Promise<CommandResult> {
+  if (!queue) return NOT_CONNECTED
+  try {
+    await queue.send(INAV_MSP.MSP2_INAV_OSD_SET_ALARMS, encodeMspINavSetOsdAlarms(a))
+    return { success: true, resultCode: 0, message: 'OSD alarms saved' }
+  } catch (err) {
+    return { success: false, resultCode: -1, message: formatErrorMessage(err) }
+  }
+}
+
+export async function inavGetOsdPreferences(queue: MspSerialQueue | null): Promise<INavOsdPreferences> {
+  if (!queue) throw new Error('Not connected')
+  const frame = await queue.send(INAV_MSP.MSP2_INAV_OSD_PREFERENCES)
+  return decodeMspINavOsdPreferences(dv(frame.payload))
+}
+
+export async function inavSetOsdPreferences(queue: MspSerialQueue | null, p: INavOsdPreferences): Promise<CommandResult> {
+  if (!queue) return NOT_CONNECTED
+  try {
+    await queue.send(INAV_MSP.MSP2_INAV_OSD_SET_PREFERENCES, encodeMspINavSetOsdPreferences(p))
+    return { success: true, resultCode: 0, message: 'OSD preferences saved' }
+  } catch (err) {
+    return { success: false, resultCode: -1, message: formatErrorMessage(err) }
+  }
+}
+
+// ── Custom OSD elements ───────────────────────────────────────
+
+export async function inavSetCustomOsdElement(
+  queue: MspSerialQueue | null,
+  el: { index: number; visible: boolean; text: string },
+): Promise<CommandResult> {
+  if (!queue) return NOT_CONNECTED
+  try {
+    await queue.send(INAV_MSP.MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS, encodeMspINavSetCustomOsdElement(el))
+    return { success: true, resultCode: 0, message: 'Custom OSD element saved' }
+  } catch (err) {
+    return { success: false, resultCode: -1, message: formatErrorMessage(err) }
+  }
+}
+
+// ── Programming Framework ─────────────────────────────────────
+
+export async function inavDownloadLogicConditions(queue: MspSerialQueue | null): Promise<INavLogicCondition[]> {
+  if (!queue) return []
+  const frame = await queue.send(INAV_MSP.MSP2_INAV_LOGIC_CONDITIONS)
+  return decodeMspINavLogicConditions(dv(frame.payload))
+}
+
+export async function inavUploadLogicCondition(
+  queue: MspSerialQueue | null,
+  idx: number,
+  rule: INavLogicCondition,
+): Promise<CommandResult> {
+  if (!queue) return NOT_CONNECTED
+  try {
+    const idxBuf = new Uint8Array(1)
+    idxBuf[0] = idx
+    const payload = new Uint8Array(1 + 14)
+    payload.set(idxBuf, 0)
+    payload.set(encodeMspINavSetLogicCondition(rule), 1)
+    await queue.send(INAV_MSP.MSP2_INAV_SET_LOGIC_CONDITIONS, payload)
+    return { success: true, resultCode: 0, message: 'Logic condition saved' }
+  } catch (err) {
+    return { success: false, resultCode: -1, message: formatErrorMessage(err) }
+  }
+}
+
+export async function inavDownloadLogicConditionsStatus(queue: MspSerialQueue | null): Promise<INavLogicConditionsStatus[]> {
+  if (!queue) return []
+  const frame = await queue.send(INAV_MSP.MSP2_INAV_LOGIC_CONDITIONS_STATUS)
+  return decodeMspINavLogicConditionsStatus(dv(frame.payload))
+}
+
+export async function inavDownloadGvarStatus(queue: MspSerialQueue | null): Promise<INavGvarStatus> {
+  if (!queue) return { values: [] }
+  const frame = await queue.send(INAV_MSP.MSP2_INAV_GVAR_STATUS)
+  return decodeMspINavGvarStatus(dv(frame.payload))
+}
+
+export async function inavDownloadProgrammingPids(queue: MspSerialQueue | null): Promise<INavProgrammingPid[]> {
+  if (!queue) return []
+  const frame = await queue.send(INAV_MSP.MSP2_INAV_PROGRAMMING_PID)
+  return decodeMspINavProgrammingPid(dv(frame.payload))
+}
+
+export async function inavUploadProgrammingPid(
+  queue: MspSerialQueue | null,
+  idx: number,
+  rule: INavProgrammingPid,
+): Promise<CommandResult> {
+  if (!queue) return NOT_CONNECTED
+  try {
+    const idxBuf = new Uint8Array(1)
+    idxBuf[0] = idx
+    const payload = new Uint8Array(1 + 15)
+    payload.set(idxBuf, 0)
+    payload.set(encodeMspINavSetProgrammingPid(rule), 1)
+    await queue.send(INAV_MSP.MSP2_INAV_SET_PROGRAMMING_PID, payload)
+    return { success: true, resultCode: 0, message: 'Programming PID saved' }
+  } catch (err) {
+    return { success: false, resultCode: -1, message: formatErrorMessage(err) }
+  }
+}
+
+export async function inavDownloadProgrammingPidStatus(queue: MspSerialQueue | null): Promise<INavProgrammingPidStatus[]> {
+  if (!queue) return []
+  const frame = await queue.send(INAV_MSP.MSP2_INAV_PROGRAMMING_PID_STATUS)
+  return decodeMspINavProgrammingPidStatus(dv(frame.payload))
 }

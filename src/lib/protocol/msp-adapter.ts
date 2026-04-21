@@ -216,6 +216,16 @@ export class MSPAdapter implements DroneProtocol {
   async setMcBraking(b: INavMcBraking): Promise<CommandResult> { return inav.inavSetMcBraking(this.queue, b) }
   async getRateDynamics(): Promise<INavRateDynamics> { return inav.inavGetRateDynamics(this.queue) }
   async setRateDynamics(r: INavRateDynamics): Promise<CommandResult> { return inav.inavSetRateDynamics(this.queue, r) }
+  async getEzTune() { return inav.inavGetEzTune(this.queue) }
+  async setEzTune(cfg: Parameters<typeof inav.inavSetEzTune>[1]) { return inav.inavSetEzTune(this.queue, cfg) }
+  async getFwApproach() { return inav.inavGetFwApproach(this.queue) }
+  async setFwApproach(a: Parameters<typeof inav.inavSetFwApproach>[1]) { return inav.inavSetFwApproach(this.queue, a) }
+  async getOsdLayoutsHeader() { return inav.inavGetOsdLayoutsHeader(this.queue) }
+  async getOsdAlarms() { return inav.inavGetOsdAlarms(this.queue) }
+  async setOsdAlarms(a: Parameters<typeof inav.inavSetOsdAlarms>[1]) { return inav.inavSetOsdAlarms(this.queue, a) }
+  async getOsdPreferences() { return inav.inavGetOsdPreferences(this.queue) }
+  async setOsdPreferences(p: Parameters<typeof inav.inavSetOsdPreferences>[1]) { return inav.inavSetOsdPreferences(this.queue, p) }
+  async setCustomOsdElement(el: Parameters<typeof inav.inavSetCustomOsdElement>[1]) { return inav.inavSetCustomOsdElement(this.queue, el) }
 
   async resetParametersToDefault() { return cmds.mspResetParametersToDefault() }
   async getLogList() { return cmds.mspGetLogList() }

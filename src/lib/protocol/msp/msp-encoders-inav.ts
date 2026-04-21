@@ -21,6 +21,12 @@ import type {
   INavMcBraking,
   INavRateDynamics,
   INavTimerOutputModeEntry,
+  INavEzTune,
+  INavFwApproach,
+  INavOsdAlarms,
+  INavOsdPreferences,
+  INavLogicCondition,
+  INavProgrammingPid,
 } from './msp-decoders-inav'
 
 // Re-export the two encoders that live in the decoders file for backward compat.
@@ -341,5 +347,173 @@ export function encodeMspINavSetTimerOutputMode(entries: INavTimerOutputModeEntr
     buf[i * 2] = e.timerId & 0xff
     buf[i * 2 + 1] = e.mode & 0xff
   })
+  return buf
+}
+
+// ── iNav polish encoders ──────────────────────────────────────
+
+/**
+ * Encode MSP2_INAV_EZ_TUNE_SET (0x2071) payload.
+ *
+ * U8  enabled (0/1)
+ * U16 filterHz
+ * U8  axisRatio
+ * U8  response
+ * U8  damping
+ * U8  stability
+ * U8  aggressiveness
+ * U8  rate
+ * U8  expo
+ * U8  snappiness
+ */
+export function encodeMspINavSetEzTune(cfg: INavEzTune): Uint8Array {
+  const buf = new Uint8Array(11)
+  const dv = new DataView(buf.buffer)
+  writeU8(dv, 0, cfg.enabled ? 1 : 0)
+  writeU16(dv, 1, Math.round(cfg.filterHz))
+  writeU8(dv, 3, Math.round(cfg.axisRatio))
+  writeU8(dv, 4, Math.round(cfg.response))
+  writeU8(dv, 5, Math.round(cfg.damping))
+  writeU8(dv, 6, Math.round(cfg.stability))
+  writeU8(dv, 7, Math.round(cfg.aggressiveness))
+  writeU8(dv, 8, Math.round(cfg.rate))
+  writeU8(dv, 9, Math.round(cfg.expo))
+  writeU8(dv, 10, Math.round(cfg.snappiness))
+  return buf
+}
+
+/**
+ * Encode MSP2_INAV_SET_FW_APPROACH (0x204b) payload.
+ *
+ * Per approach slot (15 bytes each):
+ *   U8  number
+ *   S32 approachAlt (cm)
+ *   S32 landAlt (cm)
+ *   U8  approachDirection
+ *   S16 landHeading1
+ *   S16 landHeading2
+ *   U8  isSeaLevelRef (0/1)
+ */
+export function encodeMspINavSetFwApproach(a: INavFwApproach): Uint8Array {
+  const buf = new Uint8Array(15)
+  const dv = new DataView(buf.buffer)
+  writeU8(dv, 0, a.number & 0xff)
+  writeS32(dv, 1, a.approachAlt)
+  writeS32(dv, 5, a.landAlt)
+  writeU8(dv, 9, a.approachDirection & 0xff)
+  dv.setInt16(10, a.landHeading1, true)
+  dv.setInt16(12, a.landHeading2, true)
+  writeU8(dv, 14, a.isSeaLevelRef ? 1 : 0)
+  return buf
+}
+
+/**
+ * Encode MSP2_INAV_OSD_SET_ALARMS (0x2015) payload.
+ *
+ * Passes through raw bytes as decoded from the FC.
+ * The payload layout is iNav-version-specific; we store and restore
+ * the raw bytes without reinterpreting them.
+ */
+export function encodeMspINavSetOsdAlarms(a: INavOsdAlarms): Uint8Array {
+  return new Uint8Array(a.raw)
+}
+
+/**
+ * Encode MSP2_INAV_OSD_SET_PREFERENCES (0x2017) payload.
+ *
+ * Passes through raw bytes as decoded from the FC.
+ * The payload layout is iNav-version-specific; we store and restore
+ * the raw bytes without reinterpreting them.
+ */
+export function encodeMspINavSetOsdPreferences(p: INavOsdPreferences): Uint8Array {
+  return new Uint8Array(p.raw)
+}
+
+/**
+ * Encode MSP2_INAV_SET_CUSTOM_OSD_ELEMENTS (0x2102) payload for one element.
+ *
+ * U8  index
+ * U8  visible (0/1)
+ * 16 bytes ASCII text (null-padded, not null-terminated in strict sense)
+ */
+export function encodeMspINavSetCustomOsdElement(el: {
+  index: number
+  visible: boolean
+  text: string
+}): Uint8Array {
+  const TEXT_LEN = 16
+  const buf = new Uint8Array(2 + TEXT_LEN)
+  buf[0] = el.index & 0xff
+  buf[1] = el.visible ? 1 : 0
+  const truncated = el.text.slice(0, TEXT_LEN)
+  for (let i = 0; i < truncated.length; i++) {
+    buf[2 + i] = truncated.charCodeAt(i) & 0x7f
+  }
+  return buf
+}
+
+// ── iNav logic condition encoder ──────────────────────────────
+
+/**
+ * Encode MSP2_INAV_SET_LOGIC_CONDITIONS (0x2023) payload for one condition slot.
+ *
+ * U8  enabled
+ * U8  activatorId
+ * U8  operation
+ * U8  operandAType
+ * S32 operandAValue
+ * U8  operandBType
+ * S32 operandBValue
+ * U8  flags
+ *
+ * 14 bytes total. Mirrors the decoder layout in decodeMspINavLogicConditions.
+ */
+export function encodeMspINavSetLogicCondition(rule: INavLogicCondition): Uint8Array {
+  const buf = new Uint8Array(14)
+  const dv = new DataView(buf.buffer)
+
+  writeU8(dv, 0, rule.enabled ? 1 : 0)
+  writeU8(dv, 1, rule.activatorId)
+  writeU8(dv, 2, rule.operation)
+  writeU8(dv, 3, rule.operandAType)
+  writeS32(dv, 4, rule.operandAValue)
+  writeU8(dv, 8, rule.operandBType)
+  writeS32(dv, 9, rule.operandBValue)
+  writeU8(dv, 13, rule.flags)
+
+  return buf
+}
+
+// ── iNav programming PID encoder ──────────────────────────────
+
+/**
+ * Encode MSP2_INAV_SET_PROGRAMMING_PID (0x2029) payload for one PID slot.
+ *
+ * U8  enabled
+ * U8  setpointType
+ * S32 setpointValue
+ * U8  measurementType
+ * S32 measurementValue
+ * U8  P
+ * U8  I
+ * U8  D
+ * U8  FF
+ *
+ * 15 bytes total. Mirrors the decoder layout in decodeMspINavProgrammingPid.
+ */
+export function encodeMspINavSetProgrammingPid(rule: INavProgrammingPid): Uint8Array {
+  const buf = new Uint8Array(15)
+  const dv = new DataView(buf.buffer)
+
+  writeU8(dv, 0, rule.enabled ? 1 : 0)
+  writeU8(dv, 1, rule.setpointType)
+  writeS32(dv, 2, rule.setpointValue)
+  writeU8(dv, 6, rule.measurementType)
+  writeS32(dv, 7, rule.measurementValue)
+  writeU8(dv, 11, rule.gains.P)
+  writeU8(dv, 12, rule.gains.I)
+  writeU8(dv, 13, rule.gains.D)
+  writeU8(dv, 14, rule.gains.FF)
+
   return buf
 }
