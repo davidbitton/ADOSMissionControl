@@ -226,6 +226,13 @@ export class MSPAdapter implements DroneProtocol {
   async getOsdPreferences() { return inav.inavGetOsdPreferences(this.queue) }
   async setOsdPreferences(p: Parameters<typeof inav.inavSetOsdPreferences>[1]) { return inav.inavSetOsdPreferences(this.queue, p) }
   async setCustomOsdElement(el: Parameters<typeof inav.inavSetCustomOsdElement>[1]) { return inav.inavSetCustomOsdElement(this.queue, el) }
+  async downloadLogicConditions() { return inav.inavDownloadLogicConditions(this.queue) }
+  async uploadLogicCondition(idx: number, rule: Parameters<typeof inav.inavUploadLogicCondition>[2]) { return inav.inavUploadLogicCondition(this.queue, idx, rule) }
+  async downloadLogicConditionsStatus() { return inav.inavDownloadLogicConditionsStatus(this.queue) }
+  async downloadGvarStatus() { return inav.inavDownloadGvarStatus(this.queue) }
+  async downloadProgrammingPids() { return inav.inavDownloadProgrammingPids(this.queue) }
+  async uploadProgrammingPid(idx: number, rule: Parameters<typeof inav.inavUploadProgrammingPid>[2]) { return inav.inavUploadProgrammingPid(this.queue, idx, rule) }
+  async downloadProgrammingPidStatus() { return inav.inavDownloadProgrammingPidStatus(this.queue) }
 
   async resetParametersToDefault() { return cmds.mspResetParametersToDefault() }
   async getLogList() { return cmds.mspGetLogList() }
