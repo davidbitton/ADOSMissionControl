@@ -13,6 +13,7 @@ import { useDroneManager } from "@/stores/drone-manager";
 import { useProgrammingStore, PROGRAMMING_PID_MAX } from "@/stores/programming-store";
 import { PanelHeader } from "../../shared/PanelHeader";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { useArmedLock } from "@/hooks/use-armed-lock";
 import { useUnsavedGuard } from "@/hooks/use-unsaved-guard";
@@ -28,6 +29,8 @@ const OPERAND_TYPE_LABELS: Record<number, string> = {
   5: "TIMER",
   6: "GVAR",
 };
+
+const OPERAND_TYPE_OPTIONS = Object.entries(OPERAND_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }));
 
 // ── Component ─────────────────────────────────────────────────
 
@@ -167,16 +170,15 @@ export function ProgrammingPidPanel() {
                   {/* Setpoint row */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[9px] text-text-tertiary w-20 shrink-0">Setpoint</span>
-                    <select
-                      disabled={isArmed}
-                      value={pid.setpointType}
-                      onChange={(e) => setPid(idx, { setpointType: parseInt(e.target.value) })}
-                      className="text-[10px] font-mono bg-bg-tertiary border border-border-default rounded px-1 py-0.5 text-text-primary w-28"
-                    >
-                      {Object.entries(OPERAND_TYPE_LABELS).map(([k, v]) => (
-                        <option key={k} value={k}>{v}</option>
-                      ))}
-                    </select>
+                    <div className="w-28">
+                      <Select
+                        label=""
+                        options={OPERAND_TYPE_OPTIONS}
+                        value={String(pid.setpointType)}
+                        onChange={(v) => setPid(idx, { setpointType: parseInt(v) })}
+                        disabled={isArmed}
+                      />
+                    </div>
                     <input
                       disabled={isArmed}
                       type="number"
@@ -189,16 +191,15 @@ export function ProgrammingPidPanel() {
                   {/* Measurement row */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[9px] text-text-tertiary w-20 shrink-0">Measurement</span>
-                    <select
-                      disabled={isArmed}
-                      value={pid.measurementType}
-                      onChange={(e) => setPid(idx, { measurementType: parseInt(e.target.value) })}
-                      className="text-[10px] font-mono bg-bg-tertiary border border-border-default rounded px-1 py-0.5 text-text-primary w-28"
-                    >
-                      {Object.entries(OPERAND_TYPE_LABELS).map(([k, v]) => (
-                        <option key={k} value={k}>{v}</option>
-                      ))}
-                    </select>
+                    <div className="w-28">
+                      <Select
+                        label=""
+                        options={OPERAND_TYPE_OPTIONS}
+                        value={String(pid.measurementType)}
+                        onChange={(v) => setPid(idx, { measurementType: parseInt(v) })}
+                        disabled={isArmed}
+                      />
+                    </div>
                     <input
                       disabled={isArmed}
                       type="number"

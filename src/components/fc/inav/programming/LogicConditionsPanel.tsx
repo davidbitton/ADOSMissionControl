@@ -13,6 +13,7 @@ import { useDroneManager } from "@/stores/drone-manager";
 import { useProgrammingStore, LOGIC_CONDITION_MAX } from "@/stores/programming-store";
 import { PanelHeader } from "../../shared/PanelHeader";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { useArmedLock } from "@/hooks/use-armed-lock";
 import { useUnsavedGuard } from "@/hooks/use-unsaved-guard";
@@ -48,6 +49,9 @@ const OPERAND_TYPE_LABELS: Record<number, string> = {
   5: "TIMER",
   6: "GVAR",
 };
+
+const OPERATION_OPTIONS = Object.entries(OPERATION_LABELS).map(([k, v]) => ({ value: k, label: v }));
+const OPERAND_TYPE_OPTIONS = Object.entries(OPERAND_TYPE_LABELS).map(([k, v]) => ({ value: k, label: v }));
 
 // ── Component ─────────────────────────────────────────────────
 
@@ -189,30 +193,28 @@ export function LogicConditionsPanel() {
                   </button>
 
                   {/* Operation */}
-                  <select
-                    disabled={isArmed}
-                    value={cond.operation}
-                    onChange={(e) => setCondition(idx, { operation: parseInt(e.target.value) })}
-                    className="text-[10px] font-mono bg-bg-tertiary border border-border-default rounded px-1 py-0.5 text-text-primary w-32"
-                  >
-                    {Object.entries(OPERATION_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
-                    ))}
-                  </select>
+                  <div className="w-32 shrink-0">
+                    <Select
+                      label=""
+                      options={OPERATION_OPTIONS}
+                      value={String(cond.operation)}
+                      onChange={(v) => setCondition(idx, { operation: parseInt(v) })}
+                      disabled={isArmed}
+                    />
+                  </div>
 
                   {/* Operand A */}
                   <div className="flex items-center gap-1 shrink-0">
                     <span className="text-[9px] text-text-tertiary">A:</span>
-                    <select
-                      disabled={isArmed}
-                      value={cond.operandAType}
-                      onChange={(e) => setCondition(idx, { operandAType: parseInt(e.target.value) })}
-                      className="text-[10px] font-mono bg-bg-tertiary border border-border-default rounded px-1 py-0.5 text-text-primary w-24"
-                    >
-                      {Object.entries(OPERAND_TYPE_LABELS).map(([k, v]) => (
-                        <option key={k} value={k}>{v}</option>
-                      ))}
-                    </select>
+                    <div className="w-24">
+                      <Select
+                        label=""
+                        options={OPERAND_TYPE_OPTIONS}
+                        value={String(cond.operandAType)}
+                        onChange={(v) => setCondition(idx, { operandAType: parseInt(v) })}
+                        disabled={isArmed}
+                      />
+                    </div>
                     <input
                       disabled={isArmed}
                       type="number"
@@ -225,16 +227,15 @@ export function LogicConditionsPanel() {
                   {/* Operand B */}
                   <div className="flex items-center gap-1 shrink-0">
                     <span className="text-[9px] text-text-tertiary">B:</span>
-                    <select
-                      disabled={isArmed}
-                      value={cond.operandBType}
-                      onChange={(e) => setCondition(idx, { operandBType: parseInt(e.target.value) })}
-                      className="text-[10px] font-mono bg-bg-tertiary border border-border-default rounded px-1 py-0.5 text-text-primary w-24"
-                    >
-                      {Object.entries(OPERAND_TYPE_LABELS).map(([k, v]) => (
-                        <option key={k} value={k}>{v}</option>
-                      ))}
-                    </select>
+                    <div className="w-24">
+                      <Select
+                        label=""
+                        options={OPERAND_TYPE_OPTIONS}
+                        value={String(cond.operandBType)}
+                        onChange={(v) => setCondition(idx, { operandBType: parseInt(v) })}
+                        disabled={isArmed}
+                      />
+                    </div>
                     <input
                       disabled={isArmed}
                       type="number"

@@ -13,6 +13,7 @@ import { useDroneManager } from "@/stores/drone-manager";
 import { useArmedLock } from "@/hooks/use-armed-lock";
 import { PanelHeader } from "../shared/PanelHeader";
 import { Select } from "@/components/ui/select";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Gauge } from "lucide-react";
 import type { MSPAdapter } from "@/lib/protocol/msp-adapter";
 
@@ -47,6 +48,7 @@ export function ControlProfilePanel() {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<ControlProfileInfo>({ activeProfile: 0, profileCount: 3 });
+  const [pendingProfile, setPendingProfile] = useState<number | null>(null);
 
   const { isArmed } = useArmedLock();
 
@@ -67,7 +69,15 @@ export function ControlProfilePanel() {
     }
   }, [getSelectedProtocol]);
 
-  const handleSwitch = useCallback(async (idx: number) => {
+  const handleSwitchRequested = useCallback((idx: number) => {
+    if (idx === info.activeProfile) return;
+    setPendingProfile(idx);
+  }, [info.activeProfile]);
+
+  const handleSwitchConfirm = useCallback(async () => {
+    const idx = pendingProfile;
+    setPendingProfile(null);
+    if (idx === null) return;
     const protocol = getSelectedProtocol();
     const adapter = asAdapter(protocol);
     if (!adapter) { setError("Settings not available on this firmware"); return; }
@@ -80,7 +90,11 @@ export function ControlProfilePanel() {
     } finally {
       setLoading(false);
     }
-  }, [getSelectedProtocol]);
+  }, [getSelectedProtocol, pendingProfile]);
+
+  const handleSwitchCancel = useCallback(() => {
+    setPendingProfile(null);
+  }, []);
 
   return (
     <div className="flex-1 overflow-y-auto p-6">
@@ -109,11 +123,25 @@ export function ControlProfilePanel() {
                 options={PROFILE_OPTIONS.slice(0, info.profileCount)}
                 value={String(info.activeProfile)}
                 disabled={isArmed}
-                onChange={(v) => handleSwitch(parseInt(v))}
+                onChange={(v) => handleSwitchRequested(parseInt(v))}
               />
             </div>
           </div>
         )}
+        <ConfirmDialog
+          open={pendingProfile !== null}
+          title="Switch active control profile?"
+          message={
+            pendingProfile !== null
+              ? `This switches the active profile on the flight controller immediately. The new profile starts with its own PID, rates, and RC-tuning values. Current flight behavior may change. Switching to profile ${pendingProfile + 1}.`
+              : ""
+          }
+          confirmLabel="Switch profile"
+          cancelLabel="Cancel"
+          variant="primary"
+          onConfirm={handleSwitchConfirm}
+          onCancel={handleSwitchCancel}
+        />
       </div>
     </div>
   );
