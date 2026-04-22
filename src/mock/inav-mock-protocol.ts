@@ -30,11 +30,12 @@ import type {
 } from "@/lib/protocol/types";
 import { inavHandler } from "@/lib/protocol/firmware/inav";
 import { INAV_WP_FLAG_LAST, INAV_WP_ACTION } from "@/lib/protocol/msp/msp-decoders-inav";
-import type { INavWaypoint, INavSafehome } from "@/lib/protocol/msp/msp-decoders-inav";
+import type { INavWaypoint, INavSafehome, MotorMixerRule, INavServoMixerRule } from "@/lib/protocol/msp/msp-decoders-inav";
 import type { SettingValue } from "@/lib/protocol/msp/settings";
 import { SettingType } from "@/lib/protocol/msp/settings";
 import { createCallbackArrays } from "./mock-protocol-callbacks";
 import type { MockCallbackArrays } from "./mock-protocol-callbacks";
+import { useTelemetryStore } from "@/stores/telemetry-store";
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -293,6 +294,37 @@ export class INavMockProtocol implements DroneProtocol {
   async setCurrentMissionItem(): Promise<CommandResult> { return ok("Mission item set"); }
   async clearMission(): Promise<CommandResult> { this.waypoints = []; return ok("Mission cleared"); }
 
+  // ── Motor and servo mixer CRUD (demo mode) ──────────────────────
+
+  private motorMixerRules: MotorMixerRule[] = [
+    { throttle: 1, roll: -1, pitch:  1, yaw: -1 },
+    { throttle: 1, roll: -1, pitch: -1, yaw:  1 },
+    { throttle: 1, roll:  1, pitch:  1, yaw:  1 },
+    { throttle: 1, roll:  1, pitch: -1, yaw: -1 },
+  ];
+
+  private servoMixerRules: INavServoMixerRule[] = [];
+
+  async downloadMotorMixer(): Promise<MotorMixerRule[]> {
+    await new Promise<void>((r) => setTimeout(r, 120));
+    return this.motorMixerRules.map((r) => ({ ...r }));
+  }
+
+  async uploadMotorMixer(rules: MotorMixerRule[]): Promise<void> {
+    await new Promise<void>((r) => setTimeout(r, 180));
+    this.motorMixerRules = rules.slice(0, 16).map((r) => ({ ...r }));
+  }
+
+  async downloadServoMixer(): Promise<INavServoMixerRule[]> {
+    await new Promise<void>((r) => setTimeout(r, 120));
+    return this.servoMixerRules.map((r) => ({ ...r }));
+  }
+
+  async uploadServoMixer(rules: INavServoMixerRule[]): Promise<void> {
+    await new Promise<void>((r) => setTimeout(r, 180));
+    this.servoMixerRules = rules.slice(0, 32).map((r) => ({ ...r }));
+  }
+
   /** Read the raw INavWaypoint slots : used by tests and iNav-specific panels. */
   getINavWaypoints(): INavWaypoint[] { return [...this.waypoints]; }
 
@@ -521,6 +553,39 @@ export class INavMockProtocol implements DroneProtocol {
       for (const cb of this.cbs.heartbeatCbs) {
         cb({ armed: true, mode: "POSHOLD", systemStatus: 4, vehicleInfo: this._vehicleInfo });
       }
+
+      // iNav-specific telemetry fields land in the shared telemetry store so
+      // NavStatePill, TrafficPill, and the PreArmPanel arming breakdown render
+      // against demo drones just like they would against a real FC.
+      const store = useTelemetryStore.getState();
+      // Cycle nav state every 15 s across IDLE, POSHOLD, RTH for visual variety.
+      const stateCycle = [0, 4, 13];
+      const actionCycle = [0, 2, 4];
+      const cycleIdx = Math.floor(ts / 15000) % stateCycle.length;
+      store.setNavStatus(stateCycle[cycleIdx], actionCycle[cycleIdx]);
+      // Arming flags: usually OK_TO_ARM (bit 0). Every ~30 s drop to NOT_LEVEL so
+      // the PreArmPanel section shows a real blocker label.
+      const flagCycle = Math.floor(ts / 30000) % 2 === 0 ? 0x00000001 : 0x00000100;
+      store.setArmingFlags(flagCycle);
+      // One simulated ADS-B aircraft orbiting 2 km east of the copter so the
+      // TrafficPill renders a live entry with distance, altitude, and TTL.
+      const orbitBearing = (ts / 200) % 360;
+      const rad = (orbitBearing * Math.PI) / 180;
+      const orbitLat = this.lat + (0.018 * Math.sin(rad));
+      const orbitLon = this.lon + (0.018 * Math.cos(rad));
+      store.setAdsbVehicles([
+        {
+          callsign: "DEMO01",
+          icao: 0xABCDEF,
+          lat: orbitLat,
+          lon: orbitLon,
+          alt: 1200,
+          heading: (orbitBearing + 90) % 360,
+          lastSeenMs: ts,
+          emitterType: 1,
+          ttlSec: 60,
+        },
+      ]);
     }, 100);
 
     this.tickTimers.push(tick);

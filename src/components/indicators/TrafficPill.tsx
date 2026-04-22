@@ -121,6 +121,9 @@ export function TrafficPill() {
       <button
         ref={pillRef}
         onClick={() => setOpen((v) => !v)}
+        aria-label={`ADS-B traffic nearby: ${vehicles.length} aircraft`}
+        aria-expanded={open}
+        aria-haspopup="listbox"
         className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono border bg-status-warning/10 border-status-warning/30 text-status-warning cursor-pointer hover:bg-status-warning/20 transition-colors"
       >
         Traffic: {vehicles.length}

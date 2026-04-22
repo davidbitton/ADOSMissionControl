@@ -92,7 +92,10 @@ export function NavStatePill() {
 
   return (
     <Tooltip content={tooltipText}>
-      <div className={
+      <div
+        role="status"
+        aria-label={`iNav navigation state: ${tooltipText}`}
+        className={
         "flex items-center gap-1 px-2 py-0.5 text-[10px] font-mono border " +
         (isActive
           ? "bg-accent-primary/10 border-accent-primary/30 text-accent-primary"

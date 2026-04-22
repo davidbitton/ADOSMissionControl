@@ -65,4 +65,27 @@ describe('NavPidPanel', () => {
     const readBtn = container.querySelector('button')
     expect(readBtn).toBeDefined()
   })
+
+  it('reads the canonical iNav multicopter nav-PID setting keys', async () => {
+    const calls: string[] = []
+    const mockAdapter = {
+      getSetting: vi.fn((name: string) => {
+        calls.push(name)
+        return Promise.resolve(new Uint8Array([42]))
+      }),
+      setSetting: vi.fn().mockResolvedValue(undefined),
+    }
+    useDroneManager.setState({
+      getSelectedProtocol: () => mockAdapter,
+    } as never)
+
+    const { container } = renderWithIntl(<NavPidPanel />)
+    const readBtn = container.querySelector('button')
+    readBtn?.click()
+    await new Promise((r) => setTimeout(r, 20))
+
+    // At least one canonical nav_mc_* key must flow through getSetting.
+    // Guards against a future rename that silently breaks real-FC reads.
+    expect(calls).toContain('nav_mc_pos_xy_p')
+  })
 })
