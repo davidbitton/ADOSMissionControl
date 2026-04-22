@@ -117,19 +117,16 @@ Open [http://localhost:4000](http://localhost:4000). Five simulated drones. No h
 
 ---
 
-## Why ADOS Mission Control
+## What ADOS Mission Control Is
 
-| | ADOS Mission Control | QGroundControl | Mission Planner | Betaflight Configurator |
-|---|---|---|---|---|
-| **Platform** | Browser (any OS) | Desktop (Qt) | Desktop (Windows/.NET) | Browser (Chrome) |
-| **Firmware** | ArduPilot + PX4 + Betaflight + iNav | ArduPilot + PX4 | ArduPilot only | Betaflight only |
-| **Protocol** | MAVLink v2 + MSP v1/v2 | MAVLink v2 | MAVLink v1/v2 | MSP |
-| **Flight control** | Gamepad/HOTAS at 50Hz | Joystick (limited) | Joystick (limited) | No |
-| **AI tuning** | Yes (PID + filter analysis) | No | No | No |
-| **3D simulation** | CesiumJS globe | No | No | No |
-| **Cloud fleet** | Yes (MQTT + Convex relay) | No | No | No |
-| **Self-hosted** | Yes (Convex + MQTT + video) | N/A | N/A | N/A |
-| **License** | GPL-3.0 | Apache 2.0 / GPL-3.0 | GPL-3.0 | GPL-3.0 |
+- **Platform:** Browser-based. Runs on any OS with a modern browser. Optional Electron desktop build for WebSerial + WebUSB access.
+- **Firmware:** ArduPilot, PX4, Betaflight, and iNav as first-class targets.
+- **Protocol:** MAVLink v2 + MSP v1/v2 in the same app via a unified `DroneProtocol` adapter interface.
+- **Flight control:** Gamepad, HOTAS, RC transmitter, or keyboard input at 50 Hz.
+- **AI tuning:** PID + filter analysis with FFT-driven noise and motor-health diagnosis.
+- **3D simulation:** CesiumJS globe with real terrain and flight path replay.
+- **Fleet mode:** MQTT + Convex relay for multi-drone dashboards. Self-hostable end to end.
+- **License:** GPL-3.0-only.
 
 ---
 
