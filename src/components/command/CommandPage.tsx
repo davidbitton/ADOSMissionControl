@@ -56,6 +56,7 @@ const StudioTab = dynamic(() => import("./studio/StudioTab").then(m => ({ defaul
 const FoxgloveTab = dynamic(() => import("./foxglove/FoxgloveTab").then(m => ({ default: m.FoxgloveTab })), { ssr: false });
 const RerunTab = dynamic(() => import("./rerun/RerunTab").then(m => ({ default: m.RerunTab })), { ssr: false });
 const PerceptionTab = dynamic(() => import("./perception/PerceptionTab").then(m => ({ default: m.PerceptionTab })), { ssr: false });
+const AssistTabBodyDynamic = dynamic(() => import("@/components/assist/AssistTabBody").then(m => ({ default: m.AssistTabBody })), { ssr: false });
 // AgentMavlinkBridge moved to CommandShell for cross-tab persistence
 
 export function CommandPage() {
@@ -380,7 +381,13 @@ export function CommandPage() {
               {activeTab === "foxglove" && <FoxgloveTab />}
               {activeTab === "rerun" && <RerunTab />}
               {activeTab === "mcp" && <McpTab />}
-              {activeTab === "assist" && <ComingSoon label="Assist — coming in a future update" />}
+              {activeTab === "assist" && (
+                <AssistTabBodyDynamic
+                  agentUrl={useAgentConnectionStore.getState().agentUrl}
+                  apiKey={useAgentConnectionStore.getState().apiKey}
+                  agentProfile="drone"
+                />
+              )}
             </div>
           </>
         ) : (
