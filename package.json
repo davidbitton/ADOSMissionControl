@@ -63,7 +63,6 @@
     "potree-viewer": "^0.1.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-grid-layout": "^2.2.3",
     "react-leaflet": "^5.0.0",
     "recharts": "^2.15.3",
     "suncalc": "^1.9.0",

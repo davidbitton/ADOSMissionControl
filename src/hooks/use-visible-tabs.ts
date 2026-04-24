@@ -29,25 +29,32 @@ export type CommandSubTab =
   | ManagementTab;
 
 export function useVisibleTabs(): CommandSubTab[] {
+  // All 11 new Command sub-tabs are always visible. Each tab's content
+  // handles offline/capability-missing state internally with an empty
+  // state message, so operators always know what exists.
+  //
+  // Legacy tabs (smart-modes, ros) still follow capability gating because
+  // they're surfaced only when the underlying hardware/software is present.
   const loaded = useAgentCapabilitiesStore((s) => s.loaded);
   const tier = useAgentCapabilitiesStore((s) => s.tier);
   const enabledFeatures = useAgentCapabilitiesStore((s) => s.features.enabled);
   const cameras = useAgentCapabilitiesStore((s) => s.cameras);
   const npuAvailable = useAgentCapabilitiesStore((s) => s.compute.npu_available);
   const ros2State = useAgentCapabilitiesStore((s) => s.ros2State);
-  const memoryAvailable = useAgentCapabilitiesStore((s) => s.memoryAvailable);
-  const surveyAvailable = useAgentCapabilitiesStore((s) => s.surveyAvailable);
-  const foxgloveAvailable = useAgentCapabilitiesStore((s) => s.foxgloveAvailable);
-  const rerunAvailable = useAgentCapabilitiesStore((s) => s.rerunAvailable);
-  const assistAvailable = useAgentCapabilitiesStore((s) => s.assistAvailable);
 
   return useMemo(() => {
-    const tabs: CommandSubTab[] = ["overview", "features"];
+    // Live Ops group
+    const tabs: CommandSubTab[] = ["overview", "perception", "views", "control"];
 
-    // Show Smart Modes tab when:
-    // 1. At least one smart-mode or vision-requiring feature is enabled
-    // 2. Camera is detected
-    // 3. NPU or sufficient tier exists
+    // Data and Analysis group
+    tabs.push("world-model", "studio", "foxglove", "rerun");
+
+    // Management group
+    tabs.push("mcp", "assist", "system");
+
+    // Legacy tabs (still gated on capabilities)
+    tabs.push("features");
+
     if (loaded) {
       const hasSmartMode = enabledFeatures.some((id) => {
         const feat = FEATURE_CATALOG[id];
@@ -55,38 +62,13 @@ export function useVisibleTabs(): CommandSubTab[] {
       });
       const hasCamera = cameras.length > 0;
       const hasCompute = npuAvailable || tier >= 3;
-
-      if (hasSmartMode && hasCamera && hasCompute) {
-        tabs.push("smart-modes");
-      }
+      if (hasSmartMode && hasCamera && hasCompute) tabs.push("smart-modes");
     }
 
-    // Show ROS tab when agent reports ROS support (any state except "absent")
-    if (loaded && ros2State !== "absent") {
-      tabs.push("ros");
-    }
+    if (loaded && ros2State !== "absent") tabs.push("ros");
 
-    tabs.push("system", "scripts");
-
-    // New v1.0 tabs — always added as stubs in Phase 0,
-    // capability gates enforced from Phase 1 onwards.
-    tabs.push("perception", "views", "control");
-
-    if (!loaded || memoryAvailable) tabs.push("world-model");
-
-    if (!loaded || surveyAvailable) tabs.push("studio");
-
-    if (!loaded || foxgloveAvailable) tabs.push("foxglove");
-
-    if (!loaded || rerunAvailable) tabs.push("rerun");
-
-    tabs.push("mcp");
-
-    if (!loaded || assistAvailable) tabs.push("assist");
+    tabs.push("scripts");
 
     return tabs;
-  }, [
-    loaded, tier, enabledFeatures, cameras, npuAvailable, ros2State,
-    memoryAvailable, surveyAvailable, foxgloveAvailable, rerunAvailable, assistAvailable,
-  ]);
+  }, [loaded, tier, enabledFeatures, cameras, npuAvailable, ros2State]);
 }
