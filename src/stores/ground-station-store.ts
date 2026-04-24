@@ -48,143 +48,57 @@ import type {
 } from "@/lib/api/ground-station-api";
 import { GroundStationApiError } from "@/lib/api/ground-station-api";
 
-export interface GroundStationLinkHealth {
-  rssi_dbm: number | null;
-  bitrate_mbps: number | null;
-  fec_rec: number;
-  fec_lost: number;
-  channel: number | null;
-}
-
-export type WfbBitrateProfile = "low-latency" | "balanced" | "long-range";
-
-export interface WfbConfig {
-  channel: number;
-  bitrate_profile: WfbBitrateProfile;
-}
-
-export type GroundStationProfile =
-  | "ground_station"
-  | "drone"
-  | "auto"
-  | "unconfigured";
-
-export interface GroundStationStatus {
-  paired_drone: string | null;
-  profile: GroundStationProfile;
-  uplink_active: string | null;
-}
-
-export interface PairSlice {
-  loading: boolean;
-  result: PairResult | null;
-  error: string | null;
-  errorStatus: number | null;
-}
-
-export interface PicSlice {
-  state: string;
-  claimed_by: string | null;
-  claim_counter: number;
-  primary_gamepad_id: string | null;
-  loading: boolean;
-  error: string | null;
-}
-
-export interface GamepadsSlice {
-  devices: Gamepad[];
-  primary_id: string | null;
-  loading: boolean;
-}
-
-export interface BluetoothSlice {
-  scanning: boolean;
-  scan_results: BluetoothDevice[];
-  paired: BluetoothDevice[];
-  pairing_mac: string | null;
-  error: string | null;
-}
-
-export interface WifiScanCache {
-  results: WifiScanResult[];
-  scanning: boolean;
-  scannedAt: number | null;
-  error: string | null;
-}
-
-export interface UplinkDataCap {
-  state: "ok" | "warn_80" | "throttle_95" | "blocked_100";
-  percent: number;
-  used_mb: number;
-  cap_mb: number;
-}
-
-export interface UplinkSlice {
-  active: string | null;
-  priority: string[];
-  health: UplinkHealth;
-  failover_log: UplinkFailoverEntry[];
-  data_cap: UplinkDataCap | null;
-  loading: boolean;
-  error: string | null;
-}
-
-export interface PeripheralsSlice {
-  list: PeripheralSummary[];
-  detail: Record<string, PeripheralDetail>;
-  loading: boolean;
-  error: string | null;
-}
-
-// Distributed receive + mesh slices.
-
-export interface RoleSlice {
-  info: RoleInfo | null;
-  loading: boolean;
-  switching: boolean;
-  error: string | null;
-}
-
-export interface DistributedRxSlice {
-  /** Receiver view of remote relays; empty on relay/direct nodes. */
-  receiverRelays: WfbReceiverRelay[];
-  /** Receiver combined FEC output; null on relay/direct nodes. */
-  combined: WfbReceiverCombined | null;
-  /** Relay view of its local forwarder state; null on receiver/direct nodes. */
-  relayStatus: WfbRelayStatus | null;
-  pairingWindowOpen: boolean;
-  pairingWindowExpiresAt: number | null;
-  pendingRequests: PairingPendingRequest[];
-  loading: boolean;
-  error: string | null;
-}
-
-export interface MeshTransientEvent {
-  kind: string;
-  payload: Record<string, unknown>;
-  ts: number;
-}
-
-export type MeshWsState = "idle" | "connected" | "reconnecting" | "closed";
-
-export interface MeshSlice {
-  health: MeshHealth | null;
-  neighbors: MeshNeighbor[];
-  routes: MeshRoute[];
-  gateways: MeshGateway[];
-  selectedGateway: string | null;
-  /** Latest transient (toast-worthy) event the WS surfaced. */
-  lastTransientEvent: MeshTransientEvent | null;
-  /** Live mesh WS connection state so the UI can surface a
-   * "connection lost / reconnecting" banner instead of silently
-   * missing neighbor / gateway / pair events. */
-  wsState: MeshWsState;
-  /** Epoch ms the ws last left the connected state. Null while connected
-   * or while we have never connected. */
-  wsDisconnectedAt: number | null;
-  loading: boolean;
-  error: string | null;
-}
+// Slice types and initial-state constants live alongside this file.
+export type {
+  GroundStationLinkHealth,
+  WfbBitrateProfile,
+  WfbConfig,
+  GroundStationProfile,
+  GroundStationStatus,
+  PairSlice,
+  PicSlice,
+  GamepadsSlice,
+  BluetoothSlice,
+  WifiScanCache,
+  UplinkDataCap,
+  UplinkSlice,
+  PeripheralsSlice,
+  RoleSlice,
+  DistributedRxSlice,
+  MeshTransientEvent,
+  MeshWsState,
+  MeshSlice,
+} from "./ground-station/types";
+import type {
+  GroundStationLinkHealth,
+  WfbConfig,
+  GroundStationStatus,
+  PairSlice,
+  PicSlice,
+  GamepadsSlice,
+  BluetoothSlice,
+  WifiScanCache,
+  UplinkSlice,
+  PeripheralsSlice,
+  RoleSlice,
+  DistributedRxSlice,
+  MeshSlice,
+} from "./ground-station/types";
+import {
+  INITIAL_LINK_HEALTH,
+  INITIAL_STATUS,
+  INITIAL_PAIR,
+  INITIAL_PIC,
+  INITIAL_GAMEPADS,
+  INITIAL_BLUETOOTH,
+  INITIAL_WIFI_SCAN,
+  INITIAL_UPLINK,
+  INITIAL_PERIPHERALS,
+  INITIAL_ROLE,
+  INITIAL_DISTRIBUTED_RX,
+  INITIAL_MESH,
+  FAILOVER_LOG_CAP,
+} from "./ground-station/initial-state";
 
 interface GroundStationState {
   linkHealth: GroundStationLinkHealth;
@@ -343,106 +257,6 @@ interface GroundStationState {
   resetAll: () => void;
 }
 
-const INITIAL_LINK_HEALTH: GroundStationLinkHealth = {
-  rssi_dbm: null,
-  bitrate_mbps: null,
-  fec_rec: 0,
-  fec_lost: 0,
-  channel: null,
-};
-
-const INITIAL_STATUS: GroundStationStatus = {
-  paired_drone: null,
-  profile: "unconfigured",
-  uplink_active: null,
-};
-
-const INITIAL_PAIR: PairSlice = {
-  loading: false,
-  result: null,
-  error: null,
-  errorStatus: null,
-};
-
-const INITIAL_PIC: PicSlice = {
-  state: "idle",
-  claimed_by: null,
-  claim_counter: 0,
-  primary_gamepad_id: null,
-  loading: false,
-  error: null,
-};
-
-const INITIAL_GAMEPADS: GamepadsSlice = {
-  devices: [],
-  primary_id: null,
-  loading: false,
-};
-
-const INITIAL_BLUETOOTH: BluetoothSlice = {
-  scanning: false,
-  scan_results: [],
-  paired: [],
-  pairing_mac: null,
-  error: null,
-};
-
-const INITIAL_WIFI_SCAN: WifiScanCache = {
-  results: [],
-  scanning: false,
-  scannedAt: null,
-  error: null,
-};
-
-const INITIAL_UPLINK: UplinkSlice = {
-  active: null,
-  priority: [],
-  health: "ok",
-  failover_log: [],
-  data_cap: null,
-  loading: false,
-  error: null,
-};
-
-const INITIAL_PERIPHERALS: PeripheralsSlice = {
-  list: [],
-  detail: {},
-  loading: false,
-  error: null,
-};
-
-const INITIAL_ROLE: RoleSlice = {
-  info: null,
-  loading: false,
-  switching: false,
-  error: null,
-};
-
-const INITIAL_DISTRIBUTED_RX: DistributedRxSlice = {
-  receiverRelays: [],
-  combined: null,
-  relayStatus: null,
-  pairingWindowOpen: false,
-  pairingWindowExpiresAt: null,
-  pendingRequests: [],
-  loading: false,
-  error: null,
-};
-
-const INITIAL_MESH: MeshSlice = {
-  health: null,
-  neighbors: [],
-  routes: [],
-  gateways: [],
-  selectedGateway: null,
-  lastTransientEvent: null,
-  wsState: "idle",
-  wsDisconnectedAt: null,
-  loading: false,
-  error: null,
-};
-
-const FAILOVER_LOG_CAP = 20;
 
 function errorMessage(err: unknown): { message: string; status: number | null } {
   if (err instanceof GroundStationApiError) {
