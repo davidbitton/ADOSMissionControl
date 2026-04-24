@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import { Trash2 } from "lucide-react";
 import { communityApi } from "@/lib/community-api";
+import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
 import { useAuthStore } from "@/stores/auth-store";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { formatDate } from "@/lib/utils";
@@ -18,7 +19,10 @@ interface CommunityCommentsProps {
 export function CommunityComments({ targetType, targetId }: CommunityCommentsProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const isAdmin = useIsAdmin();
-  const comments = useQuery(communityApi.comments.list, { targetType, targetId });
+  const comments = useConvexSkipQuery(communityApi.comments.list, {
+    args: { targetType, targetId },
+    enabled: !!targetId,
+  });
   const createComment = useMutation(communityApi.comments.create);
   const removeComment = useMutation(communityApi.comments.remove);
   const [body, setBody] = useState("");

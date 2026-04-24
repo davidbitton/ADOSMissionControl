@@ -10,7 +10,6 @@
 "use client";
 
 import { useEffect, useMemo, useCallback, useState } from "react";
-import { useQuery } from "convex/react";
 import type { Viewer as CesiumViewer } from "cesium";
 import type { Waypoint } from "@/lib/types";
 import { computeFlightPlan } from "@/lib/simulation-utils";
@@ -23,6 +22,7 @@ import { useSimCamera } from "@/hooks/use-sim-camera";
 import { useSimCompletion } from "@/hooks/use-sim-completion";
 import { useTerrainReady } from "@/hooks/use-terrain-ready";
 import { useConvexAvailable } from "@/app/ConvexClientProvider";
+import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
 import { communityApi } from "@/lib/community-api";
 
 import { MapPin } from "lucide-react";
@@ -42,7 +42,10 @@ import { MapControlsPanel } from "./MapControlsPanel";
 
 /** Fetches Cesium Ion token from Convex. Only mount when Convex is available. */
 function ConvexCesiumToken({ onToken }: { onToken: (token: string | null) => void }) {
-  const config = useQuery(communityApi.clientConfig.get, {});
+  // Parent already mounts this only when Convex is available. Bypass the demo
+  // check so simulation in demo mode still pulls the token when the backend
+  // is reachable.
+  const config = useConvexSkipQuery(communityApi.clientConfig.get, { skipDemoCheck: true });
   useEffect(() => {
     // config is undefined while loading, null if query not found
     if (config !== undefined) {

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation } from "convex/react";
 import Link from "next/link";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { communityApi } from "@/lib/community-api";
+import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
 import { formatDate } from "@/lib/utils";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -17,7 +18,10 @@ interface ChangelogDetailProps {
 }
 
 export function ChangelogDetail({ id }: ChangelogDetailProps) {
-  const entry = useQuery(communityApi.changelog.getById, { id: id as never });
+  const entry = useConvexSkipQuery(communityApi.changelog.getById, {
+    args: { id: id as never },
+    enabled: !!id,
+  });
   const removeChangelog = useMutation(communityApi.changelog.remove);
   const isAdmin = useIsAdmin();
   const [editorOpen, setEditorOpen] = useState(false);

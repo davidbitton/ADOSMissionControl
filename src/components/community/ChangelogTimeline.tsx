@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePaginatedQuery, useQuery, useMutation } from "convex/react";
+import { usePaginatedQuery, useMutation } from "convex/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Plus } from "lucide-react";
 import { communityApi } from "@/lib/community-api";
@@ -31,7 +31,7 @@ export function ChangelogTimeline() {
     { initialNumItems: PAGE_SIZE },
   );
 
-  const totalCount = useQuery(communityApi.changelog.listCount, {});
+  const totalCount = useConvexSkipQuery(communityApi.changelog.listCount);
 
   // Batch comment counts scoped to currently loaded entries only.
   const commentTargets = useMemo(
