@@ -29,13 +29,11 @@ import {
 } from "@/lib/protocol/mavlink-signer";
 import { allocateLocalLinkId } from "@/lib/protocol/link-id-allocator";
 import {
-  getCloudKeyForDrone,
   removeCloudKey,
   uploadKey,
 } from "@/lib/api/signing-cloud-sync";
 import { emitSigningEvent } from "@/lib/api/signing-events";
-import { getPrefs, setCloudSyncIntent } from "@/lib/protocol/signing-prefs";
-import { detectPrivateBrowsing } from "@/lib/protocol/private-browsing";
+import { setCloudSyncIntent } from "@/lib/protocol/signing-prefs";
 import {
   EnrollmentProgress,
   ENROLL_FAIL_MS,
@@ -46,6 +44,9 @@ import { ImportKeyModal } from "./ImportKeyModal";
 import { KeyAgeNudge } from "./KeyAgeNudge";
 import { SigningHistorySection } from "./SigningHistorySection";
 import { SigningDebugSection } from "./SigningDebugSection";
+import { usePrivateBrowsingDetection } from "./signing/use-private-browsing-detection";
+import { useCloudRowSync } from "./signing/use-cloud-row-sync";
+import { describeReason } from "./signing/describe-reason";
 
 export function SigningPanel() {
   const client = useAgentConnectionStore((s) => s.client);
@@ -64,32 +65,25 @@ export function SigningPanel() {
   const [enrollFailed, setEnrollFailed] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  // Whether a cloud row currently exists on Convex for this drone.
-  const [cloudRowPresent, setCloudRowPresent] = useState(false);
-  // Whether the operator has opted in to cloud sync. This is the
-  // persisted intent flag. Set independently of cloudRowPresent:
-  // operator flips intent on, next rotation uploads, cloudRowPresent
-  // then becomes true. Flipping intent off deletes the row immediately.
-  const [cloudSyncIntent, setCloudSyncIntentState] = useState(false);
   const [cloudSyncBusy, setCloudSyncBusy] = useState(false);
   const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
-  const [privateBrowsing, setPrivateBrowsing] = useState(false);
 
-  // Private-window detection. Fires once per panel mount; there's no
-  // reason the answer would change during a session.
-  useEffect(() => {
-    let cancelled = false;
-    detectPrivateBrowsing().then((v) => {
-      if (!cancelled) setPrivateBrowsing(v);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const privateBrowsing = usePrivateBrowsingDetection();
 
   const convexClient = useConvex();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const authLoading = useAuthStore((s) => s.isLoading);
+
+  // cloudSyncIntent is the persisted "I want cloud sync" preference; it
+  // and cloudRowPresent can disagree. Operator flips intent on -> next
+  // rotation uploads -> cloudRowPresent becomes true. Flipping intent
+  // off deletes the row immediately.
+  const {
+    cloudRowPresent,
+    cloudSyncIntent,
+    setCloudRowPresent,
+    setCloudSyncIntent: setCloudSyncIntentState,
+  } = useCloudRowSync(droneId, convexClient, isAuthenticated);
 
   // On drone change, refresh capability + local key presence.
   useEffect(() => {
@@ -137,36 +131,6 @@ export function SigningPanel() {
       cancelled = true;
     };
   }, [client, droneId, setCapability, setRequireOnFc, setBrowserKey, setEnrollmentState]);
-
-  // Read local intent flag (persists across sessions) and the current
-  // cloud-row presence on every drone change. Intent and presence can
-  // disagree: operator opts in → intent=true, no row yet. After first
-  // rotation → intent=true, row=true. Operator opts out → both false.
-  useEffect(() => {
-    if (!droneId) {
-      setCloudRowPresent(false);
-      setCloudSyncIntentState(false);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const prefs = await getPrefs(droneId);
-      if (!cancelled) setCloudSyncIntentState(prefs.cloudSyncIntent);
-      if (!isAuthenticated || !convexClient) {
-        if (!cancelled) setCloudRowPresent(false);
-        return;
-      }
-      try {
-        const row = await getCloudKeyForDrone(convexClient, droneId);
-        if (!cancelled) setCloudRowPresent(row !== null);
-      } catch {
-        if (!cancelled) setCloudRowPresent(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [droneId, isAuthenticated, convexClient]);
 
   const handleCloudSyncToggle = useCallback(async () => {
     if (!droneId) return;
@@ -222,7 +186,7 @@ export function SigningPanel() {
     } finally {
       setCloudSyncBusy(false);
     }
-  }, [cloudSyncIntent, cloudRowPresent, convexClient, droneId, isAuthenticated, state?.keyId]);
+  }, [cloudSyncIntent, cloudRowPresent, convexClient, droneId, isAuthenticated, state?.keyId, setCloudRowPresent, setCloudSyncIntentState]);
 
   const supported = state?.capability?.supported ?? false;
   const reason = state?.capability?.reason ?? "unknown";
@@ -336,7 +300,7 @@ export function SigningPanel() {
       clearTimeout(timeoutId);
       setBusy(false);
     }
-  }, [client, droneId, setBrowserKey, setEnrollmentState, cloudSyncIntent, convexClient, isAuthenticated, state?.keyId]);
+  }, [client, droneId, setBrowserKey, setEnrollmentState, cloudSyncIntent, convexClient, isAuthenticated, state?.keyId, setCloudRowPresent]);
 
   const handleDisable = useCallback(async () => {
     if (!client || !droneId) return;
@@ -641,19 +605,3 @@ export function SigningPanel() {
   );
 }
 
-function describeReason(reason: string): string {
-  switch (reason) {
-    case "fc_not_connected":
-      return "The flight controller is not connected.";
-    case "firmware_not_supported":
-      return "This firmware family does not expose a signing key store.";
-    case "firmware_too_old":
-      return "This firmware version does not expose signing parameters. ArduPilot 4.0 or newer is required.";
-    case "firmware_px4_no_persistent_store":
-      return "PX4 supports the signing protocol but lacks a persistent on-board key store.";
-    case "msp_protocol":
-      return "Betaflight and iNav use the MSP protocol, which has no signing concept.";
-    default:
-      return "MAVLink signing is not available.";
-  }
-}
