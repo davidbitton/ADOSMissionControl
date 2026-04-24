@@ -26,31 +26,31 @@ let recordedChunks: Blob[] = [];
 let statsInterval: ReturnType<typeof setInterval> | null = null;
 let videoElement: HTMLVideoElement | null = null;
 
-// DEC-108 Phase B0: MQTT signaling broker for P2P WebRTC across WAN.
-// SDP offer/answer flows over MQTT topics; media flows direct peer-to-peer
-// via STUN-punched ICE candidates after the handshake.
-const MQTT_SIGNALING_WS_URL = "wss://mqtt.altnautica.com/mqtt";
-// DEC-107 Phase H: timeouts bumped — slow cellular initial signaling needs
-// more headroom. Each value is the per-stage ceiling.
-const MQTT_CONNECT_TIMEOUT_MS = 8000;
-const MQTT_ANSWER_TIMEOUT_MS = 12000;
-const ICE_GATHER_TIMEOUT_MS = 8000;
-const ONTRACK_TIMEOUT_MS = 8000;
-// Part I P2-18: LAN paths get tighter timeouts since loopback / RFC1918
-// either responds within a couple seconds or won't respond at all.
-const LAN_ICE_GATHER_TIMEOUT_MS = 3000;
-const LAN_ONTRACK_TIMEOUT_MS = 8000;
-// DEC-107 Phase H: expanded STUN server list for better ICE candidate diversity.
-// More candidates = higher chance of finding a working pair on cellular and
-// corporate networks. Cloudflare anycast STUN reaches many regions; Twilio
-// adds an independent network path; Google stun2 is a third Google POP.
-const CROSS_NETWORK_ICE_SERVERS: RTCIceServer[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-  { urls: "stun:stun2.l.google.com:19302" },
-  { urls: "stun:stun.cloudflare.com:3478" },
-  { urls: "stun:global.stun.twilio.com:3478" },
-];
+import {
+  MQTT_SIGNALING_WS_URL,
+  MQTT_CONNECT_TIMEOUT_MS,
+  MQTT_ANSWER_TIMEOUT_MS,
+  ICE_GATHER_TIMEOUT_MS,
+  ONTRACK_TIMEOUT_MS,
+  LAN_ICE_GATHER_TIMEOUT_MS,
+  LAN_ONTRACK_TIMEOUT_MS,
+  CROSS_NETWORK_ICE_SERVERS,
+} from "./webrtc-constants";
+import {
+  mungeForLowLatency,
+  checkAborted,
+  abortable,
+  classifyError,
+  detectTransportFromUrl,
+} from "./webrtc-helpers";
+
+export {
+  mungeForLowLatency,
+  checkAborted,
+  abortable,
+  classifyError,
+  detectTransportFromUrl,
+};
 
 // DEC-107 Phase H: shared helpers for the cascade hook to thread per-mode
 // health updates from inside the WebRTC client.
@@ -67,101 +67,7 @@ function reportHealth(
   });
 }
 
-/**
- * Munge SDP to hint Chrome for minimum jitter buffer. The
- * `a=x-google-flag:conference` attribute tells Chrome's WebRTC stack to
- * prioritize low latency over smooth playout, reducing the default 100-200ms
- * adaptive jitter buffer to its minimum. Applied to the video m-section.
- */
-export function mungeForLowLatency(sdp: string): string {
-  if (sdp.includes("a=x-google-flag:conference")) return sdp;
-  // Insert after the first video m-line's mid attribute
-  return sdp.replace(
-    /(m=video[^\r\n]*\r\n)/,
-    "$1a=x-google-flag:conference\r\n",
-  );
-}
-
-// Part I P0-3: helper for AbortSignal-driven cancellation. Throws an
-// AbortError that classifyError catches and reports as { code: "aborted" }.
-export function checkAborted(signal?: AbortSignal): void {
-  if (signal?.aborted) {
-    throw new DOMException("Aborted", "AbortError");
-  }
-}
-
-// Part I P0-3: race a promise against an AbortSignal. The promise itself
-// can't be aborted (no AbortablePromise in JS) but we can reject early when
-// the signal fires.
-export function abortable<T>(p: Promise<T>, signal?: AbortSignal): Promise<T> {
-  if (!signal) return p;
-  return new Promise<T>((resolve, reject) => {
-    if (signal.aborted) {
-      reject(new DOMException("Aborted", "AbortError"));
-      return;
-    }
-    const onAbort = () => reject(new DOMException("Aborted", "AbortError"));
-    signal.addEventListener("abort", onAbort, { once: true });
-    p.then(
-      (v) => { signal.removeEventListener("abort", onAbort); resolve(v); },
-      (e) => { signal.removeEventListener("abort", onAbort); reject(e); },
-    );
-  });
-}
-
-// DEC-107 Phase H: classify a thrown error into a TransportErrorCode based
-// on the message. Lets the dropdown tooltip surface "ICE timeout" instead of
-// raw stack traces.
-//
-// Part I P1-8: added cascade-timeout and abort patterns. Order matters —
-// most specific patterns first.
-export function classifyError(err: unknown): { code: TransportErrorCode; message: string } {
-  // Native AbortError thrown by our checkAborted() helper or fetch()
-  if (err instanceof DOMException && err.name === "AbortError") {
-    return { code: "aborted", message: "Cancelled" };
-  }
-  const message = err instanceof Error ? err.message : String(err);
-  const lower = message.toLowerCase();
-  if (lower.includes("aborted") || lower.includes("cancelled")) {
-    return { code: "aborted", message };
-  }
-  // Cascade-level timeouts come from withTimeout in the cascade hook and
-  // look like "LAN Direct timeout after 4000ms" or "P2P MQTT timeout after 14000ms"
-  if (lower.match(/^(lan direct|p2p mqtt|cloud whep|cloud mse) timeout/)) {
-    return { code: "cascade-timeout", message };
-  }
-  if (lower.includes("ice gather") || lower.includes("ice gathering")) {
-    return { code: "ice-gather-timeout", message };
-  }
-  if (lower.includes("disconnect") && lower.includes("ice")) {
-    return { code: "ice-disconnect", message };
-  }
-  if (lower.includes("mqtt") && lower.includes("timeout")) {
-    return { code: "mqtt-answer-timeout", message };
-  }
-  if (lower.includes("mqtt broker connect")) {
-    return { code: "mqtt-connect-timeout", message };
-  }
-  if (lower.includes("subscribe")) {
-    return { code: "mqtt-subscribe-failed", message };
-  }
-  if (lower.includes("ontrack") || lower.includes("video track")) {
-    return { code: "ontrack-timeout", message };
-  }
-  // WHEP HTTP status — check status code in message
-  if (/4\d\d/.test(message) && lower.includes("whep")) {
-    return { code: "whep-4xx", message };
-  }
-  if (/5\d\d/.test(message) && lower.includes("whep")) {
-    return { code: "whep-5xx", message };
-  }
-  if (lower.includes("network") || lower.includes("fetch")) {
-    return { code: "whep-network", message };
-  }
-  return { code: "other", message };
-}
-
-// DEC-107 Phase H: ICE restart cooldown — only attempt once per 5 seconds to
+// ICE restart cooldown: only attempt once per 5 seconds to
 // avoid thrash on flapping networks.
 //
 // Part I P0-5: takes a targetPc parameter so handlers can pass their own
@@ -180,27 +86,6 @@ function tryIceRestart(targetPc: RTCPeerConnection): void {
     console.log("[webrtc-client] ICE restart triggered after disconnect");
   } catch (err) {
     console.warn("[webrtc-client] ICE restart failed:", err);
-  }
-}
-
-/** Classify a WHEP URL as LAN-direct or cloud relay based on hostname. */
-export function detectTransportFromUrl(url: string): "lan-whep" | "cloud-whep" {
-  try {
-    const u = new URL(url);
-    const host = u.hostname;
-    // Loopback or RFC1918 private addresses → LAN direct
-    if (
-      host === "localhost" ||
-      host === "127.0.0.1" ||
-      host.startsWith("10.") ||
-      host.startsWith("192.168.") ||
-      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)
-    ) {
-      return "lan-whep";
-    }
-    return "cloud-whep";
-  } catch {
-    return "lan-whep";
   }
 }
 
