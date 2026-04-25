@@ -222,7 +222,7 @@ When you need to understand a system, read these files:
 | Geofence protocol | `src/stores/geofence-store.ts` — fence upload/download, polygon/circle |
 | Rally points | `src/stores/rally-store.ts` — rally point CRUD + protocol upload/download |
 | Mission validation | `src/lib/validation/mission-validator.ts` — pre-upload checks |
-| File formats | `src/lib/formats/kml-parser.ts`, `csv-handler.ts` — KML/KMZ/CSV I/O |
+| File formats | `src/lib/formats/kml-parser.ts`, `src/lib/formats/csv-handler.ts` — KML/KMZ/CSV I/O |
 | Mission transforms | `src/lib/transforms/mission-transforms.ts` — move/rotate/scale |
 | Cloud status bridge | `src/components/command/CloudStatusBridge.tsx` — Convex reactive query → agent store |
 | MQTT bridge | `src/components/command/MqttBridge.tsx` — Browser MQTT client for real-time telemetry |
