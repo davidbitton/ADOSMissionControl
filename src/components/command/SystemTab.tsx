@@ -87,7 +87,7 @@ export function SystemTab() {
       setHwScanning(true);
       scanPeripherals();
     }
-  }, [connected]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [connected, peripherals.length, scanPeripherals]);
 
   useEffect(() => {
     if (peripherals.length > 0) setHwScanning(false);
