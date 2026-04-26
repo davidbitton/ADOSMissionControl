@@ -48,15 +48,39 @@ export function MqttBridge({ mqttBrokerUrl }: { mqttBrokerUrl?: string | null })
 
         clientRef.current = client;
 
-        client.on("connect", () => {
+        // mqtt.js fires 'connect' on every (re)connect with the broker.
+        // We resubscribe each time because the previous session's
+        // subscriptions are dropped on a `clean: true` reconnect.
+        // Cast loosely because the dynamic-import client type omits the
+        // (topic, callback) subscribe overload.
+        const c = client as unknown as {
+          on: (event: string, cb: (...args: unknown[]) => void) => void;
+          subscribe: (
+            topic: string,
+            cb: (err: Error | null) => void,
+          ) => void;
+        };
+        c.on("connect", () => {
           if (cancelled) return;
           setMqttConnected(true);
-          client.subscribe(`ados/${cloudDeviceId}/status`);
-          client.subscribe(`ados/${cloudDeviceId}/telemetry`);
+          const onSubErr = (err: Error | null) => {
+            if (err) {
+              console.warn(
+                "[MqttBridge] subscribe failed:",
+                err.message,
+              );
+            }
+          };
+          c.subscribe(`ados/${cloudDeviceId}/status`, onSubErr);
+          c.subscribe(`ados/${cloudDeviceId}/telemetry`, onSubErr);
         });
 
-        client.on("close", () => {
+        c.on("close", () => {
           if (!cancelled) setMqttConnected(false);
+        });
+
+        c.on("reconnect", () => {
+          if (!cancelled) console.debug("[MqttBridge] reconnecting");
         });
 
         client.on("message", (_topic: string, payload: Buffer) => {

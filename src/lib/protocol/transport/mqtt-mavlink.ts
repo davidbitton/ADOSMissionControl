@@ -79,9 +79,22 @@ export class MqttMavlinkTransport implements Transport {
           },
         );
 
+        // mqtt.js fires 'connect' on every (re)connect. We resubscribe
+        // each time because the previous session's subscriptions are
+        // dropped on a `clean: true` reconnect. Subscribe error
+        // callback surfaces broker ACL denials that previously failed
+        // silently and stalled the transport waiting for frames.
         this.client.on("connect", () => {
           this._connected = true;
-          this.client.subscribe(topicTx, { qos: 0 });
+          this.client.subscribe(
+            topicTx,
+            { qos: 0 },
+            (err: Error | null) => {
+              if (err) {
+                this.emit("error", err);
+              }
+            },
+          );
           if (!resolved) {
             resolved = true;
             clearTimeout(timer);
