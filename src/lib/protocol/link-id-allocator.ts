@@ -26,6 +26,19 @@
 const DEVICE_ID_KEY = "ados-device-id";
 
 /**
+ * SECURITY NOTE: this key is NOT an authentication credential.
+ *
+ * It is a stable per-browser fingerprint used purely to allocate the
+ * MAVLink signing link_id slot on the FC and to group same-browser
+ * events in the audit log. There is no exfil risk: anyone can generate
+ * a random UUID for themselves; nothing the agent or FC trusts about
+ * a request derives from this value. The actual auth credential
+ * (X-ADOS-Key) lives in-memory in pairing-store / agent-connection-store
+ * and is never persisted to localStorage. See tests/lib/auth-storage.test.ts
+ * for the regression net that enforces this.
+ */
+
+/**
  * Return the stable per-browser device id, creating one on first call.
  * Persisted to localStorage so the same browser allocates the same link
  * id across reloads.
