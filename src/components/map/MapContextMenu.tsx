@@ -4,6 +4,10 @@
  * that shows different commands based on connection state, arm state, flight mode,
  * and vehicle capabilities. Supports navigation, camera/gimbal, home/origin,
  * rally points, POI markers, heading, and utility commands.
+ *
+ * Thin orchestrator: owns the menu shell, positioning, click-outside, keyboard
+ * navigation, and renders. Per-action handlers live under `./context-menu/`.
+ *
  * @license GPL-3.0-only
  */
 
@@ -13,36 +17,21 @@ import { useEffect, useCallback, useState, useMemo, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import { useDroneManager } from "@/stores/drone-manager";
-import { useDroneStore } from "@/stores/drone-store";
 import { useTelemetryStore } from "@/stores/telemetry-store";
 import { useGuidedStore } from "@/stores/guided-store";
-import { useRallyStore } from "@/stores/rally-store";
 import { usePoiStore } from "@/stores/poi-store";
 import { haversineDistance, bearing } from "@/lib/telemetry-utils";
 
-// ── Types ───────────────────────────────────────────────────
-
-interface MenuPosition {
-  x: number;
-  y: number;
-  lat: number;
-  lon: number;
-}
-
-interface MenuItemDef {
-  id: string;
-  label: string;
-  icon: string;
-  group: number;
-  shortcut?: string;
-  danger?: boolean;
-}
-
-// ── Constants ───────────────────────────────────────────────
-
-import { ICONS, GUIDED_MODES } from "./map-context-menu-icons";
-
-// ── Component ───────────────────────────────────────────────
+import type { MenuPosition } from "./context-menu/types";
+import { useMenuContext, useMenuItems } from "./context-menu/use-menu-items";
+import { useMenuActions } from "./context-menu/use-menu-actions";
+import { MenuItem } from "./context-menu/MenuItem";
+import { OrbitPanel } from "./context-menu/panels/OrbitPanel";
+import { SetHomeConfirmPanel } from "./context-menu/panels/SetHomeConfirmPanel";
+import { PoiInputPanel } from "./context-menu/panels/PoiInputPanel";
+import { handleOrbitConfirmed } from "./context-menu/actions/orbit";
+import { handleSetHomeConfirmed } from "./context-menu/actions/home";
+import { handleAddPoiConfirmed } from "./context-menu/actions/markers";
 
 export function MapContextMenu() {
   const map = useMap();
@@ -58,7 +47,7 @@ export function MapContextMenu() {
   const poiInputRef = useRef<HTMLInputElement>(null);
 
   // Prevent Leaflet from intercepting clicks inside the context menu.
-  // React's stopPropagation doesn't work because Leaflet uses its own
+  // React's stopPropagation does not work because Leaflet uses its own
   // event system (L.DomEvent) that runs in parallel with DOM events.
   useEffect(() => {
     const el = menuRef.current;
@@ -67,24 +56,15 @@ export function MapContextMenu() {
     L.DomEvent.disableScrollPropagation(el);
   });
 
-  const connectionState = useDroneStore((s) => s.connectionState);
-  const flightMode = useDroneStore((s) => s.flightMode);
-  const armState = useDroneStore((s) => s.armState);
-  const frameType = useDroneStore((s) => s.frameType);
-  const showConfirm = useGuidedStore((s) => s.showConfirm);
+  const ctx = useMenuContext();
+  const menuItems = useMenuItems(ctx);
+
   const confirmPending = useGuidedStore((s) => s.confirmPending);
   const getProtocol = useDroneManager((s) => s.getSelectedProtocol);
-  const addRally = useRallyStore((s) => s.addPoint);
-  const uploadRally = useRallyStore((s) => s.uploadRallyPoints);
   const addPoi = usePoiStore((s) => s.addMarker);
 
   const posBuffer = useTelemetryStore((s) => s.position);
   const latestPos = posBuffer.latest();
-
-  const isConnected = connectionState === "connected" || connectionState === "armed" || connectionState === "in_flight";
-  const isArmed = armState === "armed";
-  const canNavigate = isConnected && isArmed && GUIDED_MODES.has(flightMode);
-  const isCopter = frameType === "copter" || frameType === "heli";
 
   // ── Close handlers ──────────────────────────────────────
 
@@ -130,55 +110,6 @@ export function MapContextMenu() {
     };
   }, [map, closeMenu]);
 
-  // ── Menu items (context-aware visibility) ───────────────
-
-  const menuItems = useMemo((): MenuItemDef[] => {
-    const items: MenuItemDef[] = [];
-
-    // Group 0: Navigation
-    if (canNavigate) {
-      items.push({ id: "fly-here", label: "Fly Here", icon: "flyHere", group: 0, shortcut: "G" });
-      items.push({ id: "fly-here-alt", label: "Fly Here at Alt...", icon: "flyHereAlt", group: 0 });
-    }
-    if (canNavigate && isCopter) {
-      items.push({ id: "orbit-here", label: "Orbit Here...", icon: "orbit", group: 0, shortcut: "O" });
-    }
-    if (canNavigate) {
-      items.push({ id: "loiter-here", label: "Loiter Here", icon: "loiter", group: 0 });
-      items.push({ id: "land-here", label: "Land Here", icon: "land", group: 0 });
-    }
-
-    // Group 1: Camera/Gimbal
-    if (isConnected) {
-      items.push({ id: "point-camera", label: "Point Camera Here", icon: "roi", group: 1 });
-      items.push({ id: "clear-roi", label: "Clear Camera ROI", icon: "clearRoi", group: 1 });
-      items.push({ id: "trigger-camera", label: "Trigger Camera", icon: "camera", group: 1 });
-    }
-
-    // Group 2: Home/Origin
-    if (isConnected) {
-      items.push({ id: "set-home", label: "Set Home Here", icon: "home", group: 2 });
-      items.push({ id: "set-ekf-origin", label: "Set EKF Origin", icon: "ekf", group: 2 });
-    }
-
-    // Group 3: Markers
-    if (isConnected) {
-      items.push({ id: "add-rally", label: "Add Rally Point", icon: "rally", group: 3 });
-    }
-    items.push({ id: "add-poi", label: "Add POI Marker", icon: "poi", group: 3 });
-    if (isConnected && isArmed && GUIDED_MODES.has(flightMode)) {
-      items.push({ id: "set-heading", label: "Set Heading Toward", icon: "heading", group: 3 });
-    }
-
-    // Group 4: Utility
-    items.push({ id: "copy-coords", label: "Copy Coordinates", icon: "copy", group: 4 });
-    if (isConnected && latestPos && latestPos.lat !== 0) {
-      items.push({ id: "measure-from-drone", label: "Measure from Drone", icon: "measure", group: 4 });
-    }
-
-    return items;
-  }, [canNavigate, isConnected, isArmed, isCopter, flightMode, latestPos]);
-
   // ── Distance and bearing calculations ───────────────────
 
   const dist = useMemo(() => {
@@ -191,138 +122,66 @@ export function MapContextMenu() {
     return bearing(latestPos.lat, latestPos.lon, menuPos.lat, menuPos.lon);
   }, [menuPos, latestPos]);
 
-  const distLabel = dist < 1000
-    ? `${Math.round(dist)} m`
-    : `${(dist / 1000).toFixed(2)} km`;
+  const distLabel = dist < 1000 ? `${Math.round(dist)} m` : `${(dist / 1000).toFixed(2)} km`;
 
-  // ── Action handler ──────────────────────────────────────
+  // ── Sub-panel openers passed to the action dispatcher ──
 
-  const handleAction = useCallback((id: string) => {
-    if (!menuPos) return;
-    const protocol = getProtocol();
-    const rect = map.getContainer().getBoundingClientRect();
+  const openOrbitPanel = useCallback(() => setOrbitOpen(true), []);
+  const openHomeConfirmPanel = useCallback(() => setConfirmHomeOpen(true), []);
+  const openPoiInputPanel = useCallback(() => {
+    setPoiInput(true);
+    setTimeout(() => poiInputRef.current?.focus(), 50);
+  }, []);
 
-    switch (id) {
-      case "fly-here": {
-        showConfirm(menuPos.lat, menuPos.lon, rect.left + menuPos.x, rect.top + menuPos.y);
-        break;
-      }
-      case "fly-here-alt": {
-        // Same as fly-here but opens confirm dialog which has altitude picker
-        showConfirm(menuPos.lat, menuPos.lon, rect.left + menuPos.x, rect.top + menuPos.y);
-        break;
-      }
-      case "orbit-here": {
-        setOrbitOpen(true);
-        return; // Don't close menu
-      }
-      case "loiter-here": {
-        if (protocol) {
-          protocol.setFlightMode("LOITER");
-          protocol.guidedGoto(menuPos.lat, menuPos.lon, latestPos?.relativeAlt ?? 10);
-        }
-        break;
-      }
-      case "land-here": {
-        if (protocol) {
-          protocol.guidedGoto(menuPos.lat, menuPos.lon, latestPos?.relativeAlt ?? 10);
-          setTimeout(() => protocol.land(), 500);
-        }
-        break;
-      }
-      case "point-camera": {
-        if (protocol?.setRoiLocation) {
-          protocol.setRoiLocation(menuPos.lat, menuPos.lon, latestPos?.relativeAlt ?? 0);
-        } else if (protocol?.setGimbalROI) {
-          protocol.setGimbalROI(menuPos.lat, menuPos.lon, latestPos?.relativeAlt ?? 0);
-        }
-        break;
-      }
-      case "clear-roi": {
-        if (protocol?.clearRoi) protocol.clearRoi();
-        break;
-      }
-      case "trigger-camera": {
-        if (protocol) protocol.cameraTrigger();
-        break;
-      }
-      case "set-home": {
-        setConfirmHomeOpen(true);
-        return; // Don't close menu
-      }
-      case "set-ekf-origin": {
-        if (protocol?.setEkfOrigin) {
-          protocol.setEkfOrigin(menuPos.lat, menuPos.lon, 0);
-        }
-        break;
-      }
-      case "add-rally": {
-        addRally({
-          id: `rally-${Date.now()}`,
-          lat: menuPos.lat,
-          lon: menuPos.lon,
-          alt: latestPos?.relativeAlt ?? 30,
-        });
-        uploadRally();
-        break;
-      }
-      case "add-poi": {
-        setPoiInput(true);
-        setTimeout(() => poiInputRef.current?.focus(), 50);
-        return; // Don't close menu
-      }
-      case "set-heading": {
-        if (protocol && latestPos) {
-          const brng = bearing(latestPos.lat, latestPos.lon, menuPos.lat, menuPos.lon);
-          protocol.setYaw(brng, 30, 1, false);
-        }
-        break;
-      }
-      case "copy-coords": {
-        navigator.clipboard.writeText(`${menuPos.lat.toFixed(7)}, ${menuPos.lon.toFixed(7)}`);
-        break;
-      }
-      case "measure-from-drone": {
-        // Already shown in footer, but this highlights it
-        navigator.clipboard.writeText(
-          `${distLabel} at ${Math.round(bearingToDrone)}°`
-        );
-        break;
-      }
-    }
-    closeMenu();
-  }, [menuPos, getProtocol, map, showConfirm, latestPos, addRally, uploadRally, addPoi, closeMenu, distLabel, bearingToDrone]);
+  const { dispatch } = useMenuActions({
+    map,
+    menuPos,
+    latestPos,
+    distLabel,
+    bearingToDrone,
+    openOrbitPanel,
+    openHomeConfirmPanel,
+    openPoiInputPanel,
+  });
 
-  // ── Orbit confirm ───────────────────────────────────────
+  const handleAction = useCallback(
+    (id: string) => {
+      const shouldClose = dispatch(id);
+      if (shouldClose) closeMenu();
+    },
+    [dispatch, closeMenu],
+  );
+
+  // ── Sub-panel confirm handlers ──────────────────────────
 
   const handleOrbitConfirm = useCallback(() => {
     if (!menuPos) return;
-    const protocol = getProtocol();
-    if (protocol?.orbit) {
-      const radius = orbitCw ? orbitRadius : -orbitRadius;
-      protocol.orbit(radius, 2, 2, menuPos.lat, menuPos.lon, latestPos?.relativeAlt ?? 20);
-    }
+    handleOrbitConfirmed({
+      protocol: getProtocol(),
+      menuPos,
+      radius: orbitRadius,
+      clockwise: orbitCw,
+      relativeAlt: latestPos?.relativeAlt,
+    });
     closeMenu();
   }, [menuPos, getProtocol, orbitRadius, orbitCw, latestPos, closeMenu]);
 
-  // ── Set Home confirm ────────────────────────────────────
-
   const handleHomeConfirm = useCallback(() => {
     if (!menuPos) return;
-    const protocol = getProtocol();
-    if (protocol) {
-      protocol.setHome(false, menuPos.lat, menuPos.lon, 0);
-    }
+    handleSetHomeConfirmed({ protocol: getProtocol(), menuPos });
     closeMenu();
   }, [menuPos, getProtocol, closeMenu]);
 
-  // ── POI confirm ─────────────────────────────────────────
-
   const handlePoiConfirm = useCallback(() => {
     if (!menuPos) return;
-    addPoi(menuPos.lat, menuPos.lon, poiLabel);
+    handleAddPoiConfirmed({ menuPos, label: poiLabel, addPoi });
     closeMenu();
   }, [menuPos, addPoi, poiLabel, closeMenu]);
+
+  const handlePoiCancel = useCallback(() => {
+    setPoiInput(false);
+    setPoiLabel("");
+  }, []);
 
   // ── Keyboard navigation ─────────────────────────────────
 
@@ -402,148 +261,66 @@ export function MapContextMenu() {
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      {/* Orbit sub-panel */}
       {orbitOpen && (
-        <div className="px-3 py-2 border-b border-border-default">
-          <div className="text-[10px] font-mono text-text-secondary mb-1.5">Orbit Configuration</div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <label className="text-[9px] text-text-tertiary w-12">Radius</label>
-            <input
-              type="number"
-              value={orbitRadius}
-              onChange={(e) => setOrbitRadius(Math.max(5, Math.min(500, Number(e.target.value))))}
-              min={5}
-              max={500}
-              step={5}
-              className="flex-1 px-1.5 py-0.5 text-[10px] font-mono bg-bg-tertiary border border-border-default rounded text-text-primary focus:border-accent-primary focus:outline-none"
-            />
-            <span className="text-[9px] text-text-tertiary">m</span>
-          </div>
-          <div className="flex items-center gap-2 mb-2">
-            <label className="text-[9px] text-text-tertiary w-12">Direction</label>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setOrbitCw(true)}
-                className={`px-2 py-0.5 text-[9px] font-mono rounded border cursor-pointer ${
-                  orbitCw ? "bg-accent-primary/20 border-accent-primary text-accent-primary" : "border-border-default text-text-tertiary"
-                }`}
-              >
-                CW
-              </button>
-              <button
-                onClick={() => setOrbitCw(false)}
-                className={`px-2 py-0.5 text-[9px] font-mono rounded border cursor-pointer ${
-                  !orbitCw ? "bg-accent-primary/20 border-accent-primary text-accent-primary" : "border-border-default text-text-tertiary"
-                }`}
-              >
-                CCW
-              </button>
-            </div>
-          </div>
-          <div className="flex gap-1">
-            <button
-              onClick={handleOrbitConfirm}
-              className="flex-1 px-2 py-1 text-[10px] font-mono font-semibold bg-accent-primary/20 border border-accent-primary/40 text-accent-primary rounded hover:bg-accent-primary/30 cursor-pointer"
-            >
-              Start Orbit
-            </button>
-            <button
-              onClick={() => setOrbitOpen(false)}
-              className="px-2 py-1 text-[10px] font-mono text-text-tertiary border border-border-default rounded hover:text-text-primary cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <OrbitPanel
+          radius={orbitRadius}
+          setRadius={setOrbitRadius}
+          clockwise={orbitCw}
+          setClockwise={setOrbitCw}
+          onConfirm={handleOrbitConfirm}
+          onCancel={() => setOrbitOpen(false)}
+        />
       )}
 
-      {/* Set Home confirmation */}
       {confirmHomeOpen && (
-        <div className="px-3 py-2 border-b border-border-default">
-          <div className="text-[10px] font-mono text-status-warning mb-1.5">Confirm: Set Home Here?</div>
-          <div className="text-[9px] text-text-tertiary mb-2">
-            This will change the home location. RTL and failsafe will use this new position.
-          </div>
-          <div className="flex gap-1">
-            <button
-              onClick={handleHomeConfirm}
-              className="flex-1 px-2 py-1 text-[10px] font-mono font-semibold bg-status-warning/20 border border-status-warning/40 text-status-warning rounded hover:bg-status-warning/30 cursor-pointer"
-            >
-              Confirm
-            </button>
-            <button
-              onClick={() => setConfirmHomeOpen(false)}
-              className="px-2 py-1 text-[10px] font-mono text-text-tertiary border border-border-default rounded hover:text-text-primary cursor-pointer"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <SetHomeConfirmPanel
+          onConfirm={handleHomeConfirm}
+          onCancel={() => setConfirmHomeOpen(false)}
+        />
       )}
 
-      {/* POI label input */}
       {poiInput && (
-        <div className="px-3 py-2 border-b border-border-default">
-          <div className="text-[10px] font-mono text-text-secondary mb-1.5">POI Label</div>
-          <div className="flex gap-1">
-            <input
-              ref={poiInputRef}
-              type="text"
-              value={poiLabel}
-              onChange={(e) => setPoiLabel(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handlePoiConfirm();
-                if (e.key === "Escape") { setPoiInput(false); setPoiLabel(""); }
-              }}
-              placeholder="Marker name..."
-              className="flex-1 px-1.5 py-0.5 text-[10px] font-mono bg-bg-tertiary border border-border-default rounded text-text-primary focus:border-accent-primary focus:outline-none placeholder:text-text-tertiary/50"
-            />
-            <button
-              onClick={handlePoiConfirm}
-              className="px-2 py-0.5 text-[10px] font-mono font-semibold bg-[#DFF140]/20 border border-[#DFF140]/40 text-[#DFF140] rounded hover:bg-[#DFF140]/30 cursor-pointer"
-            >
-              Add
-            </button>
-          </div>
-        </div>
+        <PoiInputPanel
+          ref={poiInputRef}
+          label={poiLabel}
+          setLabel={setPoiLabel}
+          onConfirm={handlePoiConfirm}
+          onCancel={handlePoiCancel}
+        />
       )}
 
       {/* Menu items */}
-      {!orbitOpen && !confirmHomeOpen && !poiInput && sortedGroups.map((group, gi) => {
-        const groupItems = menuItems.filter((i) => i.group === group);
-        if (groupItems.length === 0) return null;
-        return (
-          <div key={group}>
-            {gi > 0 && <div className="border-t border-border-default" />}
-            {groupItems.map((item) => {
-              const idx = menuItems.indexOf(item);
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleAction(item.id)}
-                  onMouseEnter={() => setHighlightIdx(idx)}
-                  className={`w-full text-left px-3 py-1.5 text-[11px] font-mono transition-colors flex items-center gap-2.5 cursor-pointer ${
-                    highlightIdx === idx
-                      ? "bg-bg-tertiary text-text-primary"
-                      : "text-text-secondary hover:bg-bg-tertiary hover:text-text-primary"
-                  } ${item.danger ? "text-status-error" : ""}`}
-                >
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0" dangerouslySetInnerHTML={{ __html: ICONS[item.icon] || "" }} />
-                  <span className="flex-1">{item.label}</span>
-                  {item.shortcut && (
-                    <span className="text-[9px] text-text-tertiary">{item.shortcut}</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        );
-      })}
+      {!orbitOpen &&
+        !confirmHomeOpen &&
+        !poiInput &&
+        sortedGroups.map((group, gi) => {
+          const groupItems = menuItems.filter((i) => i.group === group);
+          if (groupItems.length === 0) return null;
+          return (
+            <div key={group}>
+              {gi > 0 && <div className="border-t border-border-default" />}
+              {groupItems.map((item) => {
+                const idx = menuItems.indexOf(item);
+                return (
+                  <MenuItem
+                    key={item.id}
+                    item={item}
+                    highlighted={highlightIdx === idx}
+                    onClick={() => handleAction(item.id)}
+                    onMouseEnter={() => setHighlightIdx(idx)}
+                  />
+                );
+              })}
+            </div>
+          );
+        })}
 
       {/* Coordinate + distance footer */}
       <div className="border-t border-border-default" />
       <div className="px-3 py-1 text-[9px] font-mono text-text-tertiary flex justify-between items-center">
-        <span>{menuPos.lat.toFixed(6)}, {menuPos.lon.toFixed(6)}</span>
+        <span>
+          {menuPos.lat.toFixed(6)}, {menuPos.lon.toFixed(6)}
+        </span>
         <span className="flex items-center gap-1.5">
           {dist > 0 && <span>{distLabel}</span>}
           {dist > 0 && bearingToDrone > 0 && <span>{Math.round(bearingToDrone)}°</span>}
