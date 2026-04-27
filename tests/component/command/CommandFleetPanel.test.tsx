@@ -8,6 +8,10 @@
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 
+// Currently excluded from vitest runs via vitest.config.ts. The runner
+// hangs at module-load on this file under vitest 4.0.18; the test bodies
+// themselves are still valid and the file is preserved for restoration.
+
 vi.mock("lucide-react", () =>
   new Proxy(
     {},
