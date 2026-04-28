@@ -12,6 +12,7 @@
  */
 
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { mutation, query, type QueryCtx } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
@@ -335,6 +336,11 @@ async function requireUser(ctx: QueryCtx): Promise<string> {
 
 // ── Queries ──────────────────────────────────────────────────
 
+/**
+ * @deprecated Pulls every flight log unbounded. Use {@link listPaginated} for
+ * scroll surfaces and the cloud-sync bridge. Kept for legacy callers and
+ * incremental sync via the optional `since` cutoff.
+ */
 export const list = query({
   args: { since: v.optional(v.number()) },
   handler: async (ctx, args) => {
@@ -348,6 +354,67 @@ export const list = query({
       return rows.filter((r) => r.updatedAt > (args.since ?? 0));
     }
     return rows;
+  },
+});
+
+/**
+ * Paginated variant of {@link list}. Returns rows newest-first by
+ * `startTime` so the History tab and cloud-sync bridge can walk pages
+ * instead of fetching every row up front.
+ *
+ * Optional `since` cutoff filters to rows whose `updatedAt` is strictly
+ * greater than the cutoff, matching the legacy `list` semantics. The
+ * filter runs after pagination on the page array, so callers using
+ * `since` should expect short or empty pages until the cursor reaches
+ * older rows. For incremental sync the recommended pattern is to walk
+ * with no `since` and stop early when the local store has already seen
+ * a row.
+ */
+export const listPaginated = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    since: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return {
+        page: [] as Array<never>,
+        isDone: true,
+        continueCursor: "",
+      };
+    }
+    const result = await ctx.db
+      .query("cmd_flightLogs")
+      .withIndex("by_user_startTime", (qb) => qb.eq("userId", userId))
+      .order("desc")
+      .paginate(args.paginationOpts);
+    if (args.since !== undefined) {
+      const cutoff = args.since;
+      return {
+        ...result,
+        page: result.page.filter((r) => r.updatedAt > cutoff),
+      };
+    }
+    return result;
+  },
+});
+
+/**
+ * Total flight-log count for the current user. Separate from
+ * {@link listPaginated} so the History tab can show "X of Y" without
+ * defeating pagination.
+ */
+export const getCount = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return 0;
+    const rows = await ctx.db
+      .query("cmd_flightLogs")
+      .withIndex("by_userId", (qb) => qb.eq("userId", userId))
+      .collect();
+    return rows.length;
   },
 });
 

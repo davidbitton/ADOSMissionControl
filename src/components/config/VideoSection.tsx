@@ -21,7 +21,7 @@ const OSD_ELEMENT_KEYS = [
 
 export function VideoSection() {
   const t = useTranslations("video");
-  const { resolution } = useVideoStore();
+  const resolution = useVideoStore((s) => s.resolution);
   const [lowLatency, setLowLatency] = useState(true);
   const [bitrate, setBitrate] = useState("4");
   const [codec, setCodec] = useState("h264");

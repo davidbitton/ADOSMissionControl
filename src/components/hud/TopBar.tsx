@@ -1,24 +1,20 @@
 "use client";
 
-// HUD top bar. Reads live telemetry from telemetry-store + drone-store
-// via RingBuffer.latest() selectors. Bumps on the store's _version field.
+// HUD top bar. Reads live telemetry via useHudTopBarData (memoized
+// against telemetry-store _version). Wrapped in React.memo so parent
+// re-renders do not cascade through the always-visible HUD chrome.
 
-import { useTelemetryStore } from "@/stores/telemetry-store";
+import { memo } from "react";
 import { useDroneStore } from "@/stores/drone-store";
+import { useHudTopBarData } from "@/hooks/use-hud-topbar-data";
 
 function fmt(n: number | undefined | null, digits = 0): string {
   if (n === undefined || n === null || !Number.isFinite(n)) return "--";
   return n.toFixed(digits);
 }
 
-export function TopBar() {
-  // Subscribe to _version so selectors re-run when ring buffers get new data.
-  useTelemetryStore((s) => s._version);
-
-  const radio = useTelemetryStore((s) => s.radio.latest());
-  const vfr = useTelemetryStore((s) => s.vfr.latest());
-  const battery = useTelemetryStore((s) => s.battery.latest());
-  const gps = useTelemetryStore((s) => s.gps.latest());
+function TopBarInner() {
+  const { radio, vfr, battery, gps } = useHudTopBarData();
   const mode = useDroneStore((s) => s.flightMode);
 
   const rssi = radio ? fmt(radio.rssi, 0) : "--";
@@ -42,3 +38,5 @@ export function TopBar() {
     </div>
   );
 }
+
+export const TopBar = memo(TopBarInner);

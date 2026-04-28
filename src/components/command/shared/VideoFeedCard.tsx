@@ -208,17 +208,12 @@ export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
     }
     const delaySec = Math.min(3 * Math.pow(2, attempt), 10);
     setRetryDelaySec(delaySec);
-    const tickHandle = setInterval(() => {
-      setRetryDelaySec((s) => Math.max(0, s - 1));
-    }, 1000);
     const retryHandle = setTimeout(() => {
-      clearInterval(tickHandle);
       retryAttemptRef.current += 1;
       setRetryDelaySec(0);
       setRetryKey((k) => k + 1);
     }, delaySec * 1000);
     return () => {
-      clearInterval(tickHandle);
       clearTimeout(retryHandle);
     };
   }, [cascade.state, agentVideoState]);

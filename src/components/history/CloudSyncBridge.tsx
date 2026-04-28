@@ -19,7 +19,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { useMutation, useQuery, useConvex } from "convex/react";
+import { useMutation, useConvex, usePaginatedQuery } from "convex/react";
 import { useHistoryStore } from "@/stores/history-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { useConvexAvailable } from "@/app/ConvexClientProvider";
@@ -27,6 +27,7 @@ import { cmdFlightLogsApi } from "@/lib/cmd-flight-logs-api";
 import type { FlightRecord } from "@/lib/types";
 
 const SYNC_DEBOUNCE_MS = 1000;
+const CLOUD_PAGE_SIZE = 25;
 
 /**
  * Strip non-schema fields before sending to the server. The Convex validator
@@ -54,21 +55,32 @@ function fromCloudShape(row: Record<string, unknown>): FlightRecord {
   return { ...rest, id: clientId } as unknown as FlightRecord;
 }
 
+/**
+ * Public entry. `usePaginatedQuery` has no "skip" sentinel, so we gate
+ * the hook-using inner component behind a Convex + auth availability
+ * check. When either is missing the bridge renders nothing and no Convex
+ * subscription is opened.
+ */
 export function CloudSyncBridge() {
   const convexAvailable = useConvexAvailable();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  if (!convexAvailable || !isAuthenticated) return null;
+  return <CloudSyncBridgeInner />;
+}
 
-  // Disable hooks entirely when Convex / auth aren't ready.
-  const enabled = convexAvailable && isAuthenticated;
-
-  // Reactive query — Convex `useQuery` returns undefined until first result.
-  // Pass "skip" sentinel when disabled to avoid context errors per CLAUDE.md
-  // gotcha. We don't use the existing `useConvexSkipQuery` helper because we
-  // want the raw reactive subscription (it pushes updates from other tabs).
-  const cloudList = useQuery(
-    cmdFlightLogsApi.list,
-    enabled ? {} : "skip",
-  ) as Record<string, unknown>[] | undefined;
+function CloudSyncBridgeInner() {
+  // Paginated cloud list. Walk every page on mount so the local store
+  // converges with the cloud, then keep pages reactive for cross-device
+  // updates.
+  const {
+    results: cloudList,
+    status: cloudStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    cmdFlightLogsApi.listPaginated,
+    {},
+    { initialNumItems: CLOUD_PAGE_SIZE },
+  );
 
   const upsert = useMutation(cmdFlightLogsApi.upsert);
   const remove = useMutation(cmdFlightLogsApi.remove);
@@ -80,22 +92,32 @@ export function CloudSyncBridge() {
   const lastMergeAtRef = useRef<number>(0);
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // ── Auto-walk pages until exhausted ──────────────────────────────
+  // Cloud-sync semantics require every row to land in the local store.
+  // Walk forward as long as more pages exist; pagination still wins on
+  // memory because each page renders/merges independently and the Convex
+  // subscription transport never holds the whole list in one frame.
+  useEffect(() => {
+    if (cloudStatus === "CanLoadMore") {
+      loadMore(CLOUD_PAGE_SIZE);
+    }
+  }, [cloudStatus, loadMore]);
+
   // ── Reactive merge: any cloud-side change flows in here ──────────
   useEffect(() => {
-    if (!enabled) return;
-    if (!cloudList) return;
-    const records = cloudList.map(fromCloudShape);
+    if (cloudList.length === 0) return;
+    const records = (cloudList as unknown as Record<string, unknown>[]).map(
+      fromCloudShape,
+    );
     const updated = useHistoryStore.getState().mergeCloudRecords(records);
     if (updated > 0) {
       void useHistoryStore.getState().persistToIDB();
     }
     lastMergeAtRef.current = Date.now();
-  }, [enabled, cloudList]);
+  }, [cloudList]);
 
   // ── Debounced push of dirty records ──────────────────────────────
   useEffect(() => {
-    if (!enabled) return;
-
     const pushPending = async () => {
       const state = useHistoryStore.getState();
       const dirtyIds = Array.from(state.pendingSyncIds);
@@ -136,7 +158,7 @@ export function CloudSyncBridge() {
       unsubscribe();
       if (pushTimerRef.current) clearTimeout(pushTimerRef.current);
     };
-  }, [enabled, upsert]);
+  }, [upsert]);
 
   return null;
 }
