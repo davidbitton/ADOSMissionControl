@@ -4,6 +4,7 @@
  * @license GPL-3.0-only
  */
 
+import { z } from "zod";
 import type {
   AgentStatus,
   AgentVersionInfo,
@@ -23,6 +24,21 @@ import type {
   VideoStatus,
   FullStatusResponse,
 } from "./types";
+import {
+  AgentStatusSchema,
+  AgentVersionInfoSchema,
+  ClaimResponseSchema,
+  CommandResultSchema,
+  FullStatusResponseSchema,
+  MeshNetEnrollmentSchema,
+  NetworkPeerListSchema,
+  PairingInfoSchema,
+  PeripheralListSchema,
+  ServicesResponseSchema,
+  SystemResourcesRawSchema,
+  TelemetrySnapshotSchema,
+  VideoStatusSchema,
+} from "./schemas";
 
 // Module-level cache so multiple components hitting getVersion() in the
 // same render frame do not produce duplicate network requests. Keyed
@@ -56,27 +72,50 @@ export class AgentClient {
     this.apiKey = apiKey ?? null;
   }
 
-  private async request<T>(path: string, init?: RequestInit): Promise<T> {
+  private async request<T>(
+    path: string,
+    init?: RequestInit & { schema?: z.ZodType<T> },
+  ): Promise<T> {
+    const { schema, ...fetchInit } = init ?? {};
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...(init?.headers as Record<string, string>),
+      ...(fetchInit?.headers as Record<string, string>),
     };
     if (this.apiKey) {
       headers["X-ADOS-Key"] = this.apiKey;
     }
     const res = await fetch(`${this.baseUrl}${path}`, {
-      ...init,
+      ...fetchInit,
       headers,
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "Unknown error");
       throw new Error(`Agent API ${res.status}: ${text}`);
     }
-    return res.json() as Promise<T>;
+    const json = (await res.json()) as unknown;
+    if (schema) {
+      const parsed = schema.safeParse(json);
+      if (!parsed.success) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(
+            `[agent-client] schema mismatch on ${path}:`,
+            parsed.error.flatten(),
+          );
+        }
+        // Permissive fallback: pass the raw payload through.
+        // Schemas use .passthrough() so most drift is tolerated; this
+        // only triggers on missing required fields.
+        return json as T;
+      }
+      return parsed.data as T;
+    }
+    return json as T;
   }
 
   async getStatus(): Promise<AgentStatus> {
-    return this.request<AgentStatus>("/api/status");
+    return this.request<AgentStatus>("/api/status", {
+      schema: AgentStatusSchema as z.ZodType<AgentStatus>,
+    });
   }
 
   /**
@@ -93,7 +132,9 @@ export class AgentClient {
     }
     let info: AgentVersionInfo | null = null;
     try {
-      info = await this.request<AgentVersionInfo>("/api/version");
+      info = await this.request<AgentVersionInfo>("/api/version", {
+        schema: AgentVersionInfoSchema as z.ZodType<AgentVersionInfo>,
+      });
     } catch (err) {
       // Older agent (pre-0.8.6) has no /api/version. Treat as
       // "no capabilities advertised" so callers fall back to the
@@ -118,11 +159,19 @@ export class AgentClient {
   }
 
   async getTelemetry(): Promise<TelemetrySnapshot> {
-    return this.request<TelemetrySnapshot>("/api/telemetry");
+    return this.request<TelemetrySnapshot>("/api/telemetry", {
+      schema: TelemetrySnapshotSchema as z.ZodType<TelemetrySnapshot>,
+    });
   }
 
   async getServices(agentUptimeHint?: number): Promise<ServiceInfo[]> {
-    const svcRes = await this.request<{ services: Array<Record<string, unknown>> }>("/api/services");
+    const svcRes = await this.request<
+      Array<Record<string, unknown>> | { services: Array<Record<string, unknown>> }
+    >("/api/services", {
+      schema: ServicesResponseSchema as z.ZodType<
+        Array<Record<string, unknown>> | { services: Array<Record<string, unknown>> }
+      >,
+    });
     const list = Array.isArray(svcRes) ? svcRes : (svcRes.services ?? []);
 
     // Compute per-service uptime from monotonic last_transition timestamps.
@@ -152,7 +201,9 @@ export class AgentClient {
   }
 
   async getSystemResources(): Promise<SystemResources> {
-    const res = await this.request<Record<string, unknown>>("/api/system");
+    const res = await this.request<Record<string, unknown>>("/api/system", {
+      schema: SystemResourcesRawSchema as z.ZodType<Record<string, unknown>>,
+    });
     // Agent returns temperatures: { cpu_thermal: 45.2 } — map to flat temperature field
     let temperature: number | null = null;
     if (res.temperature != null) {
@@ -206,11 +257,16 @@ export class AgentClient {
   // ── Peripherals ─────────────────────────────────────────
 
   async getPeripherals(): Promise<PeripheralInfo[]> {
-    return this.request<PeripheralInfo[]>("/api/peripherals");
+    return this.request<PeripheralInfo[]>("/api/peripherals", {
+      schema: PeripheralListSchema as z.ZodType<PeripheralInfo[]>,
+    });
   }
 
   async scanPeripherals(): Promise<PeripheralInfo[]> {
-    return this.request<PeripheralInfo[]>("/api/peripherals/scan", { method: "POST" });
+    return this.request<PeripheralInfo[]>("/api/peripherals/scan", {
+      method: "POST",
+      schema: PeripheralListSchema as z.ZodType<PeripheralInfo[]>,
+    });
   }
 
   // ── Scripts ─────────────────────────────────────────────
@@ -266,11 +322,15 @@ export class AgentClient {
   // ── Fleet ───────────────────────────────────────────────
 
   async getEnrollment(): Promise<MeshNetEnrollment> {
-    return this.request<MeshNetEnrollment>("/api/fleet/enrollment");
+    return this.request<MeshNetEnrollment>("/api/fleet/enrollment", {
+      schema: MeshNetEnrollmentSchema as z.ZodType<MeshNetEnrollment>,
+    });
   }
 
   async getPeers(): Promise<NetworkPeer[]> {
-    return this.request<NetworkPeer[]>("/api/fleet/peers");
+    return this.request<NetworkPeer[]>("/api/fleet/peers", {
+      schema: NetworkPeerListSchema as z.ZodType<NetworkPeer[]>,
+    });
   }
 
   // ── Consolidated ────────────────────────────────────────
@@ -289,7 +349,9 @@ export class AgentClient {
       return null;
     }
     try {
-      return await this.request<FullStatusResponse>("/api/status/full");
+      return await this.request<FullStatusResponse>("/api/status/full", {
+        schema: FullStatusResponseSchema as z.ZodType<FullStatusResponse>,
+      });
     } catch {
       return null; // Agent version < 0.3.19, or transient failure
     }
@@ -299,7 +361,9 @@ export class AgentClient {
 
   async getVideoStatus(): Promise<VideoStatus | null> {
     try {
-      return await this.request<VideoStatus>("/api/video");
+      return await this.request<VideoStatus>("/api/video", {
+        schema: VideoStatusSchema as z.ZodType<VideoStatus>,
+      });
     } catch {
       return null; // Agent may not support this endpoint
     }
@@ -308,19 +372,23 @@ export class AgentClient {
   // ── Pairing ──────────────────────────────────────────────
 
   async getPairingInfo(): Promise<PairingInfo> {
-    return this.request<PairingInfo>("/api/pairing/info");
+    return this.request<PairingInfo>("/api/pairing/info", {
+      schema: PairingInfoSchema as z.ZodType<PairingInfo>,
+    });
   }
 
   async claimLocally(userId: string): Promise<ClaimResponse> {
     return this.request<ClaimResponse>("/api/pairing/claim", {
       method: "POST",
       body: JSON.stringify({ user_id: userId }),
+      schema: ClaimResponseSchema as z.ZodType<ClaimResponse>,
     });
   }
 
   async unpairAgent(): Promise<CommandResult> {
     return this.request<CommandResult>("/api/pairing/unpair", {
       method: "POST",
+      schema: CommandResultSchema as z.ZodType<CommandResult>,
     });
   }
 

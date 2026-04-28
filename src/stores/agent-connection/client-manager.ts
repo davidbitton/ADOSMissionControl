@@ -52,14 +52,20 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
       useAgentSystemStore.getState().fetchResources();
       useAgentSystemStore.getState().fetchLogs();
       // Populate capabilities (mock or real, with inference fallback).
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const anyClient = client as any;
+      // The mock client carries a getCapabilities() method that the real
+      // AgentClient does not, so feature-detect against an unknown shape
+      // rather than widening the client type.
+      const clientWithCaps = client as unknown as {
+        getCapabilities?: () => Promise<unknown>;
+      };
       let capsLoaded = false;
-      if (typeof anyClient.getCapabilities === "function") {
+      if (typeof clientWithCaps.getCapabilities === "function") {
         try {
-          const caps = await anyClient.getCapabilities();
-          if (caps) {
-            useAgentCapabilitiesStore.getState().setCapabilities(caps);
+          const caps = await clientWithCaps.getCapabilities();
+          if (caps && typeof caps === "object") {
+            useAgentCapabilitiesStore
+              .getState()
+              .setCapabilities(caps as Record<string, unknown>);
             capsLoaded = true;
           }
         } catch { /* capabilities optional */ }
@@ -152,11 +158,10 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
               );
             }
             // Populate capabilities from consolidated response or infer from legacy data.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const fullAny = full as any;
-            if (fullAny.capabilities) {
+            // FullStatusResponse.capabilities is optional (older agents omit it).
+            if (full.capabilities) {
               // Agent has capabilities API; normalize and store (handles shape differences).
-              useAgentCapabilitiesStore.getState().setCapabilities(fullAny.capabilities);
+              useAgentCapabilitiesStore.getState().setCapabilities(full.capabilities);
             } else {
               // Agent doesn't have capabilities API; infer from board SoC + peripherals.
               const peripherals = useAgentPeripheralsStore.getState().peripherals;

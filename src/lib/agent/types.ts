@@ -192,6 +192,8 @@ export interface FullStatusResponse {
   resources: { cpu_percent: number; memory_percent: number; disk_percent: number; temperature: number | null };
   video: { state: string; whep_url: string | null };
   telemetry: Record<string, unknown>;
+  /** Newer agents include the capabilities snapshot here. Optional for older agents. */
+  capabilities?: Record<string, unknown>;
 }
 
 // ── Pairing ─────────────────────────────────────────────

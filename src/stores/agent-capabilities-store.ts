@@ -14,7 +14,12 @@ import type {
   VisionState,
   ModelCacheInfo,
   FeatureState,
+  InstalledModel,
 } from "@/lib/agent/feature-types";
+import {
+  AgentCapabilitiesRawSchema,
+  type AgentCapabilitiesRaw,
+} from "@/lib/agent/schemas";
 
 const DEFAULT_COMPUTE: ComputeCapability = {
   npu_available: false,
@@ -56,24 +61,27 @@ const DEFAULT_FEATURES: FeatureState = {
 // The agent may return fields with different names or shapes
 // (e.g., no npu_available, features as array instead of { enabled, active }).
 
-function normalizeFeatures(raw: unknown): FeatureState {
+function normalizeFeatures(
+  raw: AgentCapabilitiesRaw["features"] | undefined,
+): FeatureState {
+  if (!raw) return { enabled: [], active: null };
   // Agent sends array of feature objects with { id, enabled, active, ... }
   if (Array.isArray(raw)) {
     return {
-      enabled: raw.filter((f) => f.enabled).map((f) => f.id as string),
-      active: (raw.find((f) => f.active)?.id as string) ?? null,
+      enabled: raw.filter((f) => f.enabled).map((f) => f.id),
+      active: raw.find((f) => f.active)?.id ?? null,
     };
   }
   // Already in GCS format (from mock or inference)
-  if (raw && typeof raw === "object" && "enabled" in raw) {
-    return raw as FeatureState;
-  }
-  return { enabled: [], active: null };
+  return raw;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function normalizeCapabilities(raw: any): AgentCapabilities {
-  if (!raw || typeof raw !== "object") {
+function normalizeCapabilities(raw: unknown): AgentCapabilities {
+  // Run the payload through the schema. Schemas are permissive
+  // (passthrough + optional everywhere) so this validates shape but
+  // does not reject unknown fields. Failure falls back to defaults.
+  const parsed = AgentCapabilitiesRawSchema.safeParse(raw);
+  if (!parsed.success || !raw || typeof raw !== "object") {
     return {
       tier: 0,
       cameras: [],
@@ -83,9 +91,10 @@ function normalizeCapabilities(raw: any): AgentCapabilities {
       features: DEFAULT_FEATURES,
     };
   }
+  const data = parsed.data;
 
   // Normalize compute: infer npu_available from npu_tops > 0
-  const rawCompute = raw.compute ?? {};
+  const rawCompute = data.compute ?? {};
   const npuTops = Number(rawCompute.npu_tops ?? 0);
   const compute: ComputeCapability = {
     npu_available: rawCompute.npu_available ?? npuTops > 0,
@@ -96,55 +105,67 @@ function normalizeCapabilities(raw: any): AgentCapabilities {
   };
 
   // Normalize cameras: default streaming to true, type to "usb"
-  const cameras: CameraCapability[] = (Array.isArray(raw.cameras) ? raw.cameras : []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (c: any) => ({
-      name: c.name ?? "Unknown Camera",
-      type: c.type ?? "usb",
-      device: c.device,
-      resolution: c.resolution ?? "unknown",
-      fps: c.fps,
-      streaming: c.streaming ?? true, // Agent-detected cameras are streaming
-    })
-  );
+  const cameras: CameraCapability[] = (data.cameras ?? []).map((c) => ({
+    name: c.name ?? "Unknown Camera",
+    type: (c.type as CameraCapability["type"]) ?? "usb",
+    device: c.device,
+    resolution: c.resolution ?? "unknown",
+    fps: c.fps,
+    streaming: c.streaming ?? true, // Agent-detected cameras are streaming
+  }));
 
   // Normalize vision: merge with defaults
   const vision: VisionState = { ...DEFAULT_VISION };
-  if (raw.vision && typeof raw.vision === "object") {
-    const v = raw.vision;
+  if (data.vision) {
+    const v = data.vision;
     if (v.engine_state) vision.engine_state = v.engine_state;
-    if (v.active_behavior) vision.active_behavior = v.active_behavior;
-    if (v.behavior_state) vision.behavior_state = v.behavior_state;
+    if (v.active_behavior !== undefined) vision.active_behavior = v.active_behavior;
+    if (v.behavior_state !== undefined) vision.behavior_state = v.behavior_state;
     if (typeof v.fps === "number") vision.fps = v.fps;
     if (typeof v.inference_ms === "number") vision.inference_ms = v.inference_ms;
-    if (v.model_loaded) vision.model_loaded = v.model_loaded;
+    if (v.model_loaded !== undefined) vision.model_loaded = v.model_loaded;
     if (typeof v.track_count === "number") vision.track_count = v.track_count;
     if (typeof v.target_locked === "boolean") vision.target_locked = v.target_locked;
     if (typeof v.target_confidence === "number") vision.target_confidence = v.target_confidence;
     if (v.obstacle_mode) vision.obstacle_mode = v.obstacle_mode;
-    if (typeof v.nearest_obstacle_m === "number") vision.nearest_obstacle_m = v.nearest_obstacle_m;
+    if (v.nearest_obstacle_m !== undefined && v.nearest_obstacle_m !== null) {
+      vision.nearest_obstacle_m = v.nearest_obstacle_m;
+    }
     if (v.threat_level) vision.threat_level = v.threat_level;
-    // Also check the agent's vision.enabled + npu_tops fields (agent shape)
+    // Also check the agent's vision.enabled field (agent shape)
     if (v.enabled === true && vision.engine_state === "off") {
       vision.engine_state = "ready";
     }
   }
 
   // Normalize models
+  const rawModels = data.models;
+  let installed: InstalledModel[] = [];
+  let cacheUsedMb = 0;
+  let cacheMaxMb = 500;
+  let registryUrl = "";
+  if (Array.isArray(rawModels)) {
+    installed = rawModels as InstalledModel[];
+  } else if (rawModels) {
+    installed = (rawModels.installed ?? []) as InstalledModel[];
+    cacheUsedMb = rawModels.cache_used_mb ?? 0;
+    cacheMaxMb = rawModels.cache_max_mb ?? 500;
+    registryUrl = rawModels.registry_url ?? "";
+  }
   const models: ModelCacheInfo = {
-    installed: Array.isArray(raw.models) ? raw.models : raw.models?.installed ?? [],
-    cache_used_mb: raw.models?.cache_used_mb ?? 0,
-    cache_max_mb: raw.models?.cache_max_mb ?? 500,
-    registry_url: raw.models?.registry_url ?? "",
+    installed,
+    cache_used_mb: cacheUsedMb,
+    cache_max_mb: cacheMaxMb,
+    registry_url: registryUrl,
   };
 
   return {
-    tier: Number(raw.tier ?? 0),
+    tier: Number(data.tier ?? 0),
     cameras,
     compute,
     vision,
     models,
-    features: normalizeFeatures(raw.features),
+    features: normalizeFeatures(data.features),
   };
 }
 
@@ -191,9 +212,8 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
     // Infer ROS 2 state from the capabilities payload.
     // The agent includes a `ros` field with `{ supported, state }` when the
     // board profile has ros.supported=true and the API routes are registered.
-    const rawRos = (caps as Record<string, unknown>).ros as
-      | { supported?: boolean; state?: string }
-      | undefined;
+    const rosParsed = AgentCapabilitiesRawSchema.safeParse(caps);
+    const rawRos = rosParsed.success ? rosParsed.data.ros : undefined;
     let ros2State: "absent" | "available" | "running" = "absent";
     if (rawRos?.supported) {
       ros2State = rawRos.state === "running" ? "running" : "available";
