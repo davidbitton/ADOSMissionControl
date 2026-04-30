@@ -2414,5 +2414,57 @@
       "relayRevoked": "Relay revoked: {id}",
       "relayDisconnected": "Relay disconnected: {id}"
     }
+  },
+  "plugins": {
+    "browse": {
+      "title": "Browse plugins",
+      "subtitle": "Discover signed extensions for the ADOS platform.",
+      "searchPlaceholder": "Search by name or description",
+      "signedOnly": "Signed only",
+      "verifiedOnly": "Verified publisher",
+      "ossOnly": "Open source",
+      "compatibleWith": "Compatible with: {board}",
+      "clearBoard": "Clear board filter",
+      "clearFilters": "Clear filters",
+      "loading": "Loading...",
+      "loadMore": "Load more",
+      "emptyState": "No matching plugins. Try clearing filters.",
+      "registryUnreachable": "Registry unreachable",
+      "verifiedAuthor": "Verified author",
+      "category": {
+        "all": "All",
+        "drivers": "Drivers",
+        "ui": "UI",
+        "ai": "AI",
+        "telemetry": "Telemetry",
+        "tools": "Tools"
+      },
+      "tab": {
+        "overview": "Overview",
+        "permissions": "Permissions",
+        "versions": "Versions",
+        "compatibility": "Compatibility"
+      },
+      "tabsAria": "Plugin detail tabs",
+      "installLatest": "Install latest",
+      "installPlaceholder": "Install flow connects to the local plugin host on next ship.",
+      "backToBrowse": "Back to Browse",
+      "notFound": "Plugin not found.",
+      "author": "Author",
+      "license": "License",
+      "installCount": "Installs",
+      "lastUpdated": "Last updated",
+      "source": "Source",
+      "noPermissions": "This plugin declares no permissions.",
+      "required": "Required",
+      "noVersions": "No versions published yet.",
+      "deprecated": "Deprecated",
+      "installs": "Installs",
+      "signedBy": "Signed by",
+      "agentVersionRange": "Agent version range",
+      "halves": "Halves",
+      "supportedBoards": "Supported boards",
+      "any": "Any"
+    }
   }
 }

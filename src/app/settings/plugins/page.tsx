@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Link2, Plus } from "lucide-react";
 import { useMutation } from "convex/react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
+import { useToast } from "@/components/ui/toast";
 import { PluginInstallDialog, type InstallManifestSummary } from "@/components/plugins/PluginInstallDialog";
 import { RiskBadge } from "@/components/plugins/RiskBadge";
 import { type TrustSignal } from "@/components/plugins/TrustBadge";
@@ -22,6 +25,10 @@ export default function PluginsIndexPage() {
   const agentUrl = useAgentConnectionStore((s) => s.agentUrl);
   const apiKey = useAgentConnectionStore((s) => s.apiKey);
   const [installOpen, setInstallOpen] = useState(false);
+  const [urlOpen, setUrlOpen] = useState(false);
+  const [urlValue, setUrlValue] = useState("");
+  const [urlSubmitting, setUrlSubmitting] = useState(false);
+  const { toast } = useToast();
 
   const agentClient = useMemo(
     () => (agentUrl ? new PluginAgentClient(agentUrl, apiKey ?? "") : null),
@@ -126,12 +133,21 @@ export default function PluginsIndexPage() {
             sandboxed and only do what their granted permissions allow.
           </p>
         </div>
-        <Button
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => setInstallOpen(true)}
-        >
-          Install plugin
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            icon={<Link2 className="h-4 w-4" />}
+            onClick={() => setUrlOpen(true)}
+          >
+            Install from URL
+          </Button>
+          <Button
+            icon={<Plus className="h-4 w-4" />}
+            onClick={() => setInstallOpen(true)}
+          >
+            Install plugin
+          </Button>
+        </div>
       </header>
 
       {installs === undefined ? (
@@ -177,6 +193,71 @@ export default function PluginsIndexPage() {
         onParseArchive={parseArchive}
         onApprove={approveInstall}
       />
+
+      <Modal
+        open={urlOpen}
+        onClose={() => {
+          if (!urlSubmitting) {
+            setUrlOpen(false);
+            setUrlValue("");
+          }
+        }}
+        title="Install from URL"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setUrlOpen(false);
+                setUrlValue("");
+              }}
+              disabled={urlSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                const trimmed = urlValue.trim();
+                if (!trimmed) return;
+                setUrlSubmitting(true);
+                try {
+                  // The agent's URL-install endpoint is on the
+                  // upcoming Distribution surface. Until it ships,
+                  // surface a clear status note so operators know
+                  // local-file install is the working path today.
+                  toast(
+                    "URL install will route through the agent once the endpoint ships. Use local file install for now.",
+                    "info",
+                  );
+                  setUrlOpen(false);
+                  setUrlValue("");
+                } finally {
+                  setUrlSubmitting(false);
+                }
+              }}
+              disabled={urlSubmitting || !urlValue.trim()}
+            >
+              {urlSubmitting ? "Submitting..." : "Install"}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-xs text-text-tertiary">
+            Paste a git or HTTPS URL to a signed{" "}
+            <code className="rounded bg-bg-tertiary px-1">.adosplug</code>{" "}
+            archive. The agent will fetch, verify the signature, and run
+            the same install dialog you see for local files.
+          </p>
+          <Input
+            label="Plugin URL"
+            placeholder="https://example.com/com.example.thermal-1.0.0.adosplug"
+            value={urlValue}
+            onChange={(e) => setUrlValue(e.target.value)}
+            autoFocus
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
