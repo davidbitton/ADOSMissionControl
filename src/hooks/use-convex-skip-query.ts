@@ -3,19 +3,24 @@
 /**
  * @module use-convex-skip-query
  * @description Wrapper around Convex `useQuery` that automatically skips when
- * Convex is unavailable or the app is in demo mode. Eliminates the repetitive
- * `!isDemoMode() && convexAvailable ? args : "skip"` guard pattern.
+ * Convex is unavailable or the app is in demo mode, and resolves server-side
+ * errors to `undefined` instead of crashing the route.
  *
- * By default, queries are enabled when both conditions hold:
- *   1. Convex backend is available (NEXT_PUBLIC_CONVEX_URL is set)
- *   2. The app is NOT in demo mode
+ * Skip rules:
+ *   1. Convex backend is unavailable (NEXT_PUBLIC_CONVEX_URL not set or down)
+ *   2. The app is in demo mode
+ *   3. Caller passed `enabled: false`
  *
- * Pass an `enabled` option to add extra conditions (e.g. `isAuthenticated`,
- * `!!cloudDeviceId`). The query runs only when the default checks AND the
- * `enabled` value are all truthy.
+ * Local-first contract: a Convex query whose function is missing on the
+ * deployment, whose schema rejected the args, or whose handler threw must
+ * NOT bubble into the closest Next.js `error.tsx`. The hook traps the
+ * synchronous throw from `useQuery`, returns `undefined`, and logs once
+ * via `console.warn` so silent failures stay debuggable. Pass
+ * `throwOnError: true` to opt back into the throw-and-bubble behaviour
+ * (rare; usually for admin tools that must surface a backend regression).
  *
  * @example
- * // Simple: skip in demo mode / when Convex is down
+ * // Simple: skip in demo mode / when Convex is down; soft-fail otherwise
  * const profile = useConvexSkipQuery(communityApi.profiles.getMyProfile);
  *
  * // With args
@@ -24,7 +29,7 @@
  *   enabled: !!deviceId,
  * });
  *
- * // Auth-gated (still skips in demo + no-convex)
+ * // Auth-gated (still skips in demo + no-convex; soft-fail if listMine 404s)
  * const usage = useConvexSkipQuery(communityApi.aiUsage.getRemaining, {
  *   enabled: isAuthenticated,
  * });
@@ -48,11 +53,28 @@ type EmptyObject = Record<string, never>;
  *   Convex is available and demo mode is off. Defaults to `true`.
  * - `skipDemoCheck`: When `true`, the demo-mode check is bypassed. Useful for
  *   queries that should run in demo mode when Convex is still available (rare).
+ * - `throwOnError`: When `true`, the hook re-throws server errors instead of
+ *   resolving to `undefined`. Default `false`. Use only when a missing or
+ *   broken backend function should hard-fail the page.
  */
 interface UseConvexSkipQueryOptions<Args> {
   args?: Args;
   enabled?: boolean;
   skipDemoCheck?: boolean;
+  throwOnError?: boolean;
+}
+
+// Module-scoped dedupe set so we warn once per distinct error message
+// per session. Page navigations re-render but the warning stays quiet.
+const _loggedErrorKeys = new Set<string>();
+
+function logOnce(message: string): void {
+  if (_loggedErrorKeys.has(message)) return;
+  _loggedErrorKeys.add(message);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[useConvexSkipQuery] resolved to undefined after server error: ${message}`,
+  );
 }
 
 export function useConvexSkipQuery<
@@ -67,13 +89,27 @@ export function useConvexSkipQuery<
   const enabled = options?.enabled ?? true;
   const skipDemoCheck = options?.skipDemoCheck ?? false;
   const args = options?.args;
+  const throwOnError = options?.throwOnError ?? false;
 
   const shouldSkip = !convexAvailable || (!skipDemoCheck && demo) || !enabled;
+  const queryArgs = shouldSkip ? ("skip" as unknown) : ((args ?? {}) as unknown);
 
-  // Convex useQuery expects either the args object or the literal "skip".
-  // For queries with no required args, we pass `{}`.
-  return useQuery(
-    query,
-    shouldSkip ? ("skip" as any) : ((args ?? {}) as any),
-  );
+  // `useQuery` throws synchronously during render when the deployment is
+  // missing the function, the args fail validation, or the handler threw.
+  // We catch that throw here so the calling page sees `undefined` (the
+  // same shape it sees while loading) instead of black-screening to the
+  // nearest error.tsx. The skip path never throws, so wrapping it in
+  // try/catch is a no-op for that case.
+  try {
+    return useQuery(query, queryArgs as never);
+  } catch (err) {
+    if (throwOnError) throw err;
+    const message = err instanceof Error ? err.message : String(err);
+    logOnce(message);
+    return undefined;
+  }
 }
+
+// Re-export the empty-object type alias for callers that build options
+// programmatically (kept stable for external consumers).
+export type { EmptyObject };
