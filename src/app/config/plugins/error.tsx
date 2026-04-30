@@ -1,6 +1,6 @@
 /**
  * @module PluginsRouteError
- * @description Per-segment error boundary for `/settings/plugins/*`.
+ * @description Per-segment error boundary for `/config/plugins/*`.
  * Keeps the Installed/Browse inner tab nav mounted when a child page
  * throws. Convex query errors are already absorbed by
  * `useConvexSkipQuery`; this boundary only catches non-Convex throws
@@ -20,7 +20,6 @@ export default function PluginsRouteError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // eslint-disable-next-line no-console
     console.error("[plugins-error-boundary]", error);
   }, [error]);
 

@@ -81,11 +81,7 @@ export default function PluginsIndexPage() {
       if (!agentClient) {
         throw new Error("Agent not connected.");
       }
-      // Commit the install on the agent now that the operator has
-      // approved the manifest and selected which permissions to grant.
       await agentClient.install(file);
-      // Mirror the install record into Convex (per-user state for the
-      // GCS surface).
       const installId = await recordInstall({
         pluginId: manifest.pluginId,
         version: manifest.version,
@@ -100,9 +96,6 @@ export default function PluginsIndexPage() {
           required: p.required,
         })),
       });
-      // Push grants to both the agent and Convex. Track failures so the
-      // operator can retry from the detail page rather than silently
-      // shipping a half-permissioned install.
       const failed: string[] = [];
       for (const id of grantedPermissions) {
         try {
@@ -161,7 +154,7 @@ export default function PluginsIndexPage() {
           {installs.map((install) => (
             <li key={install._id}>
               <Link
-                href={`/settings/plugins/${install._id}`}
+                href={`/config/plugins/${install._id}`}
                 className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-bg-tertiary"
               >
                 <div className="min-w-0">
@@ -221,10 +214,6 @@ export default function PluginsIndexPage() {
                 if (!trimmed) return;
                 setUrlSubmitting(true);
                 try {
-                  // The agent's URL-install endpoint is on the
-                  // upcoming Distribution surface. Until it ships,
-                  // surface a clear status note so operators know
-                  // local-file install is the working path today.
                   toast(
                     "URL install will route through the agent once the endpoint ships. Use local file install for now.",
                     "info",
@@ -302,4 +291,3 @@ function StatusPill({ status }: { status: string }) {
     </span>
   );
 }
-

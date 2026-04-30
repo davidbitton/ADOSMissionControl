@@ -64,7 +64,7 @@ export default function RegistryPluginDetailPage() {
       <div className="p-4 text-sm text-text-tertiary">
         <p>{error ?? t("notFound")}</p>
         <Link
-          href="/settings/plugins/browse"
+          href="/config/plugins/browse"
           className="text-accent-primary underline"
         >
           {t("backToBrowse")}
@@ -80,7 +80,7 @@ export default function RegistryPluginDetailPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-4 p-4">
       <Link
-        href="/settings/plugins/browse"
+        href="/config/plugins/browse"
         className="inline-flex items-center gap-1 text-xs text-text-tertiary hover:text-text-primary"
       >
         <ArrowLeft className="h-3 w-3" /> {t("backToBrowse")}

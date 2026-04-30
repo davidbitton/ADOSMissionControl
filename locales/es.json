@@ -334,7 +334,8 @@
     "theme": "Tema",
     "data": "Datos",
     "flashTool": "Herramienta de flasheo",
-    "operator": "Operator & Aircraft"
+    "operator": "Operator & Aircraft",
+    "plugins": "Complementos"
   },
   "general": {
     "title": "Ajustes generales",

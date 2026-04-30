@@ -52,7 +52,7 @@ export default function PluginDetailPage() {
     return (
       <div className="p-4 text-sm text-text-tertiary">
         <p>Plugin not found.</p>
-        <Link href="/settings/plugins" className="text-accent-primary underline">
+        <Link href="/config/plugins" className="text-accent-primary underline">
           Back to plugins
         </Link>
       </div>
@@ -64,7 +64,7 @@ export default function PluginDetailPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-4 p-4">
       <Link
-        href="/settings/plugins"
+        href="/config/plugins"
         className="inline-flex items-center gap-1 text-xs text-text-tertiary hover:text-text-primary"
       >
         <ArrowLeft className="h-3 w-3" /> Back to plugins
@@ -87,9 +87,6 @@ export default function PluginDetailPage() {
           icon={<Trash2 className="h-3 w-3" />}
           onClick={async () => {
             if (!installId) return;
-            // Tear down the agent half first; the Convex row stays
-            // even if the agent call fails so the operator can
-            // retry from the detail page.
             if (agentClient) {
               try {
                 await agentClient.remove(install.pluginId);
@@ -98,7 +95,7 @@ export default function PluginDetailPage() {
               }
             }
             await remove({ installId });
-            window.location.href = "/settings/plugins";
+            window.location.href = "/config/plugins";
           }}
         >
           Remove
@@ -170,11 +167,6 @@ export default function PluginDetailPage() {
                   onClick={async () => {
                     if (!installId) return;
                     if (perm.granted) {
-                      // Convex-only revoke today; the agent's grant
-                      // model is one-way until the supervisor exposes
-                      // a revoke endpoint. The capability set still
-                      // tightens because the bridge re-reads grants
-                      // from Convex on every dispatch.
                       await revoke({ installId, permissionId: perm.permissionId });
                     } else {
                       if (agentClient) {

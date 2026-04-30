@@ -334,7 +334,8 @@
     "theme": "Design",
     "data": "Daten",
     "flashTool": "Flash-Tool",
-    "operator": "Operator & Aircraft"
+    "operator": "Operator & Aircraft",
+    "plugins": "Plugins"
   },
   "general": {
     "title": "Allgemeine Einstellungen",

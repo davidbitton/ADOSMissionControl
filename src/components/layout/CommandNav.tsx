@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { LayoutDashboard, Terminal, Cable, Route, Play, History, Settings } from "lucide-react";
+import { LayoutDashboard, Terminal, Cable, Route, Play, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -13,7 +13,6 @@ const tabs = [
   { icon: Play, labelKey: "simulate", href: "/simulate" },
   { icon: Cable, labelKey: "hardware", href: "/hardware" },
   { icon: History, labelKey: "history", href: "/flight-logs" },
-  { icon: Settings, labelKey: "settings", href: "/settings" },
 ];
 
 export function CommandNav() {

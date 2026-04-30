@@ -349,7 +349,8 @@
     "theme": "테마",
     "data": "데이터",
     "flashTool": "플래시 도구",
-    "operator": "Operator & Aircraft"
+    "operator": "Operator & Aircraft",
+    "plugins": "플러그인"
   },
   "general": {
     "title": "일반 설정",

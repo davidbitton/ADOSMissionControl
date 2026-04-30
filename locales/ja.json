@@ -349,7 +349,8 @@
     "theme": "テーマ",
     "data": "データ",
     "flashTool": "書き込みツール",
-    "operator": "Operator & Aircraft"
+    "operator": "Operator & Aircraft",
+    "plugins": "プラグイン"
   },
   "general": {
     "title": "一般設定",

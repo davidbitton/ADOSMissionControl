@@ -38,18 +38,11 @@ export default function PluginsBrowsePage() {
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
 
-  // Auto-suggest the connected drone's frame type so the operator
-  // sees compatible plugins first. Falls back to null when no drone
-  // is connected; the registry then returns the global catalog. We
-  // resolve the suggested board lazily in the effective filter so we
-  // never write to state inside a render or an effect.
   const detectedBoard = useFleetStore((s) => {
     const drones = s.drones;
     if (!drones || drones.length === 0) return null;
     return drones[0].frameType ?? null;
   });
-  // `board === ""` is the operator's explicit "clear" signal; `null`
-  // means we fall back to the auto-detected board.
   const effectiveBoard = board === null ? detectedBoard : board || null;
 
   const client = useMemo(() => new RegistryClient(), []);
@@ -255,4 +248,3 @@ function EmptyState({ message }: { message: string }) {
     </div>
   );
 }
-

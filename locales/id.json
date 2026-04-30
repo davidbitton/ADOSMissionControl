@@ -349,7 +349,8 @@
     "theme": "Tema",
     "data": "Data",
     "flashTool": "Alat Flash",
-    "operator": "Operator & Aircraft"
+    "operator": "Operator & Aircraft",
+    "plugins": "Plugin"
   },
   "general": {
     "title": "Pengaturan Umum",

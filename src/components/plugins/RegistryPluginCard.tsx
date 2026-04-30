@@ -11,7 +11,7 @@ export function RegistryPluginCardItem({ card }: { card: RegistryPluginCard }) {
   const t = useTranslations("plugins.browse");
   return (
     <Link
-      href={`/settings/plugins/browse/${encodeURIComponent(card.pluginId)}`}
+      href={`/config/plugins/browse/${encodeURIComponent(card.pluginId)}`}
       className="block h-full rounded-md border border-border-default bg-bg-secondary p-3 transition-colors hover:border-accent-primary/50 hover:bg-bg-tertiary"
     >
       <div className="flex items-start gap-3">

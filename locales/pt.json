@@ -349,7 +349,8 @@
     "theme": "Tema",
     "data": "Dados",
     "flashTool": "Ferramenta de Flash",
-    "operator": "Operator & Aircraft"
+    "operator": "Operator & Aircraft",
+    "plugins": "Plugins"
   },
   "general": {
     "title": "Configurações Gerais",

@@ -334,7 +334,8 @@
     "theme": "தீம்",
     "data": "தரவு",
     "flashTool": "ஃப்ளாஷ் கருவி",
-    "operator": "Operator & Aircraft"
+    "operator": "Operator & Aircraft",
+    "plugins": "செருகுநிரல்கள்"
   },
   "general": {
     "title": "பொது அமைப்புகள்",
