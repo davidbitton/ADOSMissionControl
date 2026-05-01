@@ -2,11 +2,40 @@
 
 This guide covers deploying the full cloud relay stack so your GCS can manage drones over the internet. The stack has three layers, each optional and additive:
 
-1. **Convex backend** - Auth, fleet management, cloud commands (5s poll baseline)
-2. **MQTT relay** - Real-time telemetry at 2Hz+ via Mosquitto
-3. **Video relay** - Live RTSP-to-browser video streaming via ffmpeg + WebSocket
+1. **Convex backend** — Auth, fleet management, cloud commands (5s poll baseline)
+2. **MQTT relay** — Real-time telemetry at 2Hz+ via Mosquitto
+3. **Video relay** — Live RTSP-to-browser video streaming via ffmpeg + WebSocket
 
 You can run all three on a single Linux box (2+ CPU, 4+ GB RAM).
+
+---
+
+## Quick Setup (CLI Wizard)
+
+The fastest path is the interactive wizard. It covers service selection, port configuration, conflict detection, config file generation, and optional service start in one flow:
+
+```bash
+npm run cli prod
+```
+
+The wizard:
+- Lets you pick which services to deploy
+- Configures ports with conflict detection (change ports if something is already running)
+- Prompts for credentials with masked input — values go only to gitignored local `.env` files
+- Applies Convex server variables directly via the Convex CLI (never written to files)
+- Generates `docker-compose.override.yml` if you changed any default port
+- Optionally starts Docker services when done
+
+After running the wizard you can manage services with:
+
+```bash
+npm run cli services status   # see what's running
+npm run cli services start    # start a service
+npm run cli services stop     # stop a service
+npm run cli services logs     # tail logs
+```
+
+The manual steps below cover the same ground if you prefer direct control or need to understand what the wizard does.
 
 ---
 
