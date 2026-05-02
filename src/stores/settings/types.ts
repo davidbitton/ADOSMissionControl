@@ -52,6 +52,7 @@ export interface SettingsStoreState {
   cesiumBuildingsEnabled: boolean;
   terrainExaggeration: number;
   showPathLabels: boolean;
+  showCameraTriggers: boolean;
   seenChangelogIds: string[];
   changelogNotificationsEnabled: boolean;
   autoRecordOnConnect: boolean;
@@ -125,6 +126,7 @@ export interface SettingsStoreState {
   setCesiumBuildingsEnabled: (enabled: boolean) => void;
   setTerrainExaggeration: (value: number) => void;
   setShowPathLabels: (show: boolean) => void;
+  setShowCameraTriggers: (show: boolean) => void;
   markChangelogSeen: (ids: string[]) => void;
   clearSeenChangelog: () => void;
   setChangelogNotificationsEnabled: (enabled: boolean) => void;

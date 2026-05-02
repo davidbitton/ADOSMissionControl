@@ -15,6 +15,7 @@ import type { PlaybackState, CameraMode } from '@/stores/simulation-store';
 
 describe('simulation-store', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     useSimulationStore.getState().reset();
   });
 
@@ -114,6 +115,36 @@ describe('simulation-store', () => {
     const pos = { lat: 12.97, lon: 77.59, altAgl: 50, heading: 180, speed: 5, waypointIndex: 2 };
     useSimulationStore.getState().syncPosition(pos);
     expect(useSimulationStore.getState().syncedPosition).toEqual(pos);
+  });
+
+  it('syncPosition() throttles high-frequency same-waypoint updates', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_000);
+
+    const first = { lat: 12.97, lon: 77.59, altAgl: 50, heading: 180, speed: 5, waypointIndex: 2 };
+    const second = { lat: 12.971, lon: 77.591, altAgl: 51, heading: 181, speed: 6, waypointIndex: 2 };
+
+    useSimulationStore.getState().syncPosition(first);
+    vi.setSystemTime(1_050);
+    useSimulationStore.getState().syncPosition(second);
+    expect(useSimulationStore.getState().syncedPosition).toEqual(first);
+
+    vi.setSystemTime(1_101);
+    useSimulationStore.getState().syncPosition(second);
+    expect(useSimulationStore.getState().syncedPosition).toEqual(second);
+  });
+
+  it('syncPosition() allows immediate waypoint-index changes', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(2_000);
+
+    const first = { lat: 12.97, lon: 77.59, altAgl: 50, heading: 180, speed: 5, waypointIndex: 2 };
+    const second = { lat: 12.971, lon: 77.591, altAgl: 51, heading: 181, speed: 6, waypointIndex: 3 };
+
+    useSimulationStore.getState().syncPosition(first);
+    vi.setSystemTime(2_001);
+    useSimulationStore.getState().syncPosition(second);
+    expect(useSimulationStore.getState().syncedPosition).toEqual(second);
   });
 
   it('toggleFollowHeading() toggles the lock', () => {

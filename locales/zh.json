@@ -1392,7 +1392,21 @@
     "skipToEndEnd": "跳至末尾 (End)",
     "scrubber": "时间轴",
     "unlockCameraHeading": "解锁相机朝向",
-    "lockCameraHeading": "锁定相机朝向"
+    "lockCameraHeading": "锁定相机朝向",
+    "map": "MAP",
+    "dark": "Dark",
+    "satelliteShort": "Sat",
+    "satelliteImagery": "Satellite imagery",
+    "requiresCesiumIonToken": "Requires Cesium Ion token",
+    "toggle3dBuildings": "Toggle 3D buildings",
+    "buildings": "Buildings",
+    "terrain": "Terrain",
+    "labels": "Labels",
+    "cameraTriggers": "Camera triggers",
+    "initializing3dView": "Initializing 3D view...",
+    "viewFailed": "3D view failed: {message}",
+    "noFlightPlanLoaded": "No flight plan loaded",
+    "addWaypointsOrLoadPlan": "Add at least 2 waypoints in the Plan tab or load a plan from the library"
   },
   "history": {
     "title": "飞行历史",

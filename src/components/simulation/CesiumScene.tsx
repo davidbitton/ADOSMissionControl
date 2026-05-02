@@ -273,7 +273,7 @@ export default function CesiumScene({
         try { viewer.imageryLayers.remove(layerRef); } catch { /* already removed */ }
       }
     };
-  }, [imageryMode, effectiveToken]);
+  }, [imageryMode]);
 
   // Effect 4: Buildings toggle (imagery-mode-aware styling)
   useEffect(() => {

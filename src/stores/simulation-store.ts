@@ -57,9 +57,35 @@ interface SimulationStoreState {
 }
 
 const STEP_SECONDS = 1;
+const POSITION_SYNC_MIN_MS = 100;
 
 /** Quantize to 3 decimal places — matches syncFromClock precision */
 const quantize = (v: number) => Math.round(v * 1000) / 1000;
+const quantizeFine = (v: number) => Math.round(v * 10_000_000) / 10_000_000;
+const quantizeTenth = (v: number) => Math.round(v * 10) / 10;
+
+let _lastPositionSyncAt = 0;
+
+function quantizePosition(pos: SyncedPosition): SyncedPosition {
+  return {
+    lat: quantizeFine(pos.lat),
+    lon: quantizeFine(pos.lon),
+    altAgl: quantizeTenth(pos.altAgl),
+    heading: quantizeTenth(pos.heading),
+    speed: quantizeTenth(pos.speed),
+    waypointIndex: pos.waypointIndex,
+  };
+}
+
+function isSamePosition(a: SyncedPosition | null, b: SyncedPosition): boolean {
+  return !!a &&
+    a.lat === b.lat &&
+    a.lon === b.lon &&
+    a.altAgl === b.altAgl &&
+    a.heading === b.heading &&
+    a.speed === b.speed &&
+    a.waypointIndex === b.waypointIndex;
+}
 
 // ── Viewer bridge ──────────────────────────────────────────────────────
 // Instead of importing CesiumJS, the store delegates all viewer/clock
@@ -180,7 +206,18 @@ export const useSimulationStore = create<SimulationStoreState>()((set, get) => (
 
   setSourcePlanId: (sourceLibraryPlanId) => set({ sourceLibraryPlanId }),
 
-  syncPosition: (syncedPosition) => set({ syncedPosition }),
+  syncPosition: (pos) => {
+    const syncedPosition = quantizePosition(pos);
+    const current = get().syncedPosition;
+    if (isSamePosition(current, syncedPosition)) return;
+
+    const now = Date.now();
+    const waypointChanged = current?.waypointIndex !== syncedPosition.waypointIndex;
+    if (!waypointChanged && now - _lastPositionSyncAt < POSITION_SYNC_MIN_MS) return;
+
+    _lastPositionSyncAt = now;
+    set({ syncedPosition });
+  },
 
   toggleFollowHeading: () => set((s) => ({ followHeadingLocked: !s.followHeadingLocked })),
 
@@ -206,6 +243,7 @@ export const useSimulationStore = create<SimulationStoreState>()((set, get) => (
   },
 
   reset: () => {
+    _lastPositionSyncAt = 0;
     set({
       playbackState: "stopped",
       playbackSpeed: 1,

@@ -34,6 +34,28 @@ export interface InterpolatedPosition {
   progress: number;
 }
 
+/** Stable identity for the mission inputs that affect simulation playback. */
+export function createSimulationMissionSignature(
+  waypoints: Waypoint[],
+  defaultSpeed: number
+): string {
+  return JSON.stringify({
+    defaultSpeed,
+    waypoints: waypoints.map((wp) => [
+      wp.id,
+      wp.lat,
+      wp.lon,
+      wp.alt,
+      wp.speed ?? null,
+      wp.holdTime ?? null,
+      wp.command ?? null,
+      wp.param1 ?? null,
+      wp.param2 ?? null,
+      wp.param3 ?? null,
+    ]),
+  });
+}
+
 /** Compute 3D distance between two waypoints (haversine + altitude delta). */
 function distance3D(wp1: Waypoint, wp2: Waypoint): number {
   const hDist = haversineDistance(wp1.lat, wp1.lon, wp2.lat, wp2.lon);

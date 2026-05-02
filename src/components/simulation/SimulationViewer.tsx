@@ -10,9 +10,13 @@
 "use client";
 
 import { useEffect, useMemo, useCallback, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { Viewer as CesiumViewer } from "cesium";
 import type { Waypoint } from "@/lib/types";
-import { computeFlightPlan } from "@/lib/simulation-utils";
+import {
+  computeFlightPlan,
+  createSimulationMissionSignature,
+} from "@/lib/simulation-utils";
 import { buildSampledProperties } from "@/lib/build-sampled-properties";
 import { resolveAGLToAbsolute, type ResolvedPath } from "@/lib/terrain-utils";
 import { useSimulationStore } from "@/stores/simulation-store";
@@ -60,10 +64,16 @@ interface SimulationViewerProps {
   defaultSpeed: number;
 }
 
+interface TerrainResultState {
+  signature: string;
+  path: ResolvedPath | null;
+  failed: boolean;
+}
+
 export function SimulationViewer({ waypoints, defaultSpeed }: SimulationViewerProps) {
+  const t = useTranslations("simulate");
   const [viewer, setViewer] = useState<CesiumViewer | null>(null);
   const [viewerError, setViewerError] = useState<string | null>(null);
-  const [showCameraTriggers, setShowCameraTriggers] = useState(true);
   const convexAvailable = useConvexAvailable();
   const [cesiumToken, setCesiumToken] = useState<string | undefined>(undefined);
   const handleCesiumToken = useCallback((t: string | null) => {
@@ -75,6 +85,12 @@ export function SimulationViewer({ waypoints, defaultSpeed }: SimulationViewerPr
   const cesiumBuildingsEnabled = useSettingsStore((s) => s.cesiumBuildingsEnabled);
   const terrainExaggeration = useSettingsStore((s) => s.terrainExaggeration);
   const showPathLabels = useSettingsStore((s) => s.showPathLabels);
+  const showCameraTriggers = useSettingsStore((s) => s.showCameraTriggers);
+
+  const missionSignature = useMemo(
+    () => createSimulationMissionSignature(waypoints, defaultSpeed),
+    [waypoints, defaultSpeed]
+  );
 
   const flightPlan = useMemo(
     () => computeFlightPlan(waypoints, defaultSpeed),
@@ -85,44 +101,47 @@ export function SimulationViewer({ waypoints, defaultSpeed }: SimulationViewerPr
   const { isReady: terrainReady, version: terrainVersion } = useTerrainReady(viewer);
 
   // ── Terrain-resolved positions for 3D flight path ──────────
-  const [resolvedPath, setResolvedPath] = useState<ResolvedPath | null>(null);
-  const [terrainResolving, setTerrainResolving] = useState(false);
+  const [terrainResult, setTerrainResult] = useState<TerrainResultState | null>(null);
+
+  const resolvedPath =
+    terrainResult?.signature === missionSignature && !terrainResult.failed
+      ? terrainResult.path
+      : null;
+  const terrainFailed =
+    terrainResult?.signature === missionSignature && terrainResult.failed;
+  const terrainResolving =
+    !!viewer && !viewer.isDestroyed() && waypoints.length >= 2 && !resolvedPath && !terrainFailed;
 
   useEffect(() => {
     if (!viewer || viewer.isDestroyed() || waypoints.length < 2) {
-      setResolvedPath(null);
-      setTerrainResolving(false);
       return;
     }
 
     // Don't sample while terrain provider is still the flat ellipsoid —
     // it returns height=0 everywhere, placing the path underground.
     if (!terrainReady) {
-      setTerrainResolving(true);
       return;
     }
 
     let cancelled = false;
-    setTerrainResolving(true);
     const terrainProvider = viewer.scene.globe.terrainProvider;
+    const signature = missionSignature;
 
     resolveAGLToAbsolute(waypoints, terrainProvider)
       .then((result) => {
         if (!cancelled) {
-          setResolvedPath(result);
-          setTerrainResolving(false);
+          setTerrainResult({ signature, path: result, failed: false });
         }
       })
       .catch(() => {
         // Terrain sampling failed — FlightPathEntity falls back to clamped path
         if (!cancelled) {
-          setResolvedPath(null);
-          setTerrainResolving(false);
+          setTerrainResult({ signature, path: null, failed: true });
         }
       });
 
     return () => { cancelled = true; };
-  }, [viewer, waypoints, terrainReady, terrainVersion]);
+  }, [viewer, missionSignature, waypoints, terrainReady, terrainVersion]);
 
   // Extract waypoint-only resolved positions for WaypointEntities + camera
   const waypointPositions = useMemo(() => {
@@ -146,13 +165,12 @@ export function SimulationViewer({ waypoints, defaultSpeed }: SimulationViewerPr
   // Reset simulation when waypoints change
   useEffect(() => {
     useSimulationStore.getState().reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [waypoints.length]);
+  }, [missionSignature]);
 
   // Sync total duration
   useEffect(() => {
     useSimulationStore.getState().setTotalDuration(flightPlan.totalDuration);
-  }, [flightPlan.totalDuration]);
+  }, [missionSignature, flightPlan.totalDuration]);
 
   // Hooks handle all CesiumJS lifecycle
   useSimClock(viewer, sampled, flightPlan.totalDuration, hasAbsolutePositions, flightPlan);
@@ -209,7 +227,7 @@ export function SimulationViewer({ waypoints, defaultSpeed }: SimulationViewerPr
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
-            <p className="text-sm text-text-secondary">Initializing 3D view...</p>
+            <p className="text-sm text-text-secondary">{t("initializing3dView")}</p>
           </div>
         </div>
       )}
@@ -218,7 +236,9 @@ export function SimulationViewer({ waypoints, defaultSpeed }: SimulationViewerPr
       {viewerError && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="bg-bg-primary/80 backdrop-blur-md rounded-lg px-6 py-4 border border-red-500/30 text-center max-w-sm">
-            <p className="text-sm text-red-400">3D view failed: {viewerError}</p>
+            <p className="text-sm text-red-400">
+              {t("viewFailed", { message: viewerError })}
+            </p>
           </div>
         </div>
       )}
@@ -228,9 +248,11 @@ export function SimulationViewer({ waypoints, defaultSpeed }: SimulationViewerPr
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="bg-bg-primary/80 backdrop-blur-md rounded-lg px-8 py-6 border border-border-default text-center max-w-xs">
             <MapPin size={32} className="text-text-tertiary mx-auto mb-3" />
-            <p className="text-sm font-semibold text-text-primary mb-1">No flight plan loaded</p>
+            <p className="text-sm font-semibold text-text-primary mb-1">
+              {t("noFlightPlanLoaded")}
+            </p>
             <p className="text-xs text-text-tertiary">
-              Add at least 2 waypoints in the Plan tab or load a plan from the library
+              {t("addWaypointsOrLoadPlan")}
             </p>
           </div>
         </div>

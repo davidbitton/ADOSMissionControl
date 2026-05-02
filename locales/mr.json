@@ -1407,7 +1407,21 @@
     "skipToEndEnd": "शेवटी उडी मारा (End)",
     "scrubber": "स्क्रबर",
     "unlockCameraHeading": "कॅमेरा दिशा अनलॉक करा",
-    "lockCameraHeading": "कॅमेरा दिशा लॉक करा"
+    "lockCameraHeading": "कॅमेरा दिशा लॉक करा",
+    "map": "MAP",
+    "dark": "Dark",
+    "satelliteShort": "Sat",
+    "satelliteImagery": "Satellite imagery",
+    "requiresCesiumIonToken": "Requires Cesium Ion token",
+    "toggle3dBuildings": "Toggle 3D buildings",
+    "buildings": "Buildings",
+    "terrain": "Terrain",
+    "labels": "Labels",
+    "cameraTriggers": "Camera triggers",
+    "initializing3dView": "Initializing 3D view...",
+    "viewFailed": "3D view failed: {message}",
+    "noFlightPlanLoaded": "No flight plan loaded",
+    "addWaypointsOrLoadPlan": "Add at least 2 waypoints in the Plan tab or load a plan from the library"
   },
   "history": {
     "title": "उड्डाण इतिहास",

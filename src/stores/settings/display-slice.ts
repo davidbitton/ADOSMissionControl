@@ -43,6 +43,7 @@ export const displayDefaults: Partial<SettingsStoreState> = {
   cesiumBuildingsEnabled: false,
   terrainExaggeration: 1,
   showPathLabels: false,
+  showCameraTriggers: true,
   seenChangelogIds: [],
   changelogNotificationsEnabled: true,
   autoRecordOnConnect: false,
@@ -96,6 +97,7 @@ export const createDisplayActions: SettingsSliceFactory<
     | "setCesiumBuildingsEnabled"
     | "setTerrainExaggeration"
     | "setShowPathLabels"
+    | "setShowCameraTriggers"
     | "markChangelogSeen"
     | "clearSeenChangelog"
     | "setChangelogNotificationsEnabled"
@@ -164,6 +166,7 @@ export const createDisplayActions: SettingsSliceFactory<
   setTerrainExaggeration: (value) =>
     set({ terrainExaggeration: Math.max(0.1, Math.min(10, value)) }),
   setShowPathLabels: (showPathLabels) => set({ showPathLabels }),
+  setShowCameraTriggers: (showCameraTriggers) => set({ showCameraTriggers }),
   markChangelogSeen: (ids) =>
     set((s) => ({
       seenChangelogIds: [...new Set([...s.seenChangelogIds, ...ids])],

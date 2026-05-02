@@ -8,6 +8,7 @@
 
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useSettingsStore } from "@/stores/settings-store";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,7 @@ interface MapControlsPanelProps {
 }
 
 export function MapControlsPanel({ hasIonToken }: MapControlsPanelProps) {
+  const t = useTranslations("simulate");
   const imageryMode = useSettingsStore((s) => s.cesiumImageryMode);
   const setImageryMode = useSettingsStore((s) => s.setCesiumImageryMode);
   const buildingsEnabled = useSettingsStore((s) => s.cesiumBuildingsEnabled);
@@ -24,12 +26,16 @@ export function MapControlsPanel({ hasIonToken }: MapControlsPanelProps) {
   const setTerrainExaggeration = useSettingsStore((s) => s.setTerrainExaggeration);
   const showLabels = useSettingsStore((s) => s.showPathLabels);
   const setShowLabels = useSettingsStore((s) => s.setShowPathLabels);
+  const showCameraTriggers = useSettingsStore((s) => s.showCameraTriggers);
+  const setShowCameraTriggers = useSettingsStore((s) => s.setShowCameraTriggers);
 
   const buildingsDisabled = !hasIonToken;
 
   return (
     <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 p-2 bg-bg-primary/70 backdrop-blur-md border border-border-default rounded-lg">
-      <span className="text-[9px] font-mono text-text-tertiary text-center">MAP</span>
+      <span className="text-[9px] font-mono text-text-tertiary text-center">
+        {t("map")}
+      </span>
 
       {/* Imagery toggle */}
       <div className="flex gap-1">
@@ -42,11 +48,11 @@ export function MapControlsPanel({ hasIonToken }: MapControlsPanelProps) {
               : "text-text-secondary hover:text-text-primary border border-border-default"
           )}
         >
-          Dark
+          {t("dark")}
         </button>
         <button
           onClick={() => setImageryMode("satellite")}
-          title="Satellite imagery"
+          title={t("satelliteImagery")}
           className={cn(
             "h-7 rounded text-[10px] font-mono font-bold flex-1 transition-colors cursor-pointer",
             imageryMode === "satellite"
@@ -54,7 +60,7 @@ export function MapControlsPanel({ hasIonToken }: MapControlsPanelProps) {
               : "text-text-secondary hover:text-text-primary border border-border-default"
           )}
         >
-          Sat
+          {t("satelliteShort")}
         </button>
       </div>
 
@@ -66,8 +72,8 @@ export function MapControlsPanel({ hasIonToken }: MapControlsPanelProps) {
         )}
         title={
           buildingsDisabled
-            ? "Requires Cesium Ion token"
-            : "Toggle 3D buildings"
+            ? t("requiresCesiumIonToken")
+            : t("toggle3dBuildings")
         }
       >
         <input
@@ -77,13 +83,13 @@ export function MapControlsPanel({ hasIonToken }: MapControlsPanelProps) {
           onChange={(e) => setBuildingsEnabled(e.target.checked)}
           className="w-3 h-3 rounded accent-accent-primary"
         />
-        Buildings
+        {t("buildings")}
       </label>
 
       {/* Terrain exaggeration slider */}
       <div className="flex flex-col gap-0.5">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] font-mono text-text-secondary">Terrain</span>
+          <span className="text-[10px] font-mono text-text-secondary">{t("terrain")}</span>
           <span className="text-[10px] font-mono text-text-tertiary">{terrainExaggeration}x</span>
         </div>
         <input
@@ -105,7 +111,18 @@ export function MapControlsPanel({ hasIonToken }: MapControlsPanelProps) {
           onChange={(e) => setShowLabels(e.target.checked)}
           className="w-3 h-3 rounded accent-accent-primary"
         />
-        Labels
+        {t("labels")}
+      </label>
+
+      {/* Camera trigger markers checkbox */}
+      <label className="flex items-center gap-1.5 text-[10px] font-mono text-text-secondary">
+        <input
+          type="checkbox"
+          checked={showCameraTriggers}
+          onChange={(e) => setShowCameraTriggers(e.target.checked)}
+          className="w-3 h-3 rounded accent-accent-primary"
+        />
+        {t("cameraTriggers")}
       </label>
     </div>
   );
