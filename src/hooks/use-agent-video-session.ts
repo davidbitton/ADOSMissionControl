@@ -148,7 +148,7 @@ export function useAgentVideoSession({
           return;
         }
 
-        videoEl.srcObject = stream;
+        if (videoEl) videoEl.srcObject = stream;
         setState("connected");
 
         let lastFrames = 0;
@@ -189,7 +189,7 @@ export function useAgentVideoSession({
       controller.abort();
       if (statsInterval) clearInterval(statsInterval);
       closePeerConnection(pc);
-      videoEl.srcObject = null;
+      if (videoEl) videoEl.srcObject = null;
     };
   }, [enabled, retryKey, videoEl, whepUrl]);
 
