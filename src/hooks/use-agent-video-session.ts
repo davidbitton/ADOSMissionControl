@@ -70,6 +70,7 @@ export function useAgentVideoSession({
     const controller = new AbortController();
 
     async function connect() {
+      if (!whepUrl) return;
       setState("connecting");
       setError(null);
       setStats(emptyStats);
