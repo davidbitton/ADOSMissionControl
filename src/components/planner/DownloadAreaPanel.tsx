@@ -84,7 +84,7 @@ export function DownloadAreaPanel({ bounds, currentZoom, currentProvider, onClos
   const progressPct = progress.total > 0 ? (progress.completed / progress.total) * 100 : 0;
 
   return (
-    <div className="absolute top-3 left-14 z-[1001] w-72 bg-bg-secondary/95 backdrop-blur-sm border border-border-default rounded-lg overflow-hidden">
+    <div className="absolute top-24 left-14 z-[1001] w-72 bg-bg-secondary/95 backdrop-blur-sm border border-border-default rounded-lg overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border-default">
         <div className="flex items-center gap-2">

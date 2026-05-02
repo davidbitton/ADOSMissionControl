@@ -43,7 +43,7 @@ export function ReadyStep({ onFinish, back, dotStep, totalSteps }: Props) {
         </p>
 
         {/* Community cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 text-left">
+        <div className="grid grid-cols-1 gap-3 mb-6 text-left">
           {/* Discord card */}
           <a
             href="https://discord.gg/uxbvuD4d5q"

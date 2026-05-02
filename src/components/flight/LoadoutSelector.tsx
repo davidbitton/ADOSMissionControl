@@ -17,7 +17,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Backpack, X, Trash2 } from "lucide-react";
@@ -145,62 +144,49 @@ export function LoadoutSelector() {
     return ids.map((id) => batteries[id]?.label ?? "?").join(", ");
   };
 
+  const selectedSummary = current
+    ? [
+        batteryLabels(current.batteryIds),
+        itemLabel(current.propSetId),
+        itemLabel(current.motorSetId),
+        itemLabel(current.payloadId),
+      ].filter((value) => value !== t("loadoutEmpty")).join(" / ") || t("loadoutNone")
+    : t("loadoutNone");
+
   if (!droneId) {
     return null;
   }
 
   return (
-    <Card title={t("loadout")} padding={true}>
-      <div className="flex flex-col gap-2">
-        {!current ? (
-          <p className="text-[10px] text-text-tertiary">{t("loadoutNone")}</p>
-        ) : (
-          <div className="flex flex-col gap-1 text-[11px] text-text-secondary">
-            <div className="flex justify-between gap-2">
-              <span className="text-text-tertiary">{t("loadoutBatteries")}</span>
-              <span className="text-text-primary text-right truncate max-w-[200px]">
-                {batteryLabels(current.batteryIds)}
-              </span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span className="text-text-tertiary">{t("loadoutPropSet")}</span>
-              <span className="text-text-primary text-right truncate max-w-[200px]">
-                {itemLabel(current.propSetId)}
-              </span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span className="text-text-tertiary">{t("loadoutMotorSet")}</span>
-              <span className="text-text-primary text-right truncate max-w-[200px]">
-                {itemLabel(current.motorSetId)}
-              </span>
-            </div>
-            <div className="flex justify-between gap-2">
-              <span className="text-text-tertiary">{t("loadoutPayload")}</span>
-              <span className="text-text-primary text-right truncate max-w-[200px]">
-                {itemLabel(current.payloadId)}
-              </span>
-            </div>
+    <>
+      <div className="flex items-center gap-2 border border-border-default bg-bg-tertiary px-2 py-1.5">
+        <Backpack size={12} className="shrink-0 text-text-tertiary" />
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+            {t("loadout")}
           </div>
-        )}
-        <div className="flex items-center gap-2 mt-1">
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<Backpack size={12} />}
-            onClick={() => setEditing(true)}
-          >
-            {t("loadoutEdit")}
-          </Button>
-          {current && (
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={<Trash2 size={12} />}
-              onClick={() => clearLoadout(droneId)}
-              title={t("loadoutClear")}
-            />
-          )}
+          <div className="truncate text-[10px] text-text-tertiary">
+            {selectedSummary}
+          </div>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 shrink-0 px-2 text-[11px]"
+          onClick={() => setEditing(true)}
+        >
+          {t("loadoutEdit")}
+        </Button>
+        {current && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 shrink-0 px-0"
+            icon={<Trash2 size={12} />}
+            onClick={() => clearLoadout(droneId)}
+            title={t("loadoutClear")}
+          />
+        )}
       </div>
 
       {editing && (
@@ -216,7 +202,7 @@ export function LoadoutSelector() {
           onClose={() => setEditing(false)}
         />
       )}
-    </Card>
+    </>
   );
 }
 

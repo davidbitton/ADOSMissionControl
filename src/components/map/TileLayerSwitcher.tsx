@@ -65,11 +65,20 @@ function ManagedTileLayer({ url, attribution, maxZoom }: { url: string; attribut
   // Create layer once on mount
   useEffect(() => {
     const layer = L.tileLayer(initialUrlRef.current, { attribution, maxZoom });
-    layer.addTo(map);
-    layerRef.current = layer;
+    try {
+      layer.addTo(map);
+      layerRef.current = layer;
+    } catch (err) {
+      console.warn("[TileLayerSwitcher] skipped stale map layer attach", err);
+      return;
+    }
     return () => {
       if (layerRef.current) {
-        map.removeLayer(layerRef.current);
+        try {
+          map.removeLayer(layerRef.current);
+        } catch {
+          /* map may already be destroyed during dev reconnect */
+        }
         layerRef.current = null;
       }
     };
@@ -86,7 +95,11 @@ function ManagedTileLayer({ url, attribution, maxZoom }: { url: string; attribut
   return null;
 }
 
-export function TileLayerSwitcher() {
+interface TileLayerSwitcherProps {
+  showControls?: boolean;
+}
+
+export function TileLayerSwitcher({ showControls = true }: TileLayerSwitcherProps) {
   const source = useSettingsStore((s) => s.mapTileSource);
   const setSource = useSettingsStore((s) => s.setMapTileSource);
   const cachingEnabled = useSettingsStore((s) => s.offlineTileCaching);
@@ -118,49 +131,51 @@ export function TileLayerSwitcher() {
       )}
 
       {/* No-fly zone overlay */}
-      <NoFlyZoneOverlay visible={showNfz} />
+      <NoFlyZoneOverlay visible={showControls && showNfz} />
 
       {/* Layer switcher control — top right */}
-      <div className="leaflet-top leaflet-right" style={{ pointerEvents: "auto" }}>
-        <div className="leaflet-control" style={{ marginTop: 10, marginRight: 10 }}>
-          <button
-            onClick={() => setShowPicker((v) => !v)}
-            className="bg-bg-primary/90 backdrop-blur-md border border-border-strong rounded px-2 py-1 text-[10px] font-mono text-text-secondary hover:text-text-primary transition-colors shadow-lg"
-            title="Switch map tiles"
-          >
-            {TILE_LABELS[source] ?? "MAP"}
-          </button>
-          {showPicker && (
-            <div className="mt-1 bg-bg-primary/90 backdrop-blur-md border border-border-strong rounded shadow-lg">
-              {TILE_ORDER.map((s) => (
+      {showControls && (
+        <div className="leaflet-top leaflet-right" style={{ pointerEvents: "auto" }}>
+          <div className="leaflet-control" style={{ marginTop: 10, marginRight: 10 }}>
+            <button
+              onClick={() => setShowPicker((v) => !v)}
+              className="bg-bg-primary/90 backdrop-blur-md border border-border-strong rounded px-2 py-1 text-[10px] font-mono text-text-secondary hover:text-text-primary transition-colors shadow-lg"
+              title="Switch map tiles"
+            >
+              {TILE_LABELS[source] ?? "MAP"}
+            </button>
+            {showPicker && (
+              <div className="mt-1 bg-bg-primary/90 backdrop-blur-md border border-border-strong rounded shadow-lg">
+                {TILE_ORDER.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => handleSelect(s)}
+                    className={`block w-full text-left px-3 py-1.5 text-[10px] font-mono transition-colors rounded-sm ${
+                      s === source
+                        ? "text-accent-primary bg-surface-secondary"
+                        : "text-text-secondary hover:text-text-primary hover:bg-surface-secondary"
+                    }`}
+                  >
+                    {TILE_LABELS[s]}
+                  </button>
+                ))}
+                {/* Separator + NFZ toggle */}
+                <div className="border-t border-border-strong my-0.5" />
                 <button
-                  key={s}
-                  onClick={() => handleSelect(s)}
+                  onClick={() => setShowNfz(!showNfz)}
                   className={`block w-full text-left px-3 py-1.5 text-[10px] font-mono transition-colors rounded-sm ${
-                    s === source
-                      ? "text-accent-primary bg-surface-secondary"
+                    showNfz
+                      ? "text-status-error bg-status-error/10"
                       : "text-text-secondary hover:text-text-primary hover:bg-surface-secondary"
                   }`}
                 >
-                  {TILE_LABELS[s]}
+                  {showNfz ? "NFZ ON" : "NFZ OFF"}
                 </button>
-              ))}
-              {/* Separator + NFZ toggle */}
-              <div className="border-t border-border-strong my-0.5" />
-              <button
-                onClick={() => setShowNfz(!showNfz)}
-                className={`block w-full text-left px-3 py-1.5 text-[10px] font-mono transition-colors rounded-sm ${
-                  showNfz
-                    ? "text-status-error bg-status-error/10"
-                    : "text-text-secondary hover:text-text-primary hover:bg-surface-secondary"
-                }`}
-              >
-                {showNfz ? "NFZ ON" : "NFZ OFF"}
-              </button>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }

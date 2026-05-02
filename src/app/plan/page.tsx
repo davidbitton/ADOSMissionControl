@@ -32,6 +32,7 @@ export default function MissionPlannerPage() {
   const p = usePlanner();
   const droneCount = useDroneManager((s) => s.drones.size);
   const hasDrone = droneCount > 0;
+  const hasActivePlan = !!p.activePlanId;
   const isDownloading = p.downloadState === "downloading";
   const { supports } = useFirmwareCapabilities();
   const showGeofence = !hasDrone || supports("supportsGeoFence");
@@ -66,17 +67,19 @@ export default function MissionPlannerPage() {
 
           <div className="flex-1 relative min-w-0">
             <PlannerMap waypoints={p.waypoints} activeTool={p.activeTool} selectedWaypointId={p.selectedWaypointId}
-              hasActivePlan={!!p.activePlanId} rallyPoints={p.rallyPoints} onMapClick={p.handleMapClick}
+              hasActivePlan={hasActivePlan} rallyPoints={p.rallyPoints} onMapClick={p.handleMapClick}
               onMapRightClick={p.handleMapRightClick} onWaypointClick={p.handleWaypointClick}
               onWaypointDragEnd={p.handleWaypointDragEnd} onWaypointRightClick={p.handleWaypointRightClick}
               onDrawingComplete={p.handleDrawingComplete} />
-            <MapToolbar activeTool={p.activeTool} onToolChange={p.setActiveTool}
-              canUndo={p.undoStack.length > 0} canRedo={p.redoStack.length > 0}
-              onUndo={p.undo} onRedo={p.redo} onClearAll={p.handleClearAll}
-              onToggleOverlays={toggleOverlayPanel} overlayPanelOpen={overlayPanelOpen}
-              onToggleDownload={toggleDownloadPanel} downloadPanelOpen={downloadPanelOpen} />
-            {overlayPanelOpen && <OverlayPanel onClose={() => setOverlayPanelOpen(false)} />}
-            {downloadPanelOpen && (
+            {hasActivePlan && (
+              <MapToolbar activeTool={p.activeTool} onToolChange={p.setActiveTool}
+                canUndo={p.undoStack.length > 0} canRedo={p.redoStack.length > 0}
+                onUndo={p.undo} onRedo={p.redo} onClearAll={p.handleClearAll}
+                onToggleOverlays={toggleOverlayPanel} overlayPanelOpen={overlayPanelOpen}
+                onToggleDownload={toggleDownloadPanel} downloadPanelOpen={downloadPanelOpen} />
+            )}
+            {hasActivePlan && overlayPanelOpen && <OverlayPanel onClose={() => setOverlayPanelOpen(false)} />}
+            {hasActivePlan && downloadPanelOpen && (
               <DownloadAreaPanel
                 bounds={{
                   north: 13.0,
@@ -89,10 +92,12 @@ export default function MissionPlannerPage() {
                 onClose={() => setDownloadPanelOpen(false)}
               />
             )}
-            <MissionStatsBar waypoints={p.waypoints} defaultSpeed={p.defaultSpeed} />
-            <AltitudeProfile waypoints={p.waypoints} collapsed={p.altProfileCollapsed} onToggle={p.toggleAltProfile}
-              selectedWaypointId={p.selectedWaypointId}
-              onSelectWaypoint={(id) => { p.setSelectedWaypoint(id); p.setExpandedWaypoint(id); }} />
+            {hasActivePlan && <MissionStatsBar waypoints={p.waypoints} defaultSpeed={p.defaultSpeed} />}
+            {hasActivePlan && (
+              <AltitudeProfile waypoints={p.waypoints} collapsed={p.altProfileCollapsed} onToggle={p.toggleAltProfile}
+                selectedWaypointId={p.selectedWaypointId}
+                onSelectWaypoint={(id) => { p.setSelectedWaypoint(id); p.setExpandedWaypoint(id); }} />
+            )}
           </div>
 
           {!p.panelCollapsed && (

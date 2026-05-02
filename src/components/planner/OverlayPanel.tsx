@@ -80,7 +80,7 @@ export function OverlayPanel({ onClose }: OverlayPanelProps) {
   );
 
   return (
-    <div className="absolute top-3 left-14 z-[1001] w-64 bg-bg-secondary/95 backdrop-blur-sm border border-border-default rounded-lg overflow-hidden">
+    <div className="absolute top-24 left-14 z-[1001] w-64 bg-bg-secondary/95 backdrop-blur-sm border border-border-default rounded-lg overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border-default">
         <span className="text-[11px] font-mono font-semibold text-text-primary">

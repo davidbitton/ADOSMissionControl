@@ -103,7 +103,7 @@ export function MapToolbar({
 }: MapToolbarProps) {
   const t = useTranslations("planner");
   return (
-    <div className="absolute top-3 left-3 z-[1000] flex flex-col gap-1 p-1 bg-bg-secondary/90 backdrop-blur-sm border border-border-default rounded-lg">
+    <div className="absolute top-24 left-3 z-[1000] flex flex-col gap-1 p-1 bg-bg-secondary/90 backdrop-blur-sm border border-border-default rounded-lg">
       {toolGroups.map((group, gi) => (
         <div key={gi} className="flex flex-col">
           {gi > 0 && <div className="h-px bg-border-default" />}

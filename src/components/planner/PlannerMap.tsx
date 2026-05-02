@@ -232,32 +232,34 @@ export function PlannerMap({
   return (
     <div className="w-full h-full relative">
       {/* GPS status badge */}
-      <span className={`absolute top-2 left-2 z-[1000] text-[10px] font-mono bg-bg-primary/80 backdrop-blur-md rounded px-1.5 py-0.5 border border-border-strong shadow-lg ${fixType >= 3 ? "text-status-success" : fixType >= 2 ? "text-status-warning" : "text-status-error"}`}>
-        {fixLabel} | {satellites} SAT
-      </span>
-      <GuidanceSettingsMenu />
+      {hasActivePlan && (
+        <span className={`absolute top-2 left-2 z-[1000] text-[10px] font-mono bg-bg-primary/80 backdrop-blur-md rounded px-1.5 py-0.5 border border-border-strong shadow-lg ${fixType >= 3 ? "text-status-success" : fixType >= 2 ? "text-status-warning" : "text-status-error"}`}>
+          {fixLabel} | {satellites} SAT
+        </span>
+      )}
+      {hasActivePlan && <GuidanceSettingsMenu />}
       <MapContainer center={defaultCenter} zoom={13} className="w-full h-full" zoomControl={false} attributionControl={false}
         style={{ background: "#0a0a0a" }} ref={(instance) => { if (instance) setMapInstance(instance); }}>
-        <TileLayerSwitcher />
-        <KmlOverlayLayers />
+        <TileLayerSwitcher showControls={hasActivePlan} />
+        {hasActivePlan && <KmlOverlayLayers />}
         {/* Straight path (always shown for non-spline or as baseline) */}
-        {polylinePositions.length >= 2 && <Polyline positions={polylinePositions} pathOptions={{ color: MAP_COLORS.accentPrimary, weight: 2, dashArray: "6 4", opacity: hasSpline ? 0.3 : 0.8 }} />}
+        {hasActivePlan && polylinePositions.length >= 2 && <Polyline positions={polylinePositions} pathOptions={{ color: MAP_COLORS.accentPrimary, weight: 2, dashArray: "6 4", opacity: hasSpline ? 0.3 : 0.8 }} />}
         {/* Spline curve overlay (when spline waypoints present) */}
-        {splinePositions.length >= 2 && <Polyline positions={splinePositions} pathOptions={{ color: "#00e5ff", weight: 2.5, opacity: 0.9 }} />}
-        {segments.map((seg) => <Marker key={seg.key} position={seg.position} icon={makeSegmentLabel(seg.label)} interactive={false} />)}
-        <GcsMarker /><LocateControl /><PatternOverlay />
+        {hasActivePlan && splinePositions.length >= 2 && <Polyline positions={splinePositions} pathOptions={{ color: "#00e5ff", weight: 2.5, opacity: 0.9 }} />}
+        {hasActivePlan && segments.map((seg) => <Marker key={seg.key} position={seg.position} icon={makeSegmentLabel(seg.label)} interactive={false} />)}
+        {hasActivePlan && <><GcsMarker /><LocateControl /><PatternOverlay /></>}
         {/* Guidance vector polylines */}
-        {guidanceHdgEnabled && hdgLine && (
+        {hasActivePlan && guidanceHdgEnabled && hdgLine && (
           <Polyline positions={hdgLine} pathOptions={{ color: guidanceHdgColor, weight: guidanceHdgWidth, dashArray: getLineTypeDashArray(guidanceHdgLineType), opacity: 0.8 }} />
         )}
-        {guidanceTrackWpEnabled && trackWpLine && (
+        {hasActivePlan && guidanceTrackWpEnabled && trackWpLine && (
           <Polyline positions={trackWpLine} pathOptions={{ color: guidanceTrackWpColor, weight: guidanceTrackWpWidth, dashArray: getLineTypeDashArray(guidanceTrackWpLineType), opacity: 0.8 }} />
         )}
-        {guidanceTgtHdgEnabled && tgtHdgLine && (
+        {hasActivePlan && guidanceTgtHdgEnabled && tgtHdgLine && (
           <Polyline positions={tgtHdgLine} pathOptions={{ color: guidanceTgtHdgColor, weight: guidanceTgtHdgWidth, dashArray: getLineTypeDashArray(guidanceTgtHdgLineType), opacity: 0.8 }} />
         )}
-        <JumpArrowOverlay waypoints={waypoints} />
-        {waypoints.map((wp, i) => (
+        {hasActivePlan && <JumpArrowOverlay waypoints={waypoints} />}
+        {hasActivePlan && waypoints.map((wp, i) => (
           <Marker key={wp.id} position={[wp.lat, wp.lon]}
             icon={wp.command === "SPLINE_WAYPOINT" ? makeSplineWaypointIcon(i, wp.id === selectedWaypointId) : makeWaypointIcon(i, wp.id === selectedWaypointId)}
             draggable={activeTool === "select"}
@@ -267,8 +269,8 @@ export function PlannerMap({
               contextmenu: (e) => { e.originalEvent.preventDefault(); e.originalEvent.stopPropagation(); onWaypointRightClick(wp.id, e.originalEvent.clientX, e.originalEvent.clientY); },
             }} />
         ))}
-        {rallyPoints.map((rp, i) => <Marker key={`rally-${rp.id}`} position={[rp.lat, rp.lon]} icon={makeRallyIcon(i)} interactive={false} />)}
-        {measureLine && measureLine.points.length >= 2 && (<>
+        {hasActivePlan && rallyPoints.map((rp, i) => <Marker key={`rally-${rp.id}`} position={[rp.lat, rp.lon]} icon={makeRallyIcon(i)} interactive={false} />)}
+        {hasActivePlan && measureLine && measureLine.points.length >= 2 && (<>
           <Polyline positions={measurePositions} pathOptions={{ color: MAP_COLORS.muted, weight: 2, dashArray: "4 4" }} />
           {measureLine.points.map((pt, i) => i > 0 ? (
             <Marker key={`meas-seg-${i}`} position={[(pt[0] + measureLine.points[i - 1][0]) / 2, (pt[1] + measureLine.points[i - 1][1]) / 2]}
@@ -278,21 +280,29 @@ export function PlannerMap({
         </>)}
       </MapContainer>
 
-      {TOOL_INSTRUCTIONS[activeTool] && (
+      {!hasActivePlan && (
+        <div className="absolute inset-0 z-[999] flex items-center justify-center bg-bg-primary/35 backdrop-blur-[1px] pointer-events-none">
+          <div className="bg-bg-secondary/90 border border-border-default px-4 py-2 shadow-lg">
+            <span className="text-xs text-text-secondary font-mono">Create or select a flight plan to start</span>
+          </div>
+        </div>
+      )}
+
+      {hasActivePlan && TOOL_INSTRUCTIONS[activeTool] && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
           <div className="bg-bg-secondary/90 border border-accent-primary/30 px-3 py-1.5">
             <span className="text-xs text-accent-primary font-mono">{TOOL_INSTRUCTIONS[activeTool]}</span>
           </div>
         </div>
       )}
-      {waypoints.length === 0 && !isDrawingTool && !TOOL_INSTRUCTIONS[activeTool] && (
+      {hasActivePlan && waypoints.length === 0 && !isDrawingTool && !TOOL_INSTRUCTIONS[activeTool] && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
           <div className="bg-bg-secondary/90 border border-border-default px-3 py-1.5">
-            <span className="text-xs text-text-secondary font-mono">{hasActivePlan ? "Click on map to add waypoints" : "Create or select a flight plan to start"}</span>
+            <span className="text-xs text-text-secondary font-mono">Click on map to add waypoints</span>
           </div>
         </div>
       )}
-      {isDrawingTool && (
+      {hasActivePlan && isDrawingTool && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
           <div className="bg-bg-secondary/90 border border-accent-primary/30 px-3 py-1.5">
             <span className="text-xs text-accent-primary font-mono">

@@ -13,8 +13,7 @@ import { useEffect, useRef } from "react";
 
 // Set CESIUM_BASE_URL before cesium is imported
 if (typeof window !== "undefined") {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).CESIUM_BASE_URL =
+  (window as Window & { CESIUM_BASE_URL?: string }).CESIUM_BASE_URL =
     process.env.CESIUM_BASE_URL ||
     "https://cesium.com/downloads/cesiumjs/releases/1.138/Build/Cesium/";
 }
@@ -71,6 +70,16 @@ function attachImageryErrorListener(
   });
 }
 
+function attachLayerErrorListener(layer: ImageryLayer, label: string) {
+  layer.errorEvent.addEventListener((error: unknown) => {
+    try {
+      console.warn("[Cesium imagery layer]", label, error);
+    } catch {
+      /* swallow */
+    }
+  });
+}
+
 function createDarkCartoLayer(): ImageryLayer {
   const provider = new UrlTemplateImageryProvider({
     url: "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
@@ -79,7 +88,9 @@ function createDarkCartoLayer(): ImageryLayer {
     maximumLevel: 18,
   });
   attachImageryErrorListener(provider, "carto-dark");
-  return new ImageryLayer(provider);
+  const layer = new ImageryLayer(provider);
+  attachLayerErrorListener(layer, "carto-dark");
+  return layer;
 }
 
 function createEsriSatelliteLayer(): ImageryLayer {
@@ -89,7 +100,9 @@ function createEsriSatelliteLayer(): ImageryLayer {
     maximumLevel: 18,
   });
   attachImageryErrorListener(provider, "esri-world-imagery");
-  return new ImageryLayer(provider);
+  const layer = new ImageryLayer(provider);
+  attachLayerErrorListener(layer, "esri-world-imagery");
+  return layer;
 }
 
 export default function CesiumScene({
@@ -108,9 +121,12 @@ export default function CesiumScene({
 
   // Stable refs for callbacks so mount effect doesn't re-run
   const onReadyRef = useRef(onReady);
-  onReadyRef.current = onReady;
   const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
+
+  useEffect(() => {
+    onReadyRef.current = onReady;
+    onErrorRef.current = onError;
+  }, [onReady, onError]);
 
   // Effect 1: Mount-only — create viewer with basic config
   useEffect(() => {
@@ -122,6 +138,7 @@ export default function CesiumScene({
       viewer = new Viewer(containerRef.current, {
         sceneMode: SceneMode.SCENE3D,
         scene3DOnly: true,
+        baseLayer: false,
         animation: false,
         timeline: false,
         baseLayerPicker: false,
@@ -186,7 +203,6 @@ export default function CesiumScene({
       viewerRef.current = null;
       tilesetRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Effect 2: Token update — upgrade terrain to Cesium World Terrain without recreating viewer
