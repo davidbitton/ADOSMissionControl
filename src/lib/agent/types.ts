@@ -187,13 +187,69 @@ export interface SetupAccessUrl {
   primary: boolean;
 }
 
+export type SetupStepState =
+  | "complete"
+  | "needs_action"
+  | "optional"
+  | "blocked"
+  | "not_applicable";
+
 export interface SetupStep {
   id: string;
   label: string;
-  state: "complete" | "needs_action" | "optional" | "blocked";
+  state: SetupStepState;
   detail: string;
   action_label: string;
   href: string;
+}
+
+export interface CloudChoiceStatus {
+  mode: "cloud" | "self_hosted" | "local";
+  paired: boolean;
+  pair_code_required: boolean;
+  backend_url: string;
+  backend_reachable: boolean;
+  last_checked: string | null;
+}
+
+export interface ProfileSuggestion {
+  detected: "drone" | "ground_station" | "unconfigured";
+  ground_role_hint: "direct" | "relay" | "receiver";
+  ground_score: number;
+  air_score: number;
+  mesh_capable: boolean;
+  signals: Record<string, boolean>;
+  confirmed: boolean;
+  detected_at: string | null;
+}
+
+export type HardwareCheckItemState =
+  | "ok"
+  | "missing"
+  | "warning"
+  | "checking"
+  | "unknown";
+
+export interface HardwareCheckItem {
+  id: string;
+  label: string;
+  required: boolean;
+  state: HardwareCheckItemState;
+  detail: string;
+  fix_hint: string;
+}
+
+export interface HardwareCheckStatus {
+  profile: string;
+  ground_role: string;
+  items: HardwareCheckItem[];
+  last_run: string;
+}
+
+export interface SetupActionResult {
+  ok: boolean;
+  message: string;
+  data: Record<string, unknown>;
 }
 
 export interface SetupStatus {
@@ -201,7 +257,10 @@ export interface SetupStatus {
   device_id: string;
   device_name: string;
   profile: string;
+  /** Distributed-RX role for ground-station profile. Empty for drone profile. */
+  ground_role?: string;
   setup_complete: boolean;
+  setup_finalized?: boolean;
   completion_percent: number;
   next_action: string;
   steps: SetupStep[];
@@ -237,6 +296,10 @@ export interface SetupStatus {
   };
   services: Array<Record<string, unknown>>;
   telemetry: Record<string, unknown>;
+  cloud_choice?: CloudChoiceStatus;
+  profile_suggestion?: ProfileSuggestion;
+  hardware_check?: HardwareCheckStatus | null;
+  skipped_steps?: string[];
 }
 
 // ── Consolidated ───────────────────────────────────────

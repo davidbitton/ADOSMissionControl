@@ -21,6 +21,8 @@ import type {
   NetworkPeer,
   PairingInfo,
   SetupStatus,
+  SetupActionResult,
+  HardwareCheckStatus,
   ClaimResponse,
   VideoStatus,
   FullStatusResponse,
@@ -31,11 +33,13 @@ import {
   ClaimResponseSchema,
   CommandResultSchema,
   FullStatusResponseSchema,
+  HardwareCheckStatusSchema,
   MeshNetEnrollmentSchema,
   NetworkPeerListSchema,
   PairingInfoSchema,
   PeripheralListSchema,
   ServicesResponseSchema,
+  SetupActionResultSchema,
   SetupStatusSchema,
   SystemResourcesRawSchema,
   TelemetrySnapshotSchema,
@@ -260,6 +264,46 @@ export class AgentClient {
       schema: SetupStatusSchema as z.ZodType<SetupStatus>,
       allowSchemaFallback: true,
     });
+  }
+
+  /**
+   * Persist the operator's profile choice from the onboarding wizard.
+   * Pass `ground_role` only when `profile === "ground_station"`.
+   */
+  async postProfileChoice(
+    profile: "drone" | "ground_station",
+    ground_role?: "direct" | "relay" | "receiver" | null,
+  ): Promise<SetupActionResult> {
+    const body: { profile: string; ground_role?: string | null } = { profile };
+    if (profile === "ground_station") {
+      body.ground_role = ground_role ?? "direct";
+    }
+    return this.request<SetupActionResult>("/api/v1/setup/profile", {
+      method: "POST",
+      body: JSON.stringify(body),
+      schema: SetupActionResultSchema as z.ZodType<SetupActionResult>,
+      allowSchemaFallback: true,
+    });
+  }
+
+  /** Per-component hardware-check snapshot for the active profile + role. */
+  async getHardwareCheck(): Promise<HardwareCheckStatus> {
+    return this.request<HardwareCheckStatus>("/api/v1/setup/hardware-check", {
+      schema: HardwareCheckStatusSchema as z.ZodType<HardwareCheckStatus>,
+      allowSchemaFallback: true,
+    });
+  }
+
+  /** Re-run the hardware-check sweep on demand. Uncached. */
+  async refreshHardwareCheck(): Promise<HardwareCheckStatus> {
+    return this.request<HardwareCheckStatus>(
+      "/api/v1/setup/hardware-check/refresh",
+      {
+        method: "POST",
+        schema: HardwareCheckStatusSchema as z.ZodType<HardwareCheckStatus>,
+        allowSchemaFallback: true,
+      },
+    );
   }
 
   async restartService(name: string): Promise<CommandResult> {
