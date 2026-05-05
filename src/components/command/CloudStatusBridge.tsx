@@ -272,13 +272,22 @@ export function CloudStatusBridge() {
       useAgentConnectionStore.getState().setMavlinkUrl(`ws://${lastIp}:${mavlinkWsPort}/`);
     }
 
-    // Infer capabilities from cloud status (board SoC → NPU, peripherals → cameras)
+    // Infer capabilities from cloud status (board SoC → NPU, peripherals → cameras).
+    // The cloud row carries the agent's runtimeMode regardless of whether the
+    // /api/capabilities endpoint exists, so merge it into the inferred shape
+    // before handing to the store. Without this, agents that never expose
+    // /api/capabilities (notably the lightweight Rust backend at v0.1) would
+    // silently fall back to runtimeMode="full".
     const capState = useAgentCapabilitiesStore.getState();
     if (!capState.loaded || capState.cameras.length === 0) {
       const peripherals = useAgentPeripheralsStore.getState().peripherals;
       const inferred = inferCapabilities(mapped, peripherals);
       if (inferred) {
-        useAgentCapabilitiesStore.getState().setCapabilities(inferred);
+        const runtimeMode: "full" | "lite" =
+          cloudStatus.runtimeMode === "lite" ? "lite" : "full";
+        useAgentCapabilitiesStore
+          .getState()
+          .setCapabilities({ ...inferred, runtimeMode });
       }
     }
 
