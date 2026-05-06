@@ -64,6 +64,22 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
               </Badge>
             </span>
           )}
+          {(drone.profileSource === "detected" ||
+            drone.profileSource === "tiebreaker" ||
+            drone.profileSource === "default") && (
+            <span
+              title={
+                drone.profileSource === "detected"
+                  ? "Profile auto-detected from hardware fingerprint"
+                  : drone.profileSource === "tiebreaker"
+                  ? "Profile picked by tiebreaker. Confirm in setup."
+                  : "Profile fell back to default. Confirm in setup."
+              }
+              className="inline-flex h-4 items-center rounded-sm bg-status-warning/20 px-1 font-mono text-[10px] lowercase text-status-warning"
+            >
+              auto
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           <Badge variant={drone.armState === "armed" ? "warning" : "neutral"}>

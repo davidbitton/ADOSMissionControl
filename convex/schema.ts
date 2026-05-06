@@ -536,6 +536,11 @@ fullName: v.optional(v.string()),
     // Drives the "LCD" pill on the fleet drone card without an extra
     // query. One of "spi-lcd", "hdmi", "none", or undefined.
     attachedDisplayType: v.optional(v.string()),
+    // How the agent landed on its current profile. Synced from
+    // cmd_droneStatus heartbeats so the fleet card can render an
+    // "auto" pill without an extra query. One of "detected",
+    // "tiebreaker", "default", "override", "user", or undefined.
+    profileSource: v.optional(v.string()),
     pairedAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -603,6 +608,16 @@ fullName: v.optional(v.string()),
     // the plugin host, peripheral manager, scripting, and ROS surfaces
     // in Mission Control. Absent values default to "full".
     runtimeMode: v.optional(v.string()),
+    // Setup wizard state on the agent. Live agents report "configured"
+    // once the universal webapp wizard has been completed. Older agents
+    // omit this and the GCS treats them as configured by default.
+    setupState: v.optional(v.string()),
+    // How the agent landed on its current profile. One of "detected"
+    // (auto-detected by hardware fingerprint), "tiebreaker" (auto with
+    // ambiguous signals), "default" (no detect signals, fell back),
+    // "override" (forced via /etc/ados/board_override), or "user"
+    // (operator picked in the setup webapp).
+    profileSource: v.optional(v.string()),
     updatedAt: v.number(),
   })
     .index("by_deviceId", ["deviceId"]),

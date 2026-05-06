@@ -4,6 +4,24 @@ All notable changes to ADOS Mission Control are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the project follows [Semantic Versioning](https://semver.org/).
 
+## [0.10.6] - 2026-05-07
+
+### Added
+
+- Fleet drone card now surfaces a small amber "auto" pill when the agent
+  reports that its profile was picked by hardware auto-detection rather
+  than an operator. Three values trigger the pill: `detected` (clean
+  fingerprint match), `tiebreaker` (auto with ambiguous signals), and
+  `default` (no detect signals, fell back). Profiles set by an operator
+  in the setup webapp or forced via `/etc/ados/board_override` render
+  no pill, matching the prior layout for legacy heartbeats.
+- Cloud heartbeat schema accepts two new optional fields, `setupState`
+  and `profileSource`, so the universal setup contract on the agent
+  side has a place to land in the cloud relay. Both flow into the
+  per-drone capability store. `profileSource` also syncs into the
+  `cmd_drones` row alongside `runtimeMode` and `attachedDisplayType`
+  so the fleet card renders the pill without an extra per-drone query.
+
 ## [0.10.5] - 2026-05-06
 
 ### Fixed

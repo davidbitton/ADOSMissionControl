@@ -193,6 +193,11 @@ interface AgentCapabilitiesState {
   /** Backend variant the agent process is running. "lite" hides plugin /
    * peripheral / scripting / ROS surfaces. Defaults to "full" until set. */
   runtimeMode: "full" | "lite";
+  /** Setup wizard state on the agent. Undefined for legacy heartbeats. */
+  setupState?: string;
+  /** How the agent landed on its current profile. Undefined for legacy
+   * heartbeats. See AgentCapabilities.profileSource for the value set. */
+  profileSource?: string;
   /** Local panel attached to the companion board (e.g. SPI LCD on a
    * ground-station node). Undefined when no display is bound. */
   display: AgentCapabilities["display"];
@@ -222,6 +227,8 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
   features: DEFAULT_FEATURES,
   ros2State: "absent",
   runtimeMode: "full",
+  setupState: undefined,
+  profileSource: undefined,
   display: undefined,
   loaded: false,
 
@@ -244,6 +251,18 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
       (caps as { runtime_mode?: unknown }).runtime_mode;
     const runtimeMode: "full" | "lite" = rawRuntime === "lite" ? "lite" : "full";
 
+    // Setup state and profile source travel through the same payload.
+    // Both accept snake_case (setup_state, profile_source) or camelCase.
+    const rawSetup =
+      (caps as { setupState?: unknown }).setupState ??
+      (caps as { setup_state?: unknown }).setup_state;
+    const setupState = typeof rawSetup === "string" ? rawSetup : undefined;
+    const rawProfileSource =
+      (caps as { profileSource?: unknown }).profileSource ??
+      (caps as { profile_source?: unknown }).profile_source;
+    const profileSource =
+      typeof rawProfileSource === "string" ? rawProfileSource : undefined;
+
     set({
       tier: normalized.tier,
       cameras: normalized.cameras,
@@ -253,6 +272,8 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
       features: normalized.features,
       ros2State,
       runtimeMode,
+      setupState,
+      profileSource,
       display: normalized.display,
       loaded: true,
     });
@@ -289,6 +310,8 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
       features: DEFAULT_FEATURES,
       ros2State: "absent",
       runtimeMode: "full",
+      setupState: undefined,
+      profileSource: undefined,
       display: undefined,
       loaded: false,
     });

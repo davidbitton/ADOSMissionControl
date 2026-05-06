@@ -159,6 +159,17 @@ export interface AgentCapabilities {
    * peripheral / scripting / ROS surfaces when "lite". Defaults to
    * "full" when absent. */
   runtimeMode?: "full" | "lite";
+  /** Setup wizard state on the agent. Live agents report "configured"
+   * once the universal webapp wizard has been completed. Older agents
+   * omit this and the GCS treats them as configured by default. */
+  setupState?: string;
+  /** How the agent landed on its current profile. One of "detected"
+   * (auto-detected by hardware fingerprint), "tiebreaker" (auto with
+   * ambiguous signals), "default" (no detect signals, fell back),
+   * "override" (forced via /etc/ados/board_override), or "user"
+   * (operator picked in the setup webapp). Undefined for legacy
+   * heartbeats that predate this field. */
+  profileSource?: string;
   /** Optional. Present only when an SPI LCD or other companion-board
    * display is bound on the agent side. Absent on stock drone or
    * headless ground-station builds. */

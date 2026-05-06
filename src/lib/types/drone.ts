@@ -57,6 +57,11 @@ export interface FleetDrone extends DroneInfo {
    * expansion header (e.g. SPI LCD on a Cubie A7Z or Rock 5C
    * ground-station node). Undefined when no display is bound. */
   attachedDisplayType?: "spi-lcd" | "hdmi" | "none";
+  /** How the agent landed on its current profile. Drives the small
+   * "auto" pill on the fleet card. One of "detected", "tiebreaker",
+   * "default", "override", "user", or undefined for legacy
+   * heartbeats that predate this field. */
+  profileSource?: "detected" | "tiebreaker" | "default" | "override" | "user";
 }
 
 export type AlertSeverity = "info" | "warning" | "critical";

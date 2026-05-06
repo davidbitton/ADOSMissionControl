@@ -72,6 +72,8 @@ export const pushStatus = internalMutation({
     telemetry: v.optional(v.any()),
     logs: v.optional(v.any()),
     runtimeMode: v.optional(v.string()),
+    setupState: v.optional(v.string()),
+    profileSource: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -116,6 +118,9 @@ export const pushStatus = internalMutation({
         ...(args.runtimeMode !== undefined ? { runtimeMode: args.runtimeMode } : {}),
         ...(attachedDisplayType !== undefined
           ? { attachedDisplayType }
+          : {}),
+        ...(args.profileSource !== undefined
+          ? { profileSource: args.profileSource }
           : {}),
       });
     }

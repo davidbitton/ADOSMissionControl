@@ -57,6 +57,15 @@ export function CloudDroneBridge() {
           ? drone.attachedDisplayType
           : undefined;
 
+      const profileSource: FleetDrone["profileSource"] =
+        drone.profileSource === "detected" ||
+        drone.profileSource === "tiebreaker" ||
+        drone.profileSource === "default" ||
+        drone.profileSource === "override" ||
+        drone.profileSource === "user"
+          ? drone.profileSource
+          : undefined;
+
       const fleetDrone: FleetDrone = {
         id: fleetId,
         name: drone.name || `Agent ${drone.deviceId.slice(0, 8)}`,
@@ -72,6 +81,7 @@ export function CloudDroneBridge() {
         cloudDeviceId: drone.deviceId,
         runtimeMode: drone.runtimeMode === "lite" ? "lite" : "full",
         attachedDisplayType,
+        profileSource,
       };
 
       if (trackedIds.current.has(fleetId)) {

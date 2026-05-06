@@ -285,9 +285,22 @@ export function CloudStatusBridge() {
       if (inferred) {
         const runtimeMode: "full" | "lite" =
           cloudStatus.runtimeMode === "lite" ? "lite" : "full";
+        const setupState =
+          typeof cloudStatus.setupState === "string"
+            ? cloudStatus.setupState
+            : undefined;
+        const profileSource =
+          typeof cloudStatus.profileSource === "string"
+            ? cloudStatus.profileSource
+            : undefined;
         useAgentCapabilitiesStore
           .getState()
-          .setCapabilities({ ...inferred, runtimeMode });
+          .setCapabilities({
+            ...inferred,
+            runtimeMode,
+            ...(setupState !== undefined ? { setupState } : {}),
+            ...(profileSource !== undefined ? { profileSource } : {}),
+          });
       }
     }
 
