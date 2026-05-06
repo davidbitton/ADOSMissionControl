@@ -15,6 +15,8 @@ export interface UsbDeviceInfo {
   vendorId: number;
   productId: number;
   isDfu: boolean;
+  /** Rockchip SoC bootrom (companion-computer image flash path). */
+  isRockchip: boolean;
 }
 
 type UsbEventHandler = (info: UsbDeviceInfo) => void;
@@ -28,7 +30,20 @@ const DFU_DEVICE_FILTERS: USBDeviceFilter[] = [
   { classCode: 0xfe, subclassCode: 0x01 },  // Generic DFU class
 ];
 
-/** USB vendor/product database for DFU devices. */
+/** Rockchip vendor id used by every SoC's bootrom (maskrom + loader). */
+const ROCKCHIP_VID = 0x2207;
+
+/**
+ * Rockchip bootrom filters — companion-computer SBC flashing path. The
+ * bootrom enumerates as `0x2207` regardless of SoC and stage; we keep
+ * the filter at vendor-only so a single picker entry covers maskrom and
+ * loader stages across the supported SoC family.
+ */
+const ROCKCHIP_DEVICE_FILTERS: USBDeviceFilter[] = [
+  { vendorId: ROCKCHIP_VID },
+];
+
+/** USB vendor/product database for known flash-mode devices. */
 const DFU_DEVICES: Record<number, { name: string; products?: Record<number, string> }> = {
   0x0483: { name: "STMicroelectronics", products: {
     0xdf11: "STM32 DFU Bootloader",
@@ -41,6 +56,15 @@ const DFU_DEVICES: Record<number, { name: string; products?: Record<number, stri
   }},
   0x2b04: { name: "Particle", products: {
     0xd058: "Particle DFU",
+  }},
+  [ROCKCHIP_VID]: { name: "Rockchip", products: {
+    0x110b: "Rockchip RV1103 Bootrom",
+    0x110c: "Rockchip RV1106 Bootrom",
+    0x320a: "Rockchip RK3308 Bootrom",
+    0x320c: "Rockchip RK3399 Bootrom",
+    0x350a: "Rockchip RK3568 Bootrom",
+    0x350b: "Rockchip RK3566 Bootrom",
+    0x350c: "Rockchip RK3588 Bootrom",
   }},
 };
 
@@ -108,6 +132,33 @@ class UsbDeviceManagerImpl {
     return navigator.usb.requestDevice({ filters: DFU_DEVICE_FILTERS });
   }
 
+  /** Open browser USB device picker filtered to Rockchip bootrom devices. */
+  async requestRockchipDevice(): Promise<USBDevice> {
+    if (typeof navigator === "undefined" || !("usb" in navigator)) {
+      throw new Error("WebUSB not supported — use Chrome or Edge");
+    }
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      throw new Error(
+        "WebUSB requires HTTPS or localhost. Current origin is not secure — " +
+        "access Command via https:// or http://localhost:4000"
+      );
+    }
+    return navigator.usb.requestDevice({ filters: ROCKCHIP_DEVICE_FILTERS });
+  }
+
+  /** Get all previously-permitted Rockchip bootrom devices (no user prompt). */
+  async getKnownRockchipDevices(): Promise<UsbDeviceInfo[]> {
+    if (!this.isSupported()) return [];
+    try {
+      const devices = await navigator.usb.getDevices();
+      return devices
+        .map((d) => this.buildDeviceInfo(d))
+        .filter((d) => d.isRockchip);
+    } catch {
+      return [];
+    }
+  }
+
   /** Subscribe to USB connect events. Returns unsubscribe function. */
   onConnect(handler: UsbEventHandler): () => void {
     this.connectHandlers.add(handler);
@@ -125,6 +176,7 @@ class UsbDeviceManagerImpl {
     const vid = device.vendorId;
     const pid = device.productId;
     const isDfu = this.isDfuDevice(device);
+    const isRockchip = this.isRockchipDevice(device);
 
     let label: string;
     const vendor = DFU_DEVICES[vid];
@@ -139,7 +191,7 @@ class UsbDeviceManagerImpl {
       label = `USB Device (${hex(vid)}:${hex(pid)})`;
     }
 
-    return { device, label, vendorId: vid, productId: pid, isDfu };
+    return { device, label, vendorId: vid, productId: pid, isDfu, isRockchip };
   }
 
   /** Check if a USB device is a DFU device (by VID:PID or interface class). */
@@ -164,6 +216,11 @@ class UsbDeviceManagerImpl {
       }
     }
     return false;
+  }
+
+  /** Check if a USB device is a Rockchip bootrom (maskrom or loader stage). */
+  private isRockchipDevice(device: USBDevice): boolean {
+    return device.vendorId === ROCKCHIP_VID;
   }
 }
 

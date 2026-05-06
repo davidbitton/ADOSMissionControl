@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useToast } from "@/components/ui/toast";
 import { useDroneManager } from "@/stores/drone-manager";
 import type {
@@ -11,17 +11,27 @@ import type {
 import { ArduPilotManifest } from "@/lib/protocol/firmware/manifest";
 import { BetaflightManifest } from "@/lib/protocol/firmware/betaflight-manifest";
 import { PX4Manifest } from "@/lib/protocol/firmware/px4-manifest";
+import {
+  AdosAgentManifest,
+  type AdosAgentBoard,
+  type AdosAgentStack,
+} from "@/lib/protocol/firmware/ados-agent-manifest";
+import { isAdosStack } from "./firmware-constants";
 import { FlashManager } from "@/lib/protocol/firmware/flash-manager";
 import { parseApjFile } from "@/lib/protocol/firmware/apj-parser";
 import { parseHexFile } from "@/lib/protocol/firmware/hex-parser";
 import { parsePx4File } from "@/lib/protocol/firmware/px4-parser";
 import { STM32DfuFlasher } from "@/lib/protocol/firmware/stm32-dfu";
 import { usbDeviceManager, type UsbDeviceInfo } from "@/lib/usb-device-manager";
-import { AP_FLASH_METHODS, BF_FLASH_METHODS, PX4_FLASH_METHODS } from "./firmware-constants";
+import {
+  AP_FLASH_METHODS, BF_FLASH_METHODS, PX4_FLASH_METHODS,
+  CHECKLIST_ITEMS_BY_STACK, FC_CHECKLIST_ITEMS,
+} from "./firmware-constants";
 
 const apManifest = new ArduPilotManifest();
 const bfManifest = new BetaflightManifest();
 const px4Manifest = new PX4Manifest();
+const adosManifest = new AdosAgentManifest();
 
 export function useFirmwareState() {
   const selectedDroneId = useDroneManager((s) => s.selectedDroneId);
@@ -60,6 +70,13 @@ export function useFirmwareState() {
   const [selectedPx4Release, setSelectedPx4Release] = useState("");
   const [selectedPx4Board, setSelectedPx4Board] = useState("");
 
+  // ADOS Agent state
+  const [adosBoards, setAdosBoards] = useState<AdosAgentBoard[]>([]);
+  const [adosLoading, setAdosLoading] = useState(false);
+  const [adosError, setAdosError] = useState("");
+  const [adosAgentVersion, setAdosAgentVersion] = useState("");
+  const [selectedAdosBoardId, setSelectedAdosBoardId] = useState("");
+
   // Common state
   const [flashMethod, setFlashMethod] = useState<FlashMethod>("auto");
   const [dfuDevices, setDfuDevices] = useState<UsbDeviceInfo[]>([]);
@@ -71,8 +88,12 @@ export function useFirmwareState() {
   const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasAutoDetected = useRef(false);
   const [flashMessage, setFlashMessage] = useState("");
-  const [checklist, setChecklist] = useState({ paramBackup: false, propsRemoved: false, batteryOff: false });
-  const allChecked = checklist.paramBackup && checklist.propsRemoved && checklist.batteryOff;
+  const [checked, setCheckedState] = useState<Record<string, boolean>>({});
+  const setChecked = useCallback((key: string, value: boolean) => {
+    setCheckedState((prev) => ({ ...prev, [key]: value }));
+  }, []);
+  const checklistItems = useMemo(() => CHECKLIST_ITEMS_BY_STACK[firmwareStack] ?? FC_CHECKLIST_ITEMS, [firmwareStack]);
+  const allChecked = checklistItems.every((item) => checked[item.key] === true);
   const [serialSupported, setSerialSupported] = useState(false);
   const [usbSupported, setUsbSupported] = useState(false);
 
@@ -117,8 +138,22 @@ export function useFirmwareState() {
     if (firmwareStack === "ardupilot" && apBoards.length === 0) loadApManifest();
     else if (firmwareStack === "betaflight" && bfTargets.length === 0) loadBfTargets();
     else if (firmwareStack === "px4" && px4Releases.length === 0) loadPx4Releases();
+    else if (isAdosStack(firmwareStack) && adosBoards.length === 0) loadAdosManifest();
     setFlashMethod("auto");
   }, [firmwareStack]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When the ADOS stack switches between drone and ground, the available
+  // boards change. Reset the selected board if it no longer supports the
+  // active stack so the picker shows a fresh choice.
+  useEffect(() => {
+    if (!isAdosStack(firmwareStack) || adosBoards.length === 0) return;
+    const currentBoard = adosBoards.find((b) => b.id === selectedAdosBoardId);
+    const stackKey = firmwareStack as AdosAgentStack;
+    if (!currentBoard || !currentBoard.stacks.includes(stackKey)) {
+      const next = adosBoards.find((b) => b.stacks.includes(stackKey));
+      setSelectedAdosBoardId(next?.id ?? "");
+    }
+  }, [firmwareStack, adosBoards, selectedAdosBoardId]);
 
   useEffect(() => {
     if (firmwareStack === "ardupilot" && selectedApBoard && selectedVehicleType) {
@@ -205,6 +240,20 @@ export function useFirmwareState() {
     finally { setPx4Loading(false); }
   }
 
+  async function loadAdosManifest() {
+    setAdosLoading(true); setAdosError("");
+    try {
+      const data = await adosManifest.getManifest();
+      setAdosBoards(data.boards);
+      setAdosAgentVersion(data.agentVersion);
+      const stackKey = isAdosStack(firmwareStack) ? (firmwareStack as AdosAgentStack) : "ados-drone-agent";
+      const first = data.boards.find((b) => b.stacks.includes(stackKey));
+      if (first) setSelectedAdosBoardId(first.id);
+    } catch (err) {
+      setAdosError(err instanceof Error ? err.message : "Failed to load ADOS agent manifest");
+    } finally { setAdosLoading(false); }
+  }
+
   // BF cloud build
   async function handleBfCloudBuild() {
     if (!selectedBfTarget || !selectedBfRelease) return;
@@ -285,7 +334,7 @@ export function useFirmwareState() {
       flashManagerRef.current = fm;
       let method = flashMethod;
       if (firmwareStack === "px4" && method === "auto") method = "px4-serial";
-      await fm.flash(firmware, { method, backupParams: checklist.paramBackup, verify: true }, (p) => setProgress(p));
+      await fm.flash(firmware, { method, backupParams: checked.paramBackup === true, verify: true }, (p) => setProgress(p));
     } catch (err) {
       let userMessage = err instanceof Error ? err.message : "Unknown error";
       if (err instanceof DOMException) {
@@ -297,7 +346,7 @@ export function useFirmwareState() {
     } finally { setIsFlashing(false); flashManagerRef.current = null; }
   }, [useCustom, customFile, firmwareStack, selectedApBoard, selectedVehicleType, selectedApVersion,
       selectedBfTarget, selectedBfRelease, bfCustomBuild, bfBuildStatus, selectedPx4Release, selectedPx4Board,
-      flashMethod, drone, checklist.paramBackup, toast, dfuDevices.length]);
+      flashMethod, drone, checked.paramBackup, toast, dfuDevices.length]);
 
   const handleAbort = useCallback(() => { flashManagerRef.current?.abort(); }, []);
 
@@ -309,6 +358,16 @@ export function useFirmwareState() {
   const currentFlashMethods = firmwareStack === "px4" ? PX4_FLASH_METHODS : firmwareStack === "betaflight" ? BF_FLASH_METHODS : AP_FLASH_METHODS;
   const isLoading = firmwareStack === "ardupilot" ? apLoading : firmwareStack === "betaflight" ? bfLoading : px4Loading;
   const currentError = firmwareStack === "ardupilot" ? apError : firmwareStack === "betaflight" ? bfError : px4Error;
+
+  // Selected ADOS board's install method, if any. Used by FirmwarePanel
+  // to gate the WebUSB-required warning to web-flash boards only.
+  const adosInstallMethod = useMemo(() => {
+    if (!isAdosStack(firmwareStack)) return null;
+    const board = adosBoards.find((b) => b.id === selectedAdosBoardId);
+    if (!board) return null;
+    const stackKey = firmwareStack as AdosAgentStack;
+    return board.installs[stackKey]?.method ?? null;
+  }, [firmwareStack, adosBoards, selectedAdosBoardId]);
   const px4SelectedRelease = px4Releases.find((r) => r.tag === selectedPx4Release);
   const px4Boards = px4SelectedRelease?.boards ?? [];
   const customFileAccept = firmwareStack === "px4" ? ".px4,.bin" : firmwareStack === "betaflight" ? ".hex,.bin" : ".apj,.bin,.hex";
@@ -329,9 +388,14 @@ export function useFirmwareState() {
     px4Releases, px4Loading, px4Error, selectedPx4Release, setSelectedPx4Release,
     selectedPx4Board, setSelectedPx4Board, px4Boards,
     loadPx4ReleasesRetry: () => { px4Manifest.clearCache(); loadPx4Releases(); },
+    // ADOS
+    adosBoards, adosLoading, adosError, adosAgentVersion,
+    selectedAdosBoardId, setSelectedAdosBoardId, adosInstallMethod,
+    loadAdosManifestRetry: () => { adosManifest.clearCache(); loadAdosManifest(); },
     // Common
     flashMethod, setFlashMethod, dfuDevices, customFile, useCustom, setUseCustom,
-    progress, isFlashing, flashMessage, setFlashMessage, checklist, setChecklist, allChecked,
+    progress, isFlashing, flashMessage, setFlashMessage,
+    checked, setChecked, checklistItems, allChecked,
     serialSupported, usbSupported, currentFlashMethods, isLoading, currentError, customFileAccept,
     handleFlash, handleAbort, handleCustomFile, handleDetectDfu,
   };

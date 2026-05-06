@@ -44,7 +44,12 @@ export type FlashProgressCallback = (progress: FlashProgress) => void;
 export type FlashMethod = "serial" | "dfu" | "auto" | "px4-serial";
 
 /** Firmware stack selection for the Flash Tool UI. */
-export type FirmwareStack = "ardupilot" | "betaflight" | "px4";
+export type FirmwareStack =
+  | "ardupilot"
+  | "betaflight"
+  | "px4"
+  | "ados-drone-agent"
+  | "ados-ground-agent";
 
 // ── Chip / STM32 ───────────────────────────────────────────
 

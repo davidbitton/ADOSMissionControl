@@ -2,6 +2,7 @@
 
 import type { FlashMethod, FirmwareStack } from "@/lib/protocol/firmware/types";
 import { AlertTriangle, Zap, Usb } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { UsbDeviceInfo } from "@/lib/usb-device-manager";
 import { FIRMWARE_STACKS } from "./firmware-constants";
 
@@ -67,18 +68,19 @@ export function FirmwareStackSelector({
   setUseCustom: (v: boolean) => void;
   droneType?: string;
 }) {
+  const t = useTranslations("flashTool.ados");
   return (
     <div className="bg-bg-secondary border border-border-default p-4 space-y-3">
       <h2 className="text-xs font-semibold text-text-primary">Firmware Stack</h2>
       <div className="flex gap-2">
-        {FIRMWARE_STACKS.map(({ id, label }) => (
+        {FIRMWARE_STACKS.map(({ id, label, labelKey }) => (
           <button key={id}
             onClick={() => { setFirmwareStack(id); setUseCustom(false); }}
             disabled={isFlashing}
             className={`flex-1 px-3 py-2 text-xs font-semibold border cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors ${
               firmwareStack === id ? "border-accent-primary text-accent-primary bg-accent-primary/10" : "border-border-default text-text-secondary hover:text-text-primary"
             }`}>
-            {label}
+            {labelKey ? t(labelKey) : label}
           </button>
         ))}
       </div>
@@ -133,29 +135,40 @@ export function FlashMethodSelector({
 
 // ── Pre-Flash Checklist ────────────────────────────────
 
+export interface ChecklistItem {
+  key: string;
+  label: string;
+  labelKey?: string;
+}
+
 export function PreFlashChecklist({
-  checklist, setChecklist,
+  items, checked, setChecked, intro,
 }: {
-  checklist: { paramBackup: boolean; propsRemoved: boolean; batteryOff: boolean };
-  setChecklist: React.Dispatch<React.SetStateAction<{ paramBackup: boolean; propsRemoved: boolean; batteryOff: boolean }>>;
+  items: readonly ChecklistItem[];
+  checked: Record<string, boolean>;
+  setChecked: (key: string, value: boolean) => void;
+  intro?: string;
 }) {
-  const items = [
-    { key: "paramBackup" as const, label: "I have backed up my parameters" },
-    { key: "propsRemoved" as const, label: "All propellers are removed" },
-    { key: "batteryOff" as const, label: "Flight battery is disconnected (USB power only)" },
-  ];
+  const t = useTranslations("flashTool.ados");
   return (
     <div className="bg-bg-secondary border border-status-warning/30 p-4 space-y-3">
       <h2 className="text-xs font-semibold text-status-warning flex items-center gap-2">
         <AlertTriangle size={14} />
         Pre-Flash Safety Checklist
       </h2>
-      <p className="text-[10px] text-text-tertiary">Flashing new firmware will erase all current settings. Complete all checks before proceeding.</p>
+      <p className="text-[10px] text-text-tertiary">
+        {intro ?? "Flashing new firmware will erase all current settings. Complete all checks before proceeding."}
+      </p>
       <div className="space-y-2">
-        {items.map(({ key, label }) => (
+        {items.map(({ key, label, labelKey }) => (
           <label key={key} className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer">
-            <input type="checkbox" checked={checklist[key]} onChange={(e) => setChecklist((prev) => ({ ...prev, [key]: e.target.checked }))} className="accent-accent-primary" />
-            {label}
+            <input
+              type="checkbox"
+              checked={checked[key] ?? false}
+              onChange={(e) => setChecked(key, e.target.checked)}
+              className="accent-accent-primary"
+            />
+            {labelKey ? t(labelKey) : label}
           </label>
         ))}
       </div>

@@ -2602,5 +2602,68 @@
     "temp": "Temp",
     "video": "Video",
     "unavailable": "Unavailable"
+  },
+  "flashTool": {
+    "ados": {
+      "subtitle": "Install the ADOS agent on a companion computer",
+      "stack": {
+        "drone": "ADOS Drone Agent",
+        "ground": "ADOS Ground Agent"
+      },
+      "common": {
+        "copy": "Copy",
+        "copied": "Copied",
+        "retry": "Retry"
+      },
+      "checklist": {
+        "intro": "Browser flash erases the board's storage. Install commands replace the agent binary on the existing OS.",
+        "dataLoss": "Data on the board's storage will be erased",
+        "usbPower": "Board is powered via USB only (no external supply)",
+        "backup": "I have backed up any user data on the board"
+      },
+      "webusbWarning": {
+        "title": "WebUSB not available",
+        "body": "Browser flashing for this board requires WebUSB. Open Mission Control in Chrome, Edge, Brave, or Opera. Pick a different board if you only need the install command path."
+      },
+      "disclosure": {
+        "pathChoice": {
+          "summary": "Browser flash vs install command — which do I need?",
+          "browserFlash": "Browser flash writes a complete operating system image directly to the board's storage over USB-C. Use this when the board has no operating system yet, or when its stock OS cannot install our agent on its own. Today this is the path for the Luckfox Pico Zero.",
+          "installCommand": "Install command is a single shell line you copy onto a board that is already booted into its stock vendor operating system (Raspberry Pi OS, Radxa OS, Ubuntu for Tegra, etc.). The installer drops the agent binary, sets up the systemd unit, and starts it. Use this when you can already SSH into the board or open a terminal on it.",
+          "pickerHint": "The picker below selects the correct flow automatically based on the board you choose."
+        },
+        "bootrom": {
+          "summary": "Putting your Luckfox into bootrom mode",
+          "step1": "Unplug the board from USB.",
+          "step2": "Locate the BOOT button on the board (small tactile switch near the USB-C port).",
+          "step3": "Hold BOOT while plugging USB-C into your computer.",
+          "step4": "Release BOOT after about 2 seconds.",
+          "step5": "The board enumerates as a Rockchip USB device. Authorize it when the browser prompts you.",
+          "hint": "If the board does not appear, unplug it, hold BOOT a moment longer, and try again. Some USB-C cables only carry power — use a known-good data cable."
+        }
+      },
+      "targetBoard": {
+        "title": "Target Board",
+        "version": "Version: {version}",
+        "loadingManifest": "Loading manifest...",
+        "loadingBoards": "Loading boards...",
+        "noBoards": "No {stack} boards available",
+        "soc": "SoC:",
+        "arch": "Arch:"
+      },
+      "curl": {
+        "title": "Install on a board running stock OS",
+        "setupHintBefore": "Open the board's setup page at ",
+        "setupHintAfter": " after the installer finishes. Pair the device from the Fleet view in Mission Control."
+      },
+      "webFlash": {
+        "title": "Flash via browser",
+        "imageSizeLabel": "Image size:",
+        "sha256": "SHA256:",
+        "noImage": "No image URL published yet for this board. Check the agent repo's releases.",
+        "devTitle": "Browser flash is in active development",
+        "devBody": "The in-browser Rockchip bootrom flasher is being built into Mission Control. Once it lands, plug your board into USB-C in bootrom mode and click Flash to write the eMMC from this page directly."
+      }
+    }
   }
 }
