@@ -91,6 +91,92 @@ function commandStatusField(value: string | undefined): "completed" | "failed" {
   return value === "failed" ? "failed" : "completed";
 }
 
+interface RadioPayload {
+  state: string;
+  iface: string | null;
+  driver: string | null;
+  channel: number | null;
+  freqMhz: number | null;
+  bandwidthMhz: number;
+  txPowerDbm: number | null;
+  txPowerMaxDbm: number;
+  topology: string;
+  rssiDbm: number | null;
+  bitrateKbps: number | null;
+  fecRecovered: number;
+  fecLost: number;
+  packetsLost: number;
+}
+
+function nullableNumber(value: unknown): number | null | undefined {
+  if (value === null) return null;
+  if (typeof value === "number") return value;
+  return undefined;
+}
+
+function nullableString(value: unknown): string | null | undefined {
+  if (value === null) return null;
+  if (typeof value === "string") return value;
+  return undefined;
+}
+
+// Translate the agent's snake_case radio block into the camelCase shape
+// the schema expects. Returns undefined when the block is missing or
+// missing required fields so we keep the heartbeat additive.
+function radioField(
+  body: Record<string, unknown>,
+  key: string,
+): RadioPayload | undefined {
+  const raw = body[key];
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const row = raw as Record<string, unknown>;
+
+  const state = stringField(row, "state");
+  const topology = stringField(row, "topology");
+  const bandwidthMhz = numberField(row, "bandwidth_mhz");
+  const txPowerMaxDbm = numberField(row, "tx_power_max_dbm");
+  const fecRecovered = numberField(row, "fec_recovered");
+  const fecLost = numberField(row, "fec_lost");
+  const packetsLost = numberField(row, "packets_lost");
+
+  if (
+    state === undefined ||
+    topology === undefined ||
+    bandwidthMhz === undefined ||
+    txPowerMaxDbm === undefined ||
+    fecRecovered === undefined ||
+    fecLost === undefined ||
+    packetsLost === undefined
+  ) {
+    return undefined;
+  }
+
+  const iface = nullableString(row.iface);
+  const driver = nullableString(row.driver);
+  const channel = nullableNumber(row.channel);
+  const freqMhz = nullableNumber(row.freq_mhz);
+  const txPowerDbm = nullableNumber(row.tx_power_dbm);
+  const rssiDbm = nullableNumber(row.rssi_dbm);
+  const bitrateKbps = nullableNumber(row.bitrate_kbps);
+
+  return {
+    state,
+    iface: iface === undefined ? null : iface,
+    driver: driver === undefined ? null : driver,
+    channel: channel === undefined ? null : channel,
+    freqMhz: freqMhz === undefined ? null : freqMhz,
+    bandwidthMhz,
+    txPowerDbm: txPowerDbm === undefined ? null : txPowerDbm,
+    txPowerMaxDbm,
+    topology,
+    rssiDbm: rssiDbm === undefined ? null : rssiDbm,
+    bitrateKbps: bitrateKbps === undefined ? null : bitrateKbps,
+    fecRecovered,
+    fecLost,
+    packetsLost,
+  };
+}
+
 function commandResultField(
   value: unknown,
 ): { success: boolean; message: string } | undefined {
@@ -272,6 +358,7 @@ http.route({
       peers: body.peers,
       telemetry: body.telemetry,
       logs: body.logs,
+      radio: radioField(body, "radio"),
     };
     const result = await ctx.runMutation(internal.cmdDroneStatus.pushStatus, statusPayload);
     return new Response(JSON.stringify(result), {

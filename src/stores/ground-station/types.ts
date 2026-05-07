@@ -44,6 +44,13 @@ export type WfbBitrateProfile = "low-latency" | "balanced" | "long-range";
 export interface WfbConfig {
   channel: number;
   bitrate_profile: WfbBitrateProfile;
+  /** Optional regulatory/transmit-power request, in dBm. Caller-supplied;
+   *  the agent clamps to the per-driver maximum and reports back the
+   *  effective value via the radio status block. */
+  tx_power_dbm?: number;
+  /** Optional MCS index for the radio link; agent rejects unsupported
+   *  values per the active driver. */
+  mcs_index?: number;
 }
 
 export type GroundStationProfile =

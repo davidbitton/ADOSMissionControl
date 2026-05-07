@@ -618,6 +618,27 @@ fullName: v.optional(v.string()),
     // "override" (forced via /etc/ados/board_override), or "user"
     // (operator picked in the setup webapp).
     profileSource: v.optional(v.string()),
+    // Radio link snapshot from the air-side WFB-ng pipeline. Populated
+    // from the agent heartbeat when the radio service is running. Field
+    // names are camelCase here even though the agent emits snake_case
+    // on the wire; the cloud relay HTTP action remaps the keys before
+    // calling pushStatus.
+    radio: v.optional(v.object({
+      state: v.string(),
+      iface: v.union(v.string(), v.null()),
+      driver: v.union(v.string(), v.null()),
+      channel: v.union(v.number(), v.null()),
+      freqMhz: v.union(v.number(), v.null()),
+      bandwidthMhz: v.number(),
+      txPowerDbm: v.union(v.number(), v.null()),
+      txPowerMaxDbm: v.number(),
+      topology: v.string(),
+      rssiDbm: v.union(v.number(), v.null()),
+      bitrateKbps: v.union(v.number(), v.null()),
+      fecRecovered: v.number(),
+      fecLost: v.number(),
+      packetsLost: v.number(),
+    })),
     updatedAt: v.number(),
   })
     .index("by_deviceId", ["deviceId"]),

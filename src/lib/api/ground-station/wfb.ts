@@ -3,6 +3,7 @@
 import type { WfbConfig } from "@/stores/ground-station-store";
 import type {
   PairResult,
+  SetTxPowerResult,
   UnpairResult,
   WfbReceiverCombined,
   WfbReceiverRelay,
@@ -18,6 +19,18 @@ export function setWfb(ctx: RequestContext, partial: Partial<WfbConfig>): Promis
   return gsRequest<WfbConfig>(ctx, "/api/v1/ground-station/wfb", {
     method: "PUT",
     body: JSON.stringify(partial),
+  });
+}
+
+/** Set the requested TX power in dBm. The agent clamps to the active
+ *  driver's maximum and returns the effective value alongside the cap. */
+export function setTxPower(
+  ctx: RequestContext,
+  dbm: number,
+): Promise<SetTxPowerResult> {
+  return gsRequest<SetTxPowerResult>(ctx, "/api/wfb/tx-power", {
+    method: "PUT",
+    body: JSON.stringify({ tx_power_dbm: dbm }),
   });
 }
 

@@ -16,6 +16,43 @@ export interface GroundStationStatusResponse extends GroundStationStatusState {
   link_health?: Partial<GroundStationLinkHealth>;
 }
 
+// Radio link snapshot, normalized to camelCase. The agent emits the
+// equivalent block as snake_case on the wire; the cloud relay HTTP
+// action and the local heartbeat decoder remap keys before this shape
+// reaches Mission Control state.
+export type RadioLinkState =
+  | "absent"
+  | "disconnected"
+  | "connecting"
+  | "connected"
+  | "degraded";
+
+export type RadioTopology = "host_vbus" | "powered_hub" | "external_5v";
+
+export interface RadioState {
+  state: RadioLinkState;
+  iface: string | null;
+  driver: string | null;
+  channel: number | null;
+  freqMhz: number | null;
+  bandwidthMhz: number;
+  txPowerDbm: number | null;
+  txPowerMaxDbm: number;
+  topology: RadioTopology;
+  rssiDbm: number | null;
+  bitrateKbps: number | null;
+  fecRecovered: number;
+  fecLost: number;
+  packetsLost: number;
+}
+
+/** Response shape from PUT /api/wfb/tx-power. */
+export interface SetTxPowerResult {
+  requested_dbm: number;
+  effective_dbm: number | null;
+  tx_power_max_dbm: number;
+}
+
 // Network types
 export interface ApStatus {
   enabled: boolean;
