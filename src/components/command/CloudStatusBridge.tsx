@@ -279,6 +279,7 @@ export function CloudStatusBridge() {
     // /api/capabilities (notably the lightweight Rust backend at v0.1) would
     // silently fall back to runtimeMode="full".
     const capState = useAgentCapabilitiesStore.getState();
+    const radioFromHeartbeat = (cloudStatus as { radio?: unknown }).radio;
     if (!capState.loaded || capState.cameras.length === 0) {
       const peripherals = useAgentPeripheralsStore.getState().peripherals;
       const inferred = inferCapabilities(mapped, peripherals);
@@ -293,15 +294,33 @@ export function CloudStatusBridge() {
           typeof cloudStatus.profileSource === "string"
             ? cloudStatus.profileSource
             : undefined;
-        useAgentCapabilitiesStore
-          .getState()
-          .setCapabilities({
-            ...inferred,
-            runtimeMode,
-            ...(setupState !== undefined ? { setupState } : {}),
-            ...(profileSource !== undefined ? { profileSource } : {}),
-          });
+        const payload: Record<string, unknown> = {
+          ...inferred,
+          runtimeMode,
+        };
+        if (setupState !== undefined) payload.setupState = setupState;
+        if (profileSource !== undefined) payload.profileSource = profileSource;
+        if (radioFromHeartbeat !== undefined) payload.radio = radioFromHeartbeat;
+        useAgentCapabilitiesStore.getState().setCapabilities(payload);
       }
+    } else if (radioFromHeartbeat !== undefined) {
+      // Capabilities are already loaded but the radio block can change
+      // every heartbeat (TX power adjustments, RSSI ticks, FEC counters).
+      // Re-run setCapabilities with the existing capability snapshot so
+      // the radio normalizer fires without losing other fields.
+      useAgentCapabilitiesStore.getState().setCapabilities({
+        tier: capState.tier,
+        cameras: capState.cameras,
+        compute: capState.compute,
+        vision: capState.vision,
+        models: capState.models,
+        features: capState.features,
+        runtimeMode: capState.runtimeMode,
+        setupState: capState.setupState,
+        profileSource: capState.profileSource,
+        display: capState.display,
+        radio: radioFromHeartbeat,
+      } as Record<string, unknown>);
     }
 
     initialLoadDone.current = true;

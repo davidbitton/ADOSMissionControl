@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useFleetStore } from "@/stores/fleet-store";
 import { useDroneManager } from "@/stores/drone-manager";
 import { useDroneMetadataStore } from "@/stores/drone-metadata-store";
+import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
@@ -15,13 +16,16 @@ import { DroneFlightsTab } from "@/components/drone-detail/DroneFlightsTab";
 import { DroneConfigureTab } from "@/components/drone-detail/DroneConfigureTab";
 import { CalibrationPanel } from "@/components/fc/calibration/CalibrationPanel";
 import { ParametersPanel } from "@/components/fc/parameters/ParametersPanel";
+import { DroneRadioPanel } from "@/components/dashboard/DroneRadioPanel";
 import { X, RotateCcw, Trash2 } from "lucide-react";
 import { ConnectionQualityMeter } from "@/components/indicators/ConnectionQualityMeter";
 import { NavStatePill } from "@/components/indicators/NavStatePill";
 import { TrafficPill } from "@/components/indicators/TrafficPill";
 import { useUiStore } from "@/stores/ui-store";
 
-const TAB_IDS = ["overview", "flights", "calibrate", "parameters", "configure"] as const;
+const STATIC_TAB_IDS = ["overview", "flights", "calibrate", "parameters", "configure"] as const;
+const RADIO_TAB_ID = "radio" as const;
+type DroneDetailTab = (typeof STATIC_TAB_IDS)[number] | typeof RADIO_TAB_ID;
 
 interface DroneDetailPanelProps {
   droneId: string;
@@ -36,10 +40,20 @@ export function DroneDetailPanel({ droneId, onClose }: DroneDetailPanelProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { toast } = useToast();
 
-  const tabs = useMemo(() => TAB_IDS.map((id) => ({
-    id,
-    label: t(id),
-  })), [t]);
+  const radioPresent = useAgentCapabilitiesStore((s) => s.radio !== null);
+
+  const tabs = useMemo(() => {
+    const ids: DroneDetailTab[] = [...STATIC_TAB_IDS];
+    if (radioPresent) ids.push(RADIO_TAB_ID);
+    return ids.map((id) => ({ id, label: t(id) }));
+  }, [t, radioPresent]);
+
+  // If the active tab is the radio tab but the agent stopped
+  // advertising a radio block, fall back to overview during render.
+  // Computing this during render (instead of in an effect) avoids a
+  // setState-in-effect cascade.
+  const visibleTab =
+    activeTab === RADIO_TAB_ID && !radioPresent ? "overview" : activeTab;
 
   const drone = drones.find((d) => d.id === droneId);
   const metadata = useDroneMetadataStore((s) => s.profiles[droneId]);
@@ -124,7 +138,7 @@ export function DroneDetailPanel({ droneId, onClose }: DroneDetailPanelProps) {
               onClick={() => setActiveTab(tab.id)}
               className={cn(
                 "self-stretch flex items-center px-2.5 text-xs font-medium transition-colors cursor-pointer shrink-0 -mb-px border-b-2",
-                activeTab === tab.id
+                visibleTab === tab.id
                   ? "text-accent-primary border-accent-primary"
                   : "text-text-secondary hover:text-text-primary border-transparent"
               )}
@@ -164,16 +178,19 @@ export function DroneDetailPanel({ droneId, onClose }: DroneDetailPanelProps) {
 
       {/* Tab content */}
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        {activeTab === "overview" && <DroneOverviewTab drone={drone} />}
-        {activeTab === "flights" && <DroneFlightsTab droneId={droneId} />}
-        {activeTab === "calibrate" && <CalibrationPanel />}
-        {activeTab === "parameters" && <ParametersPanel />}
-        {activeTab === "configure" && (
+        {visibleTab === "overview" && <DroneOverviewTab drone={drone} />}
+        {visibleTab === "flights" && <DroneFlightsTab droneId={droneId} />}
+        {visibleTab === "calibrate" && <CalibrationPanel />}
+        {visibleTab === "parameters" && <ParametersPanel />}
+        {visibleTab === "configure" && (
           <DroneConfigureTab
             droneId={droneId}
             droneName={displayName}
             isConnected={isConnected}
           />
+        )}
+        {visibleTab === RADIO_TAB_ID && radioPresent && (
+          <DroneRadioPanel droneId={droneId} />
         )}
       </div>
 

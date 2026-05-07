@@ -20,6 +20,11 @@ import {
   AgentCapabilitiesRawSchema,
   type AgentCapabilitiesRaw,
 } from "@/lib/agent/schemas";
+import type {
+  RadioState,
+  RadioLinkState,
+  RadioTopology,
+} from "@/lib/api/ground-station/types";
 
 const DEFAULT_COMPUTE: ComputeCapability = {
   npu_available: false,
@@ -60,6 +65,63 @@ const DEFAULT_FEATURES: FeatureState = {
 // Maps agent API response shape to GCS TypeScript types.
 // The agent may return fields with different names or shapes
 // (e.g., no npu_available, features as array instead of { enabled, active }).
+
+// Recognized literal values for the radio link state and the power
+// topology. Unknown values fall back to safe defaults so the UI never
+// crashes on a future agent that ships an extension.
+const RADIO_LINK_STATES: ReadonlySet<RadioLinkState> = new Set([
+  "absent",
+  "disconnected",
+  "connecting",
+  "connected",
+  "degraded",
+]);
+const RADIO_TOPOLOGIES: ReadonlySet<RadioTopology> = new Set([
+  "host_vbus",
+  "powered_hub",
+  "external_5v",
+]);
+
+function normalizeRadio(raw: unknown): RadioState | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const stateRaw = typeof r.state === "string" ? r.state : "absent";
+  const state: RadioLinkState = RADIO_LINK_STATES.has(
+    stateRaw as RadioLinkState,
+  )
+    ? (stateRaw as RadioLinkState)
+    : "absent";
+  const topologyRaw = typeof r.topology === "string" ? r.topology : "host_vbus";
+  const topology: RadioTopology = RADIO_TOPOLOGIES.has(
+    topologyRaw as RadioTopology,
+  )
+    ? (topologyRaw as RadioTopology)
+    : "host_vbus";
+  const num = (v: unknown): number | null => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    return null;
+  };
+  const numOrZero = (v: unknown): number => {
+    const n = num(v);
+    return n ?? 0;
+  };
+  return {
+    state,
+    iface: typeof r.iface === "string" ? r.iface : null,
+    driver: typeof r.driver === "string" ? r.driver : null,
+    channel: num(r.channel),
+    freqMhz: num(r.freqMhz),
+    bandwidthMhz: numOrZero(r.bandwidthMhz),
+    txPowerDbm: num(r.txPowerDbm),
+    txPowerMaxDbm: numOrZero(r.txPowerMaxDbm),
+    topology,
+    rssiDbm: num(r.rssiDbm),
+    bitrateKbps: num(r.bitrateKbps),
+    fecRecovered: numOrZero(r.fecRecovered),
+    fecLost: numOrZero(r.fecLost),
+    packetsLost: numOrZero(r.packetsLost),
+  };
+}
 
 function normalizeFeatures(
   raw: AgentCapabilitiesRaw["features"] | undefined,
@@ -201,6 +263,11 @@ interface AgentCapabilitiesState {
   /** Local panel attached to the companion board (e.g. SPI LCD on a
    * ground-station node). Undefined when no display is bound. */
   display: AgentCapabilities["display"];
+  /** Air-side WFB-ng radio snapshot. Null when the agent does not
+   * advertise a radio service (drone has no air-side adapter, or runs
+   * a profile without WFB-ng). Populated from the cloud heartbeat or
+   * a future /api/capabilities response. */
+  radio: RadioState | null;
   /** True once we've received at least one capabilities payload. */
   loaded: boolean;
 }
@@ -230,6 +297,7 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
   setupState: undefined,
   profileSource: undefined,
   display: undefined,
+  radio: null,
   loaded: false,
 
   setCapabilities(caps: AgentCapabilities | Record<string, unknown>) {
@@ -263,6 +331,13 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
     const profileSource =
       typeof rawProfileSource === "string" ? rawProfileSource : undefined;
 
+    // Air-side radio snapshot. Field name is camelCase here. The cloud
+    // relay action remaps the agent's snake_case wire keys before the
+    // payload reaches Mission Control state, so the store accepts the
+    // already-camelCased shape directly.
+    const rawRadio = (caps as { radio?: unknown }).radio;
+    const radio = normalizeRadio(rawRadio);
+
     set({
       tier: normalized.tier,
       cameras: normalized.cameras,
@@ -275,6 +350,7 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
       setupState,
       profileSource,
       display: normalized.display,
+      radio,
       loaded: true,
     });
   },
@@ -313,6 +389,7 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
       setupState: undefined,
       profileSource: undefined,
       display: undefined,
+      radio: null,
       loaded: false,
     });
   },
