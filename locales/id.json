@@ -2309,6 +2309,7 @@
       "network": "Network",
       "wfbNg": "WFB-ng Radio",
       "physicalUi": "Physical UI",
+      "display": "Display",
       "controllers": "Controllers",
       "peripherals": "Peripherals",
       "radio": "Radio",
@@ -2586,7 +2587,62 @@
       "notInstalled": "No local display",
       "spiLcd": "SPI LCD",
       "hdmi": "HDMI",
-      "pillLabel": "LCD"
+      "pillLabel": "LCD",
+      "calibrated": "Calibrated",
+      "uncalibrated": "Not calibrated",
+      "calibratedTooltip": "Touch panel matches the current rotation.",
+      "uncalibratedTooltip": "Run calibration to align touches with the panel.",
+      "noTouch": "No touch",
+      "themeDark": "Dark",
+      "themeLight": "Light",
+      "themeLabel": "Theme",
+      "lastTouch": "Last touch",
+      "lastTouchAgo": "{value} ago",
+      "activePage": "Active page",
+      "calibrateButton": "Calibrate touch",
+      "calibrateStarted": "Calibration started on the LCD",
+      "calibrateError": "Could not start calibration"
+    },
+    "lcdPagePreview": {
+      "title": "Live preview",
+      "noSnapshot": "No snapshot",
+      "captionDevice": "{host} - {page}",
+      "refresh": "Refresh"
+    },
+    "lcdRemoteControl": {
+      "title": "Remote control",
+      "description": "Switch the page rendered on the LCD without reaching the rig.",
+      "pageDashboard": "Dashboard",
+      "pageVideo": "Video",
+      "pageSettings": "Settings",
+      "pageMore": "More",
+      "agentOffline": "Agent offline",
+      "switchFailed": "Could not switch page"
+    },
+    "lcdCalibration": {
+      "title": "Calibrate touch screen",
+      "instruction": "Tap step {current}/{total} on the LCD now.",
+      "skip": "Skip",
+      "cancel": "Cancel",
+      "close": "Close",
+      "skipped": "Calibration skipped",
+      "complete": "Calibration complete",
+      "completeBody": "Average residual: {residual} px",
+      "skipFailed": "Could not skip calibration",
+      "statusFailed": "Lost contact with the agent during calibration"
+    },
+    "lcdTheme": {
+      "title": "Theme",
+      "description": "Mirrors the dark or light palette on the LCD.",
+      "dark": "Dark",
+      "light": "Light",
+      "syncFromGcs": "Sync from my GCS",
+      "syncMatched": "Already in sync",
+      "applyError": "Could not apply theme"
+    },
+    "displayPage": {
+      "title": "Display",
+      "description": "Manage the SPI LCD attached to the companion board: live preview, page switcher, calibration, and theme."
     }
   },
   "toast": {

@@ -313,6 +313,51 @@ export class AgentClient {
     });
   }
 
+  // ── Local LCD display ───────────────────────────────────
+
+  /** Switch the active page rendered on the agent's local LCD. */
+  async setDisplayPage(page: string): Promise<{ ok?: boolean; activePage?: string }> {
+    return this.request<{ ok?: boolean; activePage?: string }>("/api/v1/display/page", {
+      method: "POST",
+      body: JSON.stringify({ page }),
+    });
+  }
+
+  /** Kick off the 5-point touch calibration wizard on the agent. */
+  async startDisplayCalibration(): Promise<{ ok?: boolean; current_step?: number }> {
+    return this.request<{ ok?: boolean; current_step?: number }>(
+      "/api/v1/display/calibrate/start",
+      { method: "POST" },
+    );
+  }
+
+  /** Poll the calibration wizard's progress. Returns step 0..5,
+   * `complete=true` once the operator has tapped all five targets. */
+  async getDisplayCalibrationStatus(): Promise<{
+    current_step?: number;
+    complete?: boolean;
+    rms_residual_px?: number;
+    skipped?: boolean;
+  }> {
+    return this.request("/api/v1/display/calibrate/status");
+  }
+
+  /** Skip the calibration wizard and persist the untouched matrix. */
+  async skipDisplayCalibration(): Promise<{ ok?: boolean }> {
+    return this.request<{ ok?: boolean }>("/api/v1/display/calibrate/skip", {
+      method: "POST",
+    });
+  }
+
+  /** Apply a partial setup config update. Used here to push the LCD
+   * theme choice (`{ ui: { theme: "dark" | "light" } }`). */
+  async applySetup(update: Record<string, unknown>): Promise<{ ok?: boolean }> {
+    return this.request<{ ok?: boolean }>("/api/v1/setup/apply", {
+      method: "POST",
+      body: JSON.stringify(update),
+    });
+  }
+
   // ── Peripherals ─────────────────────────────────────────
 
   async getPeripherals(): Promise<PeripheralInfo[]> {

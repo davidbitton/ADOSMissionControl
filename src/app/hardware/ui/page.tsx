@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { Monitor } from "lucide-react";
 import { BluetoothPairModal } from "@/components/hardware/BluetoothPairModal";
 import { LocalDisplayCard } from "@/components/hardware/LocalDisplayCard";
+import { LcdPagePreview } from "@/components/hardware/LcdPagePreview";
 import { PageIntro } from "@/components/hardware/PageIntro";
 import { HintChip } from "@/components/hardware/HintChip";
 import { Button } from "@/components/ui/button";
@@ -138,9 +139,17 @@ export default function HardwareUiPage() {
         description="Live preview of the OLED screen and four front buttons on the ground station box. Pair Bluetooth peripherals here too."
       />
       <div className="flex flex-col gap-4">
-      {/* SPI LCD card. Hidden when no /dev/fb1 panel is bound on the agent.
-          Companion-board LCDs (Cubie A7Z, Rock 5C with Waveshare 3.5") render here. */}
-      <LocalDisplayCard />
+      {/* SPI LCD card + live thumbnail. Both hidden when no /dev/fb1
+          panel is bound on the agent. Companion-board LCDs (Cubie A7Z,
+          Rock 5C with Waveshare 3.5") render here. */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <LocalDisplayCard />
+        </div>
+        <div>
+          <LcdPagePreview />
+        </div>
+      </div>
 
       {/* OLED card */}
       <section className="rounded border border-border-default bg-bg-secondary p-5">
