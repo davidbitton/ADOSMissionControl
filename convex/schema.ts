@@ -625,6 +625,12 @@ fullName: v.optional(v.string()),
     // operators can spot a port collision without opening journal
     // logs. Undefined for agents that predate the probe.
     foxgloveBindFailed: v.optional(v.boolean()),
+    // Pairing/uplink failover state. "local" = steady wireless link.
+    // "cloud_relay" = local supervisor fell over to the cloud heartbeat
+    // path; the GCS shows a notice with a retry control. "failed" =
+    // both paths down. Undefined for agents that predate the failover
+    // supervisor; the GCS treats absent as "local".
+    wfbFailoverState: v.optional(v.string()),
     // Setup wizard state on the agent. Live agents report "configured"
     // once the universal webapp wizard has been completed. Older agents
     // omit this and the GCS treats them as configured by default.

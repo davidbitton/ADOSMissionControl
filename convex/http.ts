@@ -354,6 +354,7 @@ http.route({
       mavlinkWsUrl: stringField(body, "mavlinkWsUrl"),
       mavlinkWsUrlPrev: stringField(body, "mavlinkWsUrlPrev"),
       foxgloveBindFailed: booleanField(body, "foxgloveBindFailed"),
+      wfbFailoverState: stringField(body, "wfbFailoverState"),
       remoteAccess: body.remoteAccess,
       peripherals: body.peripherals,
       scripts: body.scripts,

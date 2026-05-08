@@ -75,6 +75,7 @@ export const pushStatus = internalMutation({
     logs: v.optional(v.any()),
     runtimeMode: v.optional(v.string()),
     foxgloveBindFailed: v.optional(v.boolean()),
+    wfbFailoverState: v.optional(v.string()),
     setupState: v.optional(v.string()),
     profileSource: v.optional(v.string()),
     radio: v.optional(v.object({
