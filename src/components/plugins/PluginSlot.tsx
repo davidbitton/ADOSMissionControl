@@ -1,5 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
+import { useToast } from "@/components/ui/toast";
 import { slotToCapability, type PluginSlotName } from "@/lib/plugins/types";
 
 import {
@@ -7,6 +10,11 @@ import {
   type PluginSlotContribution,
 } from "./PluginHostProvider";
 import { PluginIframeHost } from "./PluginIframeHost";
+
+// Module-scoped dedupe set so the operator sees one toast per
+// (plugin, slot) pair across the whole session. Without this the
+// same denial would re-fire on every render of the host page.
+const droppedNotified = new Set<string>();
 
 interface PluginSlotProps {
   name: PluginSlotName;
@@ -49,12 +57,16 @@ export function PluginSlot({
   iframeClassName,
   onSecurityEvent,
 }: PluginSlotProps) {
+  const t = useTranslations("plugins");
+  const { toast } = useToast();
   const fromContext = useSlotContributions(name);
   const raw = contributions ?? fromContext;
   // Capability gate: a contribution can only mount when its
   // grantedCapabilities include the slot's matching ui.slot.<id>
   // capability. Contributions that fail the check are dropped
-  // silently with a console warning. Plugins missing the cap
+  // silently with a console warning, and the operator gets a
+  // one-shot toast per (plugin, slot) so the denial does not
+  // disappear into the dev console. Plugins missing the cap
   // never had it granted at install time, so the install record
   // is the source of truth.
   const requiredCap = slotToCapability(name);
@@ -63,6 +75,14 @@ export function PluginSlot({
     if (typeof console !== "undefined") {
       console.warn(
         `Plugin ${c.pluginId} cannot mount in slot ${name}: missing ${requiredCap}`,
+      );
+    }
+    const key = `${c.pluginId}::${name}`;
+    if (!droppedNotified.has(key)) {
+      droppedNotified.add(key);
+      toast(
+        t("slotDroppedToast", { name: c.pluginId, slot: name }),
+        "warning",
       );
     }
     return false;
