@@ -18,6 +18,7 @@ import { MemorySparkline } from "./shared/MemorySparkline";
 import { LogViewer } from "./shared/LogViewer";
 import { AgentDisconnectedPage } from "./AgentDisconnectedPage";
 import { StaleBanner } from "./shared/StaleBanner";
+import { VideoRestartBanner } from "./shared/VideoRestartBanner";
 import { VideoFeedCard } from "./shared/VideoFeedCard";
 import { BatteryCard } from "./shared/BatteryCard";
 import { RcInputCard } from "./shared/RcInputCard";
@@ -67,6 +68,7 @@ export function AgentOverviewTab() {
   return (
     <div className="p-4 space-y-4">
       <StaleBanner />
+      <VideoRestartBanner />
       {/* Agent Status spans 2/3, Flight Telemetry column starts at top */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {/* Status card spans 2 columns */}
