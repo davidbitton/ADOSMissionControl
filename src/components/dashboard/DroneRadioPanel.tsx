@@ -99,6 +99,9 @@ export function DroneRadioPanel({ droneId }: DroneRadioPanelProps) {
   const tDrone = useTranslations("droneRadio");
 
   const radio = useAgentCapabilitiesStore((s) => s.radio);
+  const wfbFailoverState = useAgentCapabilitiesStore(
+    (s) => s.wfbFailoverState,
+  );
   // The agent URL the panel will hit for TX power apply. In the
   // current architecture this is whichever agent the GCS is connected
   // to; cloud mode reuses the same connection store. A future per-drone
@@ -223,7 +226,7 @@ export function DroneRadioPanel({ droneId }: DroneRadioPanelProps) {
         </dl>
       </section>
 
-      <DronePairingTile t={t} radio={radio} />
+      <DronePairingTile t={t} radio={radio} wfbFailoverState={wfbFailoverState} />
 
       <section className="rounded border border-border-default bg-bg-secondary p-5">
         <h3 className="mb-1 text-sm font-semibold text-text-primary">
@@ -283,9 +286,14 @@ function StatRow({ label, value, valueClass, hint }: StatRowProps) {
 interface DronePairingTileProps {
   t: ReturnType<typeof useTranslations>;
   radio: RadioState;
+  wfbFailoverState: "local" | "cloud_relay" | "failed";
 }
 
-function DronePairingTile({ t, radio }: DronePairingTileProps) {
+function DronePairingTile({
+  t,
+  radio,
+  wfbFailoverState,
+}: DronePairingTileProps) {
   // Read-only mirror of the GS-side card. The drone-side panel does
   // not initiate bind sessions because the drone runs the bind
   // server; the GS is the conductor. Operators trigger pairing from
@@ -309,21 +317,35 @@ function DronePairingTile({ t, radio }: DronePairingTileProps) {
         </h3>
       </div>
       <div className="flex flex-col gap-2">
-        <span
-          className={`inline-flex w-fit items-center gap-1.5 rounded border px-2.5 py-1 text-xs ${
-            paired
-              ? "border-status-success/40 bg-status-success/10 text-status-success"
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`inline-flex w-fit items-center gap-1.5 rounded border px-2.5 py-1 text-xs ${
+              paired
+                ? "border-status-success/40 bg-status-success/10 text-status-success"
+                : autoArmed
+                  ? "border-accent-primary/40 bg-accent-primary/10 text-accent-primary"
+                  : "border-status-warning/40 bg-status-warning/10 text-status-warning"
+            }`}
+          >
+            {paired
+              ? t("pairing.statusPaired", { peer: peer ?? t("pairing.selfDevice") })
               : autoArmed
-                ? "border-accent-primary/40 bg-accent-primary/10 text-accent-primary"
-                : "border-status-warning/40 bg-status-warning/10 text-status-warning"
-          }`}
-        >
-          {paired
-            ? t("pairing.statusPaired", { peer: peer ?? t("pairing.selfDevice") })
-            : autoArmed
-              ? t("pairing.statusAutoArmed")
-              : t("pairing.statusUnpaired")}
-        </span>
+                ? t("pairing.statusAutoArmed")
+                : t("pairing.statusUnpaired")}
+          </span>
+          {wfbFailoverState === "cloud_relay" ? (
+            <span className="inline-flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-500">
+              <AlertTriangle size={12} />
+              {t("pairing.failover.cloudRelay.title")}
+            </span>
+          ) : null}
+          {wfbFailoverState === "failed" ? (
+            <span className="inline-flex items-center gap-1.5 rounded border border-status-error/40 bg-status-error/10 px-2.5 py-1 text-xs text-status-error">
+              <AlertTriangle size={12} />
+              {t("pairing.failover.failed")}
+            </span>
+          ) : null}
+        </div>
         {fingerprint ? (
           <p className="font-mono text-xs text-text-secondary">
             {t("pairing.fingerprintLabel")}: {fingerprint}
