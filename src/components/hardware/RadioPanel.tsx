@@ -24,9 +24,11 @@ import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
 import { cmdDroneStatusApi } from "@/lib/community-api-drones";
 import {
   fetchPairStatus,
+  setAutoPairOnRig,
   startLocalBind,
   unpairRig,
 } from "@/lib/api/radio-pairing";
+import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
 import type {
   LocalBindSession,
   PairStatusResponse,
@@ -148,6 +150,11 @@ export function RadioPanel() {
   const [bindSession, setBindSession] = useState<LocalBindSession | null>(null);
   const [bindBusy, setBindBusy] = useState(false);
   const [unpairBusy, setUnpairBusy] = useState(false);
+  const [retryBusy, setRetryBusy] = useState(false);
+
+  const wfbFailoverState = useAgentCapabilitiesStore(
+    (s) => s.wfbFailoverState,
+  );
 
   const { toast } = useToast();
 
@@ -333,6 +340,25 @@ export function RadioPanel() {
     }
   }, [agentUrl, apiKey, unpairBusy, toast, t]);
 
+  // Re-arm the auto-pair supervisor on the rig when the heartbeat
+  // says the local link has failed over to the cloud relay path. The
+  // supervisor turns on local pairing again, and the next heartbeat
+  // tick should clear the cloud_relay state.
+  const handleRetryLocal = useCallback(async () => {
+    if (retryBusy) return;
+    if (!agentUrl) return;
+    setRetryBusy(true);
+    try {
+      await setAutoPairOnRig({ baseUrl: agentUrl, apiKey }, true);
+      toast(t("pairing.failover.retrySuccess"), "success");
+    } catch (exc) {
+      const msg = exc instanceof Error ? exc.message : String(exc);
+      toast(t("pairing.errorAgentError", { message: msg }), "error");
+    } finally {
+      setRetryBusy(false);
+    }
+  }, [agentUrl, apiKey, retryBusy, toast, t]);
+
   if (!hasAgent) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
@@ -427,6 +453,9 @@ export function RadioPanel() {
         unpairBusy={unpairBusy}
         onOpenLocalBind={handleOpenLocalBind}
         onUnpair={handleUnpair}
+        wfbFailoverState={wfbFailoverState}
+        onRetryLocal={handleRetryLocal}
+        retryBusy={retryBusy}
       />
 
       <section className="rounded border border-border-default bg-bg-secondary p-5">
@@ -498,6 +527,9 @@ interface PairingCardProps {
   unpairBusy: boolean;
   onOpenLocalBind: () => void;
   onUnpair: () => void;
+  wfbFailoverState: "local" | "cloud_relay" | "failed";
+  onRetryLocal: () => void;
+  retryBusy: boolean;
 }
 
 function PairingCard({
@@ -508,6 +540,9 @@ function PairingCard({
   unpairBusy,
   onOpenLocalBind,
   onUnpair,
+  wfbFailoverState,
+  onRetryLocal,
+  retryBusy,
 }: PairingCardProps) {
   const paired = pairStatus?.paired === true;
   const autoArmed =
@@ -555,6 +590,47 @@ function PairingCard({
           {t("pairing.title")}
         </h3>
       </div>
+
+      {wfbFailoverState === "cloud_relay" ? (
+        <div
+          role="alert"
+          className="mb-3 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
+        >
+          <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-500" />
+          <div className="flex-1">
+            <p className="font-medium text-text-primary">
+              {t("pairing.failover.cloudRelay.title")}
+            </p>
+            <p className="text-xs text-text-secondary">
+              {t("pairing.failover.cloudRelay.message")}
+            </p>
+            <button
+              type="button"
+              onClick={onRetryLocal}
+              disabled={retryBusy}
+              className="mt-2 inline-flex items-center rounded border border-border-default bg-bg-tertiary px-2.5 py-1 text-xs font-medium text-text-primary hover:bg-bg-secondary disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {retryBusy
+                ? t("pairing.failover.retrying")
+                : t("pairing.failover.retryButton")}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {wfbFailoverState === "failed" ? (
+        <div
+          role="alert"
+          className="mb-3 flex items-start gap-2 rounded-md border border-status-error/40 bg-status-error/10 px-3 py-2 text-sm"
+        >
+          <AlertTriangle className="size-4 shrink-0 mt-0.5 text-status-error" />
+          <div className="flex-1">
+            <p className="font-medium text-text-primary">
+              {t("pairing.failover.failed")}
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       {paired ? (
         <div className="flex flex-col gap-3">
