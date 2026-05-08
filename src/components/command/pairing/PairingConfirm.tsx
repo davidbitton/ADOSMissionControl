@@ -12,6 +12,7 @@
 import { Check, Copy, Loader2, Terminal, Cpu, Wifi } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { DiscoveredAgent } from "@/stores/pairing-store";
+import { PairingCodeCountdown } from "./PairingCodeCountdown";
 
 interface Props {
   code: string;
@@ -81,6 +82,7 @@ export function PairingConfirm({
             {formatTime(secondsLeft)}
           </span>
         </p>
+        <PairingCodeCountdown />
       </div>
 
       {/* Install command */}
