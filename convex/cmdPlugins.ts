@@ -104,6 +104,60 @@ export const getInstallWithPermissions = query({
   },
 });
 
+/**
+ * Recent crash events for the authenticated user, aggregated per install.
+ * Used by the global crash banner to alert the operator that a plugin
+ * died inside the configured rolling window (default 5 minutes). Returns
+ * one entry per crashed install, newest-first by `lastAt`.
+ */
+export const recentCrashes = query({
+  args: { sinceMs: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return [];
+    const window = Math.max(args.sinceMs ?? 5 * 60 * 1000, 1);
+    const since = Date.now() - window;
+    // Walk the user-by-time index newest-first and stop once we cross
+    // the window boundary. Cap at 500 events to keep the scan bounded
+    // when an install is in a crash loop.
+    const events = await ctx.db
+      .query("cmd_pluginEvents")
+      .withIndex("by_user_created", (q) =>
+        q.eq("userId", userId).gte("createdAt", since),
+      )
+      .order("desc")
+      .take(500);
+    type Aggregate = {
+      installId: Id<"cmd_pluginInstalls">;
+      pluginId: string;
+      name: string;
+      count: number;
+      lastAt: number;
+    };
+    const byInstall = new Map<string, Aggregate>();
+    for (const evt of events) {
+      if (evt.severity !== "error" || evt.type !== "crashed") continue;
+      const key = evt.pluginInstallId as unknown as string;
+      const existing = byInstall.get(key);
+      if (existing) {
+        existing.count += 1;
+        if (evt.createdAt > existing.lastAt) existing.lastAt = evt.createdAt;
+        continue;
+      }
+      const install = await ctx.db.get(evt.pluginInstallId);
+      if (!install || install.userId !== userId) continue;
+      byInstall.set(key, {
+        installId: evt.pluginInstallId,
+        pluginId: evt.pluginId,
+        name: install.name,
+        count: 1,
+        lastAt: evt.createdAt,
+      });
+    }
+    return Array.from(byInstall.values()).sort((a, b) => b.lastAt - a.lastAt);
+  },
+});
+
 /** Recent events for one install, newest-first, capped to 200. */
 export const recentEvents = query({
   args: {

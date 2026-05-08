@@ -58,6 +58,7 @@ export const communityApi = {
     listMine: api.cmdPlugins.listMine,
     getInstallWithPermissions: api.cmdPlugins.getInstallWithPermissions,
     recentEvents: api.cmdPlugins.recentEvents,
+    recentCrashes: api.cmdPlugins.recentCrashes,
     recordInstall: api.cmdPlugins.recordInstall,
     grantPermission: api.cmdPlugins.grantPermission,
     revokePermission: api.cmdPlugins.revokePermission,
