@@ -1,11 +1,11 @@
 /**
  * @module cmdFlightLogs
- * @description Convex functions for the History tab cloud sync (Phase 9).
+ * @description Convex functions for the History tab cloud sync.
  *
  * Each row is keyed on the client-generated `clientId` so local + cloud
  * stay in lockstep across multi-device usage. Conflict resolution is
  * last-write-wins on `updatedAt` (server is authoritative). Sealed
- * records (Phase 7c-3) are tamper-protected: only volatile fields can be
+ * records (sign-and-lock) are tamper-protected: only volatile fields can be
  * patched without first unsealing.
  *
  * @license GPL-3.0-only
@@ -449,7 +449,7 @@ export const stats = query({
     for (const r of rows) {
       totalSeconds += r.duration ?? 0;
       totalMeters += r.distance ?? 0;
-      // Crude proxy: battery % used × duration ÷ 100. Tightens up in Phase 12.
+      // Crude proxy: battery % used × duration ÷ 100. Will tighten up when per-subsystem energy accounting lands.
       batteryHours += ((r.batteryUsed ?? 0) / 100) * ((r.duration ?? 0) / 3600);
     }
     return {

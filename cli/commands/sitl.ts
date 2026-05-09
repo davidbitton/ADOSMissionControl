@@ -17,7 +17,7 @@ const PRESETS = [
   { id: '3in-cinewhoop', name: '3" Cinewhoop', desc: 'Ducted indoor-safe cinema quad' },
   { id: 'xclass-racer', name: 'X-Class Racer', desc: '13" prop high speed racing quad' },
   { id: 'tiny-whoop', name: 'Tiny Whoop', desc: 'Sub-100g micro whoop, 65mm, indoor only' },
-  { id: '7in-ados-reference', name: '7" ADOS Reference', desc: 'Altnautica Phase 1 — full sensor suite, compute' },
+  { id: '7in-ados-reference', name: '7" ADOS Reference', desc: 'Reference platform — full sensor suite + companion compute' },
 ] as const;
 
 interface SitlOptions {

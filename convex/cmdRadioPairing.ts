@@ -1,7 +1,7 @@
 /**
  * @module cmdRadioPairing
  * @description Convex mutations + queries that drive the WFB radio
- * pairing flow over the cloud command relay (DEC-070 / DEC-071).
+ * pairing flow over the cloud command relay.
  *
  * The GCS owns the orchestration loop (`pairRigsRemote` in
  * `src/lib/api/radio-pairing.ts`): it calls `enqueueWfbPairInit` for

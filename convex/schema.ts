@@ -211,7 +211,7 @@ fullName: v.optional(v.string()),
     // Recording linkage
     recordingId: v.optional(v.string()),
     hasTelemetry: v.optional(v.boolean()),
-    // Analyzer (Phase 5)
+    // Analyzer fields
     events: v.optional(
       v.array(
         v.object({
@@ -246,7 +246,7 @@ fullName: v.optional(v.string()),
     notes: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     favorite: v.optional(v.boolean()),
-    // Frozen pilot/aircraft snapshot (Phase 7a)
+    // Frozen pilot/aircraft snapshot at arm time
     pilotFirstName: v.optional(v.string()),
     pilotLastName: v.optional(v.string()),
     pilotLicenseNumber: v.optional(v.string()),
@@ -254,15 +254,15 @@ fullName: v.optional(v.string()),
     aircraftRegistration: v.optional(v.string()),
     aircraftSerial: v.optional(v.string()),
     aircraftMtomKg: v.optional(v.number()),
-    // Sign-and-lock (Phase 7c-3)
+    // Sign-and-lock seal: pilot signature + hash freeze the row
     pilotSignedAt: v.optional(v.number()),
     pilotSignatureHash: v.optional(v.string()),
-    // Phase 11 — origin tracking for imported records.
+    // Origin tracking for imported records.
     source: v.optional(
       v.union(v.literal("live"), v.literal("dataflash"), v.literal("imported"), v.literal("ulog"), v.literal("tlog")),
     ),
     sourceFilename: v.optional(v.string()),
-    // Phase 12c — frozen loadout snapshot at arm time.
+    // Frozen loadout snapshot at arm time.
     loadout: v.optional(
       v.object({
         batteryIds: v.optional(v.array(v.string())),
@@ -276,7 +276,7 @@ fullName: v.optional(v.string()),
         rcTxId: v.optional(v.string()),
       }),
     ),
-    // Phase 14a — sun / moon environmental snapshot.
+    // Sun / moon environmental snapshot at arm time.
     sunMoon: v.optional(
       v.object({
         computedAt: v.string(),
@@ -307,7 +307,7 @@ fullName: v.optional(v.string()),
         moonAzimuthDeg: v.number(),
       }),
     ),
-    // Phase 14b — METAR weather snapshot at arm time.
+    // METAR weather snapshot at arm time.
     weatherSnapshot: v.optional(
       v.object({
         observedAt: v.string(),
@@ -336,7 +336,7 @@ fullName: v.optional(v.string()),
         error: v.optional(v.string()),
       }),
     ),
-    // Phase 16b — mission adherence (intended vs actual).
+    // Mission adherence (intended vs actual).
     missionId: v.optional(v.string()),
     missionName: v.optional(v.string()),
     missionWaypoints: v.optional(
@@ -365,7 +365,7 @@ fullName: v.optional(v.string()),
         ),
       }),
     ),
-    // Phase 16c — geofence forensics.
+    // Geofence forensics: zones snapshot + breach segments.
     geofenceSnapshot: v.optional(
       v.object({
         enabled: v.boolean(),
@@ -404,7 +404,7 @@ fullName: v.optional(v.string()),
         }),
       ),
     ),
-    // Phase 16a — flight phase segmentation.
+    // Flight phase segmentation (takeoff / climb / cruise / etc).
     phases: v.optional(
       v.array(
         v.object({
@@ -425,7 +425,7 @@ fullName: v.optional(v.string()),
         }),
       ),
     ),
-    // Phase 16d — wind estimation from FC telemetry.
+    // Wind estimation from FC telemetry.
     windEstimate: v.optional(
       v.object({
         speedMs: v.number(),
@@ -434,7 +434,7 @@ fullName: v.optional(v.string()),
         method: v.union(v.literal("vfr_diff"), v.literal("attitude_track")),
       }),
     ),
-    // Phase 20a — media files linked to this flight (metadata only, blobs stay in IDB).
+    // Media files linked to this flight (metadata only, blobs stay in IDB).
     media: v.optional(
       v.array(
         v.object({
@@ -450,16 +450,16 @@ fullName: v.optional(v.string()),
         }),
       ),
     ),
-    // Phase 26b — soft-delete.
+    // Soft-delete fields.
     deleted: v.optional(v.boolean()),
     deletedAt: v.optional(v.number()),
-    // Phase 15 — reverse-geocoded place names from takeoff / landing coords.
+    // Reverse-geocoded place names from takeoff / landing coords.
     takeoffPlaceName: v.optional(v.string()),
     landingPlaceName: v.optional(v.string()),
     country: v.optional(v.string()),
     region: v.optional(v.string()),
     locality: v.optional(v.string()),
-    // Phase 13 — frozen pre-flight checklist + prearm bitmask snapshot.
+    // Frozen pre-flight checklist + prearm bitmask snapshot.
     preflight: v.optional(
       v.object({
         checklistSessionId: v.optional(v.string()),

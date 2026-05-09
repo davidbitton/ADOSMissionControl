@@ -15,8 +15,8 @@ import type { AgentVersionInfo } from "@/lib/agent/types";
  *   1. AGENT_CAPABILITIES_FROZEN here
  *   2. AGENT_CAPABILITIES_FROZEN in the agent contract test
  *
- * The two-sided lock catches the seam regression DEC-110 surfaced
- * where /api/status/full landed without GCS knowing whether the agent
+ * The two-sided lock catches a prior seam regression where
+ * /api/status/full landed without GCS knowing whether the agent
  * supported it. If the lists drift, one side's test fails with a
  * clear "GCS contract drift" / "agent contract drift" message.
  */

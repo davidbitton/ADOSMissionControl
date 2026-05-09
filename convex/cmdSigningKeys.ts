@@ -168,7 +168,7 @@ export const removeKey = mutation({
  * it in the row's `linkIdsInUse` array. If no row exists yet, returns
  * linkId = 1 and the caller should call `store` with that id.
  *
- * Replaces the Phase 2 browser-fingerprint allocator when cloud sync is
+ * Replaces the prior browser-fingerprint allocator when cloud sync is
  * enabled: avoids collisions when multiple devices enroll for the same
  * drone.
  */
