@@ -273,6 +273,35 @@ macOS: right-click the app, Open, then Open again. Not code-signed, same as Beta
 
 ---
 
+## Self-Hosted Web Server
+
+A multi-stage `Dockerfile` ships at the repo root for running Mission Control as a long-lived web server (instead of the desktop app or local dev). Node 22 alpine base, Next.js standalone output, runs as an unprivileged user.
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_CONVEX_URL=https://your-convex.example \
+  -t ados-mission-control .
+
+docker run -d \
+  -p 4000:4000 \
+  -e NEXT_PUBLIC_CONVEX_URL=https://your-convex.example \
+  --restart unless-stopped \
+  --name mission-control \
+  ados-mission-control
+```
+
+Open `http://localhost:4000`.
+
+**About `NEXT_PUBLIC_*` variables:** these get baked into the client JS bundle at build time. Pass them as `--build-arg` to `docker build` AND as `-e` to `docker run` (the runtime version is used by server components and route handlers). The Dockerfile declares each `NEXT_PUBLIC_*` as `ARG` + `ENV` so build args propagate.
+
+**Container orchestrators / PaaS:** the image works with anything that can build a Dockerfile — point your tool at this repo, set the build pack to Dockerfile, expose port 4000, and configure the env vars above. No special framework integration is needed.
+
+**Fronting with HTTPS:** the container serves plain HTTP on port 4000. Terminate TLS at any reverse proxy (Caddy, nginx, Traefik) or tunnel (Cloudflare Tunnel, Tailscale Funnel, ngrok). When fronting with a tunnel, route to `127.0.0.1:4000` rather than `localhost:4000` — the standalone server binds IPv4 only.
+
+For self-hosting the supporting cloud relay (Convex + MQTT + video relay), see [SELFHOSTING.md](SELFHOSTING.md).
+
+---
+
 ## Backend and Cloud Features
 
 Field mode works with no backend. Cloud features need a Convex deployment:
