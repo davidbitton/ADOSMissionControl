@@ -690,6 +690,15 @@ fullName: v.optional(v.string()),
     videoLocalDecoderType: v.optional(v.string()),
     videoLocalDecoderFps: v.optional(v.number()),
     videoRecording: v.optional(v.boolean()),
+    // Air-side pipeline identity surfaced by the in-process GStreamer
+    // pipeline (when the agent has opted into the native path). When
+    // absent, the legacy bash composition is in force on the agent
+    // and the GCS renders no pipeline pill.
+    videoPipelineFlavor: v.optional(v.string()), // "gst-native" | undefined
+    videoEncoderName: v.optional(v.string()),    // e.g. "v4l2h264enc", "x264enc"
+    videoEncoderHwAccel: v.optional(v.boolean()),
+    videoCameraSource: v.optional(v.string()),   // e.g. "libcamerasrc", "v4l2src"
+    videoPipelineState: v.optional(v.string()),  // "playing" | "paused" | ...
     // Operator-selected UI theme on the agent. Mirrored back so the
     // GCS can reflect the same theme on its own surfaces and the
     // welcome flow can detect drift.

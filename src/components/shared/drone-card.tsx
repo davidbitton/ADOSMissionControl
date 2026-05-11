@@ -61,6 +61,19 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
               {tStatus("runtimeMode.lite")}
             </Badge>
           )}
+          {drone.videoPipelineFlavor === "gst-native" && (
+            <span
+              title={
+                drone.videoEncoderName
+                  ? `Native GStreamer air pipeline (${drone.videoEncoderName}${drone.videoEncoderHwAccel ? " / HW" : " / SW"})`
+                  : "Native GStreamer air pipeline"
+              }
+            >
+              <Badge variant="info" className="text-[10px]">
+                GST
+              </Badge>
+            </span>
+          )}
           {drone.attachedDisplayType === "spi-lcd" && (
             <span title='Local SPI LCD attached (Waveshare 3.5" / ILI9486)'>
               <Badge variant="neutral" className="text-[10px]">

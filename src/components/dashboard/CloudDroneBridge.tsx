@@ -66,6 +66,31 @@ export function CloudDroneBridge() {
           ? drone.profileSource
           : undefined;
 
+      // Air-side pipeline identity for the fleet-card pill. Sourced
+      // from the agent's heartbeat enricher; absent when the legacy
+      // bash composition is in force.
+      const videoPipelineFlavor =
+        typeof (drone as { videoPipelineFlavor?: unknown })
+          .videoPipelineFlavor === "string"
+          ? ((drone as { videoPipelineFlavor?: string }).videoPipelineFlavor as
+              | string
+              | undefined)
+          : undefined;
+      const videoEncoderName =
+        typeof (drone as { videoEncoderName?: unknown }).videoEncoderName ===
+        "string"
+          ? ((drone as { videoEncoderName?: string }).videoEncoderName as
+              | string
+              | undefined)
+          : undefined;
+      const videoEncoderHwAccel =
+        typeof (drone as { videoEncoderHwAccel?: unknown })
+          .videoEncoderHwAccel === "boolean"
+          ? ((drone as { videoEncoderHwAccel?: boolean }).videoEncoderHwAccel as
+              | boolean
+              | undefined)
+          : undefined;
+
       const fleetDrone: FleetDrone = {
         id: fleetId,
         name: drone.name || `Agent ${drone.deviceId.slice(0, 8)}`,
@@ -82,6 +107,9 @@ export function CloudDroneBridge() {
         runtimeMode: drone.runtimeMode === "lite" ? "lite" : "full",
         attachedDisplayType,
         profileSource,
+        videoPipelineFlavor,
+        videoEncoderName,
+        videoEncoderHwAccel,
       };
 
       if (trackedIds.current.has(fleetId)) {

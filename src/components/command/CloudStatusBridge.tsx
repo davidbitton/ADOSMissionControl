@@ -19,6 +19,7 @@ import { useVideoStore } from "@/stores/video-store";
 import { cmdDroneStatusApi, cmdDroneCommandsApi } from "@/lib/community-api-drones";
 import { useConvexAvailable } from "@/app/ConvexClientProvider";
 import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
+import type { AgentCapabilities } from "@/lib/agent/feature-types";
 import type { AgentStatus } from "@/lib/agent/types";
 import { STALE_THRESHOLD_MS, OFFLINE_THRESHOLD_MS } from "@/lib/agent/freshness";
 import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
@@ -344,6 +345,35 @@ export function CloudStatusBridge() {
       uiTheme: cloudRecord.uiTheme as string | null | undefined,
     };
 
+    // Air-side pipeline identity. The agent enriches its heartbeat
+    // when the in-process GStreamer pipeline owns the stream; absence
+    // means the legacy bash composition is in force and the GCS
+    // surfaces no pipeline pill. Build the block here so both the
+    // cold-load and warm-merge branches can pass it through.
+    const videoPipeline: AgentCapabilities["videoPipeline"] | undefined =
+      typeof cloudStatus.videoPipelineFlavor === "string" &&
+      cloudStatus.videoPipelineFlavor.length > 0
+        ? {
+            flavor: cloudStatus.videoPipelineFlavor,
+            encoderName:
+              typeof cloudStatus.videoEncoderName === "string"
+                ? cloudStatus.videoEncoderName
+                : undefined,
+            encoderHwAccel:
+              typeof cloudStatus.videoEncoderHwAccel === "boolean"
+                ? cloudStatus.videoEncoderHwAccel
+                : undefined,
+            cameraSource:
+              typeof cloudStatus.videoCameraSource === "string"
+                ? cloudStatus.videoCameraSource
+                : undefined,
+            state:
+              typeof cloudStatus.videoPipelineState === "string"
+                ? cloudStatus.videoPipelineState
+                : undefined,
+          }
+        : undefined;
+
     if (!capState.loaded || capState.cameras.length === 0) {
       const peripherals = useAgentPeripheralsStore.getState().peripherals;
       const inferred = inferCapabilities(mapped, peripherals, heartbeatExtras);
@@ -370,6 +400,7 @@ export function CloudStatusBridge() {
         if (setupState !== undefined) payload.setupState = setupState;
         if (profileSource !== undefined) payload.profileSource = profileSource;
         if (radioFromHeartbeat !== undefined) payload.radio = radioFromHeartbeat;
+        if (videoPipeline !== undefined) payload.videoPipeline = videoPipeline;
         useAgentCapabilitiesStore.getState().setCapabilities(payload);
       }
     } else {
@@ -401,6 +432,10 @@ export function CloudStatusBridge() {
         videoLocalTap: reInferred?.videoLocalTap ?? capState.videoLocalTap,
         videoRecording: reInferred?.videoRecording ?? capState.videoRecording,
         uiTheme: reInferred?.uiTheme ?? capState.uiTheme,
+        // Latest heartbeat wins for the air-side pipeline identity; if
+        // the current tick omits it, fall back to whatever the store
+        // already had so a sparse heartbeat doesn't blank the pill.
+        videoPipeline: videoPipeline ?? capState.videoPipeline,
         videoRestartAttempts,
         foxgloveBindFailed,
         pairingCodeExpiresAt,

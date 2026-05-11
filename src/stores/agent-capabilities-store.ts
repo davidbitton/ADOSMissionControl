@@ -270,6 +270,13 @@ function normalizeCapabilities(raw: unknown): AgentCapabilities {
       ? uiThemeCandidate
       : undefined;
 
+  const videoPipelineCandidate = (raw as { videoPipeline?: unknown })
+    .videoPipeline;
+  const videoPipeline =
+    videoPipelineCandidate && typeof videoPipelineCandidate === "object"
+      ? (videoPipelineCandidate as AgentCapabilities["videoPipeline"])
+      : undefined;
+
   return {
     tier: Number(data.tier ?? 0),
     cameras,
@@ -281,6 +288,7 @@ function normalizeCapabilities(raw: unknown): AgentCapabilities {
     videoLocalTap,
     videoRecording,
     uiTheme,
+    videoPipeline,
   };
 }
 
@@ -318,6 +326,9 @@ interface AgentCapabilitiesState {
   /** Theme the operator picked for the local LCD UI. Undefined when
    * the agent has no LCD or hasn't reported a theme yet. */
   uiTheme: AgentCapabilities["uiTheme"];
+  /** Air-side video pipeline identity. Undefined when the agent
+   * runs the legacy bash composition or hasn't reported yet. */
+  videoPipeline: AgentCapabilities["videoPipeline"];
   /** Air-side WFB-ng radio snapshot. Null when the agent does not
    * advertise a radio service (drone has no air-side adapter, or runs
    * a profile without WFB-ng). Populated from the cloud heartbeat or
@@ -374,6 +385,7 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
   videoLocalTap: undefined,
   videoRecording: undefined,
   uiTheme: undefined,
+  videoPipeline: undefined,
   radio: null,
   videoRestartAttempts: 0,
   foxgloveBindFailed: false,
@@ -496,6 +508,7 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
       videoLocalTap: normalized.videoLocalTap,
       videoRecording: normalized.videoRecording,
       uiTheme: normalized.uiTheme,
+      videoPipeline: normalized.videoPipeline,
       radio,
       // Forward-permissive merges: keep the prior value when the
       // payload omits the field. CloudStatusBridge always sets all
@@ -558,6 +571,7 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
       videoLocalTap: undefined,
       videoRecording: undefined,
       uiTheme: undefined,
+      videoPipeline: undefined,
       radio: null,
       videoRestartAttempts: 0,
       foxgloveBindFailed: false,
