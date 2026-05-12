@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { AgentClient } from "@/lib/agent/client";
+import {
+  ChannelHistoryChart,
+  type HoppingState,
+} from "@/components/hardware/ChannelHistoryChart";
 
 type VideoConfigRadio = {
   channel: number | null;
@@ -50,6 +54,7 @@ type VideoConfig = {
   radio: VideoConfigRadio;
   encoder: VideoConfigEncoder;
   adaptive: VideoConfigAdaptive;
+  hopping?: HoppingState;
   warnings?: string[];
 };
 
@@ -159,6 +164,7 @@ export function VideoLinkPanel() {
   const auto = adaptive.auto ?? true;
 
   return (
+    <>
     <section className="rounded border border-border-default bg-surface-primary">
       <header className="flex items-center justify-between border-b border-border-default px-3 py-2">
         <div className="text-xs font-mono uppercase tracking-widest text-text-primary">
@@ -270,6 +276,11 @@ export function VideoLinkPanel() {
         </div>
       ) : null}
     </section>
+    <ChannelHistoryChart
+      hopping={config.hopping}
+      currentChannel={radio.channel}
+    />
+    </>
   );
 }
 

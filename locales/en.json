@@ -2665,7 +2665,22 @@
       "applying": "Applying...",
       "applied": "Applied",
       "applyFailed": "Apply failed",
-      "notSupported": "Radio control not supported on this agent"
+      "notSupported": "Radio control not supported on this agent",
+      "hopping": {
+        "title": "Channel Hopping",
+        "noHops": "No channel hops recorded yet",
+        "currentChannel": "current channel",
+        "hops": "hops",
+        "lastHop": "Last hop",
+        "trigger": {
+          "periodic": "Periodic",
+          "reactive": "Reactive"
+        },
+        "status": {
+          "success": "Success",
+          "failed": "Failed"
+        }
+      }
     },
     "setupAccess": {
       "title": "Setup and access",

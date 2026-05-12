@@ -2571,6 +2571,21 @@
           "retrySuccess": "Local pairing re-armed",
           "failed": "Pairing failed"
         }
+      },
+      "hopping": {
+        "title": "Channel Hopping",
+        "noHops": "No channel hops recorded yet",
+        "currentChannel": "current channel",
+        "hops": "hops",
+        "lastHop": "Last hop",
+        "trigger": {
+          "periodic": "Periodic",
+          "reactive": "Reactive"
+        },
+        "status": {
+          "success": "Success",
+          "failed": "Failed"
+        }
       }
     },
     "setupAccess": {
