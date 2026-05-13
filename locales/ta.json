@@ -864,7 +864,53 @@
     "moduleStore": "Module Store",
     "tier": "Tier",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "ஒரு கணுவைச் சேர்க்கவும்",
+      "subtitle": "எந்த ADOS கணுவையும் — டிரோன், கிரவுண்ட் ஸ்டேஷன், அல்லது எதிர்கால கம்ப்யூட் — உங்கள் LAN வழியாக நேரடியாக இணைக்கவும்.",
+      "pairOnLan": "உங்கள் LAN-இல் ஒரு கணுவை இணைக்கவும்",
+      "noAccountRequired": "கணக்கு தேவையில்லை. முழுமையாக ஆஃப்லைனில் வேலை செய்கிறது.",
+      "hostnamePlaceholder": "skynode.local  அல்லது  http://192.168.1.42:8080",
+      "probeButton": "ஆராய்",
+      "probingButton": "ஆராய்கிறது",
+      "installAgent": "புதிய ஏஜெண்டைப் பதிப்பிக்கவும்",
+      "installAgentDescription": "இதை SBC-இல் இயக்கி, பின்னர் மேலே உள்ள ஹோஸ்ட்பெயரை ஒட்டவும்.",
+      "copyInstallCommand": "நிறுவல் கட்டளையை நகலெடுக்கவும்",
+      "signInForRemote": "தொலைதூர அணுகலுக்கு உள்நுழைக",
+      "signInDescription": "விருப்பத்தேர்வு. உங்கள் LAN-க்கு வெளியே இருந்து இணைந்த கணுவை அடைய அனுமதிக்கிறது.",
+      "enterHostnameError": "ஆராய ஒரு ஹோஸ்ட்பெயர் அல்லது URL ஐ உள்ளிடவும்",
+      "probeFailedError": "அந்த முகவரியை அடைய முடியவில்லை. ஏஜெண்ட் இயங்குகிறதா மற்றும் அதே நெட்வொர்க்கில் உள்ளதா என்பதைச் சரிபார்க்கவும்.",
+      "alreadyPairedTitle": "ஏஜெண்ட் ஏற்கனவே இணைக்கப்பட்டுள்ளது",
+      "alreadyPairedMessage": "இந்த ஏஜெண்ட் ஏற்கனவே இணைக்கப்பட்டுள்ளது. உரிமையைப் பெற முயற்சிக்க உள்ளூரில் இணைக்கவும் — முடியாவிட்டால் ஏஜெண்ட் தெளிவான பிழையுடன் பதிலளிக்கும்.",
+      "alreadyPairedToOtherBrowser": "இந்த ஏஜெண்ட் ஏற்கனவே மற்றொரு உலாவியுடன் இணைக்கப்பட்டுள்ளது. ஏஜெண்டின் அமைவு பக்கத்திலிருந்து இணைப்பை நீக்கி, பின்னர் மீண்டும் முயற்சிக்கவும்.",
+      "pairLocallyButton": "உள்ளூரில் இணைக்கவும்",
+      "pairingButton": "இணைக்கிறது",
+      "cancelButton": "ரத்துசெய்",
+      "mixedContentError": "இந்த Mission Control HTTPS வழியாக வழங்கப்படுகிறது. உலாவிகள் HTTPS பக்கங்களிலிருந்து சாதாரண HTTP ஆய்வுகளைத் தடுக்கின்றன. LAN ஏஜெண்டுகளை இணைக்க Mission Control ஐ http:// வழியாக ஏற்றவும் (அல்லது localhost பில்டைப் பயன்படுத்தவும்).",
+      "missingDeviceIdError": "ஆய்வு பதிலில் device_id இல்லை",
+      "pairedButConnectFailed": "இணைக்கப்பட்டது, ஆனால் நேரடி இணைப்பை நிறுவ முடியவில்லை: {error}. கணு சேமிக்கப்பட்டது — பக்கப்பட்டியிலிருந்து மீண்டும் முயற்சிக்கவும்."
+    },
+    "nodes": {
+      "drones": "டிரோன்கள்",
+      "groundStations": "கிரவுண்ட் ஸ்டேஷன்கள்",
+      "relays": "ரிலேக்கள்",
+      "receivers": "ரிசீவர்கள்",
+      "compute": "கம்ப்யூட்",
+      "local": "உள்ளூர்",
+      "forgetLocal": "உள்ளூர் கணுவை மறக்கவும்"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "மேலோட்டம்",
+        "radio": "வானொலி",
+        "network": "நெட்வொர்க்",
+        "display": "காட்சி",
+        "physicalUi": "இயற்பியல் UI",
+        "peripherals": "புற சாதனங்கள்",
+        "mesh": "மெஷ்",
+        "distributedRx": "விநியோகிக்கப்பட்ட RX"
+      }
+    }
   },
   "agent": {
     "status": "Agent நிலை",

@@ -879,7 +879,53 @@
     "moduleStore": "మాడ్యూల్ స్టోర్",
     "tier": "టైర్",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "ఒక నోడ్‌ను జోడించండి",
+      "subtitle": "ఏదైనా ADOS నోడ్‌ను — డ్రోన్, గ్రౌండ్ స్టేషన్, లేదా భవిష్యత్ కంప్యూట్ — నేరుగా మీ LAN ద్వారా జత చేయండి.",
+      "pairOnLan": "మీ LAN లో ఒక నోడ్‌ను జత చేయండి",
+      "noAccountRequired": "ఖాతా అవసరం లేదు. పూర్తిగా ఆఫ్‌లైన్‌లో పనిచేస్తుంది.",
+      "hostnamePlaceholder": "skynode.local  లేదా  http://192.168.1.42:8080",
+      "probeButton": "ప్రోబ్ చేయండి",
+      "probingButton": "ప్రోబ్ చేస్తోంది",
+      "installAgent": "కొత్త ఏజెంట్‌ను ఇన్‌స్టాల్ చేయండి",
+      "installAgentDescription": "దీన్ని SBC పై రన్ చేయండి, ఆపై హోస్ట్‌నేమ్‌ను పైన పేస్ట్ చేయండి.",
+      "copyInstallCommand": "ఇన్‌స్టాల్ ఆదేశాన్ని కాపీ చేయండి",
+      "signInForRemote": "రిమోట్ యాక్సెస్ కోసం సైన్ ఇన్ చేయండి",
+      "signInDescription": "ఐచ్ఛికం. మీ LAN వెలుపలి నుండి జతచేయబడిన నోడ్‌ను చేరుకోవడానికి అనుమతిస్తుంది.",
+      "enterHostnameError": "ప్రోబ్ చేయడానికి హోస్ట్‌నేమ్ లేదా URL నమోదు చేయండి",
+      "probeFailedError": "ఆ చిరునామాను చేరుకోలేకపోయాము. ఏజెంట్ రన్ అవుతోందా మరియు అదే నెట్‌వర్క్‌లో ఉందో తనిఖీ చేయండి.",
+      "alreadyPairedTitle": "ఏజెంట్ ఇప్పటికే జతచేయబడింది",
+      "alreadyPairedMessage": "ఈ ఏజెంట్ ఇప్పటికే జతచేయబడింది. యాజమాన్యం తీసుకునేందుకు స్థానికంగా జత చేయండి — చేయలేకపోతే ఏజెంట్ స్పష్టమైన ఎర్రర్‌తో ప్రతిస్పందిస్తుంది.",
+      "alreadyPairedToOtherBrowser": "ఈ ఏజెంట్ ఇప్పటికే మరొక బ్రౌజర్‌తో జతచేయబడింది. ఏజెంట్ సెటప్ పేజీ నుండి అన్‌పెయిర్ చేసి, మళ్లీ ప్రయత్నించండి.",
+      "pairLocallyButton": "స్థానికంగా జత చేయండి",
+      "pairingButton": "జత చేస్తోంది",
+      "cancelButton": "రద్దు చేయండి",
+      "mixedContentError": "ఈ Mission Control HTTPS ద్వారా అందించబడుతుంది. HTTPS పేజీల నుండి సాధారణ HTTP ప్రోబ్‌లను బ్రౌజర్‌లు బ్లాక్ చేస్తాయి. LAN ఏజెంట్‌లను జత చేయడానికి Mission Control‌ను http:// ద్వారా లోడ్ చేయండి (లేదా localhost బిల్డ్‌ను ఉపయోగించండి).",
+      "missingDeviceIdError": "ప్రోబ్ ప్రతిస్పందనలో device_id లేదు",
+      "pairedButConnectFailed": "జతచేయబడింది, కానీ లైవ్ కనెక్షన్‌ను స్థాపించలేకపోయాము: {error}. నోడ్ సేవ్ చేయబడింది — సైడ్‌బార్ నుండి మళ్లీ ప్రయత్నించండి."
+    },
+    "nodes": {
+      "drones": "డ్రోన్‌లు",
+      "groundStations": "గ్రౌండ్ స్టేషన్‌లు",
+      "relays": "రిలేలు",
+      "receivers": "రిసీవర్‌లు",
+      "compute": "కంప్యూట్",
+      "local": "స్థానికం",
+      "forgetLocal": "స్థానిక నోడ్‌ను మర్చిపోండి"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "అవలోకనం",
+        "radio": "రేడియో",
+        "network": "నెట్‌వర్క్",
+        "display": "డిస్‌ప్లే",
+        "physicalUi": "భౌతిక UI",
+        "peripherals": "పరిధీయ పరికరాలు",
+        "mesh": "మెష్",
+        "distributedRx": "పంపిణీ చేయబడిన RX"
+      }
+    }
   },
   "agent": {
     "status": "ఏజెంట్ స్థితి",

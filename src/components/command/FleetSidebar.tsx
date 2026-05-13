@@ -22,7 +22,7 @@ import { useClockTick } from "@/lib/agent/freshness";
 import { DroneRowExpanded } from "./fleet/DroneRow";
 import { DroneContextMenu } from "./fleet/DroneContextMenu";
 import { CollapsedSidebar } from "./fleet/CollapsedSidebar";
-import { LocalNodesSection } from "./fleet/LocalNodesSection";
+import { NodeSidebar } from "./nodes/NodeSidebar";
 import type {
   RenameDroneMutation,
   UnpairDroneMutation,
@@ -394,7 +394,7 @@ function FleetSidebarBase({
           </div>
         )}
 
-        <LocalNodesSection onSelect={onFocusAgent} />
+        <NodeSidebar onFocusAgent={onFocusAgent} />
       </div>
 
       {/* Pair button */}

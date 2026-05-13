@@ -879,7 +879,53 @@
     "moduleStore": "Loja de Módulos",
     "tier": "Nível",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "Adicionar um nó",
+      "subtitle": "Pareie qualquer nó ADOS — drone, estação de solo ou computação futura — diretamente pela sua LAN.",
+      "pairOnLan": "Parear um nó na sua LAN",
+      "noAccountRequired": "Nenhuma conta necessária. Funciona totalmente offline.",
+      "hostnamePlaceholder": "skynode.local  ou  http://192.168.1.42:8080",
+      "probeButton": "Sondar",
+      "probingButton": "Sondando",
+      "installAgent": "Instalar um novo agente",
+      "installAgentDescription": "Execute isto no SBC e cole o hostname acima.",
+      "copyInstallCommand": "Copiar comando de instalação",
+      "signInForRemote": "Entrar para acesso remoto",
+      "signInDescription": "Opcional. Permite alcançar um nó pareado de fora da sua LAN.",
+      "enterHostnameError": "Digite um hostname ou URL para sondar",
+      "probeFailedError": "Não foi possível alcançar esse endereço. Verifique se o agente está em execução e na mesma rede.",
+      "alreadyPairedTitle": "O agente já está pareado",
+      "alreadyPairedMessage": "Este agente já está pareado. Pareie localmente para tentar tomar posse — o agente responderá com um erro claro se não puder.",
+      "alreadyPairedToOtherBrowser": "Este agente já está pareado com outro navegador. Despareie pela página de configuração do agente e tente novamente.",
+      "pairLocallyButton": "Parear localmente",
+      "pairingButton": "Pareando",
+      "cancelButton": "Cancelar",
+      "mixedContentError": "Este Mission Control é servido por HTTPS. Os navegadores bloqueiam sondagens HTTP simples a partir de páginas HTTPS. Carregue o Mission Control via http:// (ou use uma build localhost) para parear agentes na LAN.",
+      "missingDeviceIdError": "Resposta da sondagem sem device_id",
+      "pairedButConnectFailed": "Pareado, mas não foi possível estabelecer uma conexão ativa: {error}. O nó foi salvo — tente novamente pela barra lateral."
+    },
+    "nodes": {
+      "drones": "Drones",
+      "groundStations": "Estações de solo",
+      "relays": "Relés",
+      "receivers": "Receptores",
+      "compute": "Computação",
+      "local": "Local",
+      "forgetLocal": "Esquecer nó local"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "Visão geral",
+        "radio": "Rádio",
+        "network": "Rede",
+        "display": "Tela",
+        "physicalUi": "Interface física",
+        "peripherals": "Periféricos",
+        "mesh": "Malha",
+        "distributedRx": "RX distribuído"
+      }
+    }
   },
   "agent": {
     "status": "Status do Agente",

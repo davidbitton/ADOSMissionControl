@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   ChevronRight,
   CloudOff,
@@ -44,6 +45,7 @@ export function AddNodeCard({
   onSignIn,
   onPaired,
 }: AddNodeCardProps) {
+  const t = useTranslations("command.addNode");
   const [host, setHost] = useState("");
   const [probing, setProbing] = useState(false);
   const [probe, setProbe] = useState<ProbeResult | null>(null);
@@ -122,9 +124,9 @@ export function AddNodeCard({
             <Radio size={14} className="text-accent-primary" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-text-primary">Pair a node on your LAN</p>
+            <p className="text-sm font-medium text-text-primary">{t("pairOnLan")}</p>
             <p className="text-[10px] text-text-tertiary">
-              No account required. Works fully offline.
+              {t("noAccountRequired")}
             </p>
           </div>
         </div>
@@ -135,7 +137,7 @@ export function AddNodeCard({
             value={host}
             onChange={(e) => setHost(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="skynode.local  or  http://192.168.1.42:8080"
+            placeholder={t("hostnamePlaceholder")}
             disabled={probing}
             className="flex-1 px-3 py-2 bg-bg-primary border border-border-default rounded text-sm text-text-primary placeholder:text-text-tertiary focus:outline-none focus:border-accent-primary disabled:opacity-50"
             autoFocus
@@ -148,12 +150,12 @@ export function AddNodeCard({
             {probing ? (
               <>
                 <Loader2 size={12} className="animate-spin" />
-                Probing
+                {t("probingButton")}
               </>
             ) : (
               <>
                 <Search size={12} />
-                Probe
+                {t("probeButton")}
               </>
             )}
           </button>
@@ -171,9 +173,9 @@ export function AddNodeCard({
             <Plus size={14} className="text-text-secondary" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-medium text-text-primary">Install a new agent</p>
+            <p className="text-sm font-medium text-text-primary">{t("installAgent")}</p>
             <p className="text-[10px] text-text-tertiary">
-              Run this on the SBC, then paste the hostname above.
+              {t("installAgentDescription")}
             </p>
           </div>
         </div>
@@ -184,7 +186,7 @@ export function AddNodeCard({
           <button
             onClick={handleCopyInstall}
             className="p-1.5 text-text-tertiary hover:text-text-primary transition-colors shrink-0"
-            title="Copy install command"
+            title={t("copyInstallCommand")}
           >
             {copied ? (
               <Check size={14} className="text-status-success" />
@@ -207,10 +209,10 @@ export function AddNodeCard({
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-text-primary">
-              Sign in for remote access
+              {t("signInForRemote")}
             </p>
             <p className="text-[10px] text-text-tertiary">
-              Optional. Lets you reach a paired node from outside your LAN.
+              {t("signInDescription")}
             </p>
           </div>
           <ChevronRight

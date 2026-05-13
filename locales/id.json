@@ -879,7 +879,53 @@
     "moduleStore": "Toko Modul",
     "tier": "Tier",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "Tambahkan node",
+      "subtitle": "Pasangkan node ADOS apa pun — drone, ground station, atau compute masa depan — langsung melalui LAN Anda.",
+      "pairOnLan": "Pasangkan node di LAN Anda",
+      "noAccountRequired": "Tidak perlu akun. Berfungsi sepenuhnya offline.",
+      "hostnamePlaceholder": "skynode.local  atau  http://192.168.1.42:8080",
+      "probeButton": "Periksa",
+      "probingButton": "Memeriksa",
+      "installAgent": "Pasang agen baru",
+      "installAgentDescription": "Jalankan ini di SBC, lalu tempelkan hostname di atas.",
+      "copyInstallCommand": "Salin perintah instalasi",
+      "signInForRemote": "Masuk untuk akses jarak jauh",
+      "signInDescription": "Opsional. Memungkinkan Anda menjangkau node yang dipasangkan dari luar LAN Anda.",
+      "enterHostnameError": "Masukkan hostname atau URL untuk diperiksa",
+      "probeFailedError": "Tidak dapat menjangkau alamat tersebut. Pastikan agen berjalan dan berada di jaringan yang sama.",
+      "alreadyPairedTitle": "Agen sudah dipasangkan",
+      "alreadyPairedMessage": "Agen ini sudah dipasangkan. Pasangkan secara lokal untuk mencoba mengambil alih kepemilikan — agen akan merespons dengan kesalahan yang jelas jika tidak bisa.",
+      "alreadyPairedToOtherBrowser": "Agen ini sudah dipasangkan ke browser lain. Lepaskan pasangan dari halaman pengaturan agen, lalu coba lagi.",
+      "pairLocallyButton": "Pasangkan secara lokal",
+      "pairingButton": "Memasangkan",
+      "cancelButton": "Batal",
+      "mixedContentError": "Mission Control ini disajikan melalui HTTPS. Browser memblokir pemeriksaan HTTP biasa dari halaman HTTPS. Muat Mission Control melalui http:// (atau gunakan build localhost) untuk memasangkan agen LAN.",
+      "missingDeviceIdError": "Respons pemeriksaan tidak memiliki device_id",
+      "pairedButConnectFailed": "Dipasangkan, tetapi tidak dapat membuat koneksi langsung: {error}. Node telah disimpan — coba ulangi dari sidebar."
+    },
+    "nodes": {
+      "drones": "Drone",
+      "groundStations": "Ground station",
+      "relays": "Relay",
+      "receivers": "Penerima",
+      "compute": "Compute",
+      "local": "Lokal",
+      "forgetLocal": "Lupakan node lokal"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "Ikhtisar",
+        "radio": "Radio",
+        "network": "Jaringan",
+        "display": "Tampilan",
+        "physicalUi": "UI Fisik",
+        "peripherals": "Periferal",
+        "mesh": "Mesh",
+        "distributedRx": "RX Terdistribusi"
+      }
+    }
   },
   "agent": {
     "status": "Status Agent",

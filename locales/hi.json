@@ -864,7 +864,53 @@
     "waitingForDrone": "आपके ड्रोन के कनेक्ट होने का इंतज़ार...",
     "tier": "Tier",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "नोड जोड़ें",
+      "subtitle": "किसी भी ADOS नोड को पेयर करें — ड्रोन, ग्राउंड स्टेशन, या भविष्य का कंप्यूट — सीधे अपने LAN पर।",
+      "pairOnLan": "अपने LAN पर एक नोड पेयर करें",
+      "noAccountRequired": "खाते की आवश्यकता नहीं। पूरी तरह से ऑफ़लाइन काम करता है।",
+      "hostnamePlaceholder": "skynode.local  या  http://192.168.1.42:8080",
+      "probeButton": "प्रोब",
+      "probingButton": "प्रोब हो रहा है",
+      "installAgent": "नया एजेंट इंस्टॉल करें",
+      "installAgentDescription": "इसे SBC पर चलाएं, फिर ऊपर होस्टनेम पेस्ट करें।",
+      "copyInstallCommand": "इंस्टॉल कमांड कॉपी करें",
+      "signInForRemote": "रिमोट एक्सेस के लिए साइन इन करें",
+      "signInDescription": "वैकल्पिक। आपको LAN के बाहर से एक पेयर किए गए नोड तक पहुंचने देता है।",
+      "enterHostnameError": "प्रोब करने के लिए होस्टनेम या URL दर्ज करें",
+      "probeFailedError": "उस पते तक नहीं पहुंच सका। जांचें कि एजेंट चल रहा है और उसी नेटवर्क पर है।",
+      "alreadyPairedTitle": "एजेंट पहले से पेयर है",
+      "alreadyPairedMessage": "यह एजेंट पहले से पेयर है। स्वामित्व लेने के लिए स्थानीय रूप से पेयर करें — यदि नहीं हो सकता तो एजेंट एक स्पष्ट त्रुटि के साथ जवाब देगा।",
+      "alreadyPairedToOtherBrowser": "यह एजेंट दूसरे ब्राउज़र से पेयर है। एजेंट के सेटअप पेज से अनपेयर करें, फिर पुनः प्रयास करें।",
+      "pairLocallyButton": "स्थानीय रूप से पेयर करें",
+      "pairingButton": "पेयर हो रहा है",
+      "cancelButton": "रद्द करें",
+      "mixedContentError": "यह Mission Control HTTPS पर सर्व किया जाता है। ब्राउज़र HTTPS पेजों से सादे HTTP प्रोब को ब्लॉक करते हैं। LAN एजेंट पेयर करने के लिए Mission Control को http:// पर लोड करें (या localhost बिल्ड का उपयोग करें)।",
+      "missingDeviceIdError": "प्रोब प्रतिक्रिया में device_id गायब है",
+      "pairedButConnectFailed": "पेयर हो गया, लेकिन लाइव कनेक्शन स्थापित नहीं कर सका: {error}। नोड सेव हो गया है — साइडबार से पुनः प्रयास करें।"
+    },
+    "nodes": {
+      "drones": "ड्रोन",
+      "groundStations": "ग्राउंड स्टेशन",
+      "relays": "रिले",
+      "receivers": "रिसीवर",
+      "compute": "कंप्यूट",
+      "local": "स्थानीय",
+      "forgetLocal": "स्थानीय नोड भूल जाएं"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "अवलोकन",
+        "radio": "रेडियो",
+        "network": "नेटवर्क",
+        "display": "डिस्प्ले",
+        "physicalUi": "फ़िज़िकल UI",
+        "peripherals": "पेरिफ़ेरल्स",
+        "mesh": "मेश",
+        "distributedRx": "वितरित RX"
+      }
+    }
   },
   "agent": {
     "status": "स्थिति",

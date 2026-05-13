@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { AlertTriangle, Check, Loader2, Radio, X } from "lucide-react";
 import {
   pairLocally,
@@ -39,6 +40,7 @@ function profileLabel(profile: string): string {
 }
 
 export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardProps) {
+  const t = useTranslations("command.addNode");
   const [pairing, setPairing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const addNode = useLocalNodesStore((s) => s.addNode);
@@ -86,9 +88,7 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
         if (!mountedRef.current) return;
         const msg =
           connectErr instanceof Error ? connectErr.message : String(connectErr);
-        setError(
-          `Paired, but could not establish a live connection: ${msg}. The node is saved — retry from the sidebar.`,
-        );
+        setError(t("pairedButConnectFailed", { error: msg }));
         return;
       }
       if (!mountedRef.current) return;
@@ -96,9 +96,7 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
     } catch (e) {
       if (!mountedRef.current) return;
       if (e instanceof AgentAlreadyPairedError) {
-        setError(
-          "This agent is already paired to another browser. Unpair from the agent's setup page, then try again.",
-        );
+        setError(t("alreadyPairedToOtherBrowser"));
       } else if (e instanceof DOMException && e.name === "AbortError") {
         // Component unmounted or user navigated away. No-op.
         return;
@@ -148,10 +146,7 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
       {probe.paired && (
         <div className="flex items-start gap-2 p-2 bg-status-warning/10 border border-status-warning/30 rounded text-xs text-status-warning">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-          <span>
-            This agent is already paired. Pair locally to attempt to take
-            ownership — the agent will respond with a clear error if it can&apos;t.
-          </span>
+          <span>{t("alreadyPairedMessage")}</span>
         </div>
       )}
 
@@ -171,12 +166,12 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
           {pairing ? (
             <>
               <Loader2 size={14} className="animate-spin" />
-              Pairing
+              {t("pairingButton")}
             </>
           ) : (
             <>
               <Check size={14} />
-              Pair locally
+              {t("pairLocallyButton")}
             </>
           )}
         </button>
@@ -186,7 +181,7 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
           className="px-3 py-2 text-xs font-medium bg-bg-tertiary border border-border-default text-text-secondary rounded hover:bg-bg-primary transition-colors disabled:opacity-50 inline-flex items-center gap-1"
         >
           <X size={14} />
-          Cancel
+          {t("cancelButton")}
         </button>
       </div>
     </div>

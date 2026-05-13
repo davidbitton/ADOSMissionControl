@@ -879,7 +879,53 @@
     "moduleStore": "모듈 스토어",
     "tier": "티어",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "노드 추가",
+      "subtitle": "드론, 지상국, 또는 향후 컴퓨팅 노드 등 모든 ADOS 노드를 LAN을 통해 직접 페어링하세요.",
+      "pairOnLan": "LAN에서 노드 페어링",
+      "noAccountRequired": "계정이 필요하지 않습니다. 완전히 오프라인으로 작동합니다.",
+      "hostnamePlaceholder": "skynode.local  또는  http://192.168.1.42:8080",
+      "probeButton": "프로브",
+      "probingButton": "프로브 중",
+      "installAgent": "새 에이전트 설치",
+      "installAgentDescription": "SBC에서 이것을 실행한 다음 위에 호스트 이름을 붙여넣으세요.",
+      "copyInstallCommand": "설치 명령 복사",
+      "signInForRemote": "원격 액세스를 위해 로그인",
+      "signInDescription": "선택 사항입니다. LAN 외부에서 페어링된 노드에 접근할 수 있게 해줍니다.",
+      "enterHostnameError": "프로브할 호스트 이름이나 URL을 입력하세요",
+      "probeFailedError": "해당 주소에 연결할 수 없습니다. 에이전트가 실행 중이고 동일한 네트워크에 있는지 확인하세요.",
+      "alreadyPairedTitle": "에이전트가 이미 페어링되어 있습니다",
+      "alreadyPairedMessage": "이 에이전트는 이미 페어링되어 있습니다. 소유권을 가져오려면 로컬로 페어링을 시도하세요. 에이전트가 불가능한 경우 명확한 오류로 응답합니다.",
+      "alreadyPairedToOtherBrowser": "이 에이전트는 이미 다른 브라우저에 페어링되어 있습니다. 에이전트의 설정 페이지에서 페어링을 해제한 후 다시 시도하세요.",
+      "pairLocallyButton": "로컬로 페어링",
+      "pairingButton": "페어링 중",
+      "cancelButton": "취소",
+      "mixedContentError": "이 Mission Control은 HTTPS로 제공됩니다. 브라우저는 HTTPS 페이지에서 일반 HTTP 프로브를 차단합니다. LAN 에이전트를 페어링하려면 Mission Control을 http://로 로드하거나 localhost 빌드를 사용하세요.",
+      "missingDeviceIdError": "프로브 응답에 device_id가 누락되었습니다",
+      "pairedButConnectFailed": "페어링되었지만 실시간 연결을 설정할 수 없습니다: {error}. 노드가 저장되었습니다. 사이드바에서 다시 시도하세요."
+    },
+    "nodes": {
+      "drones": "드론",
+      "groundStations": "지상국",
+      "relays": "릴레이",
+      "receivers": "수신기",
+      "compute": "컴퓨팅",
+      "local": "로컬",
+      "forgetLocal": "로컬 노드 잊기"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "개요",
+        "radio": "무선",
+        "network": "네트워크",
+        "display": "디스플레이",
+        "physicalUi": "물리적 UI",
+        "peripherals": "주변기기",
+        "mesh": "메시",
+        "distributedRx": "분산 RX"
+      }
+    }
   },
   "agent": {
     "status": "에이전트 상태",

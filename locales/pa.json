@@ -864,7 +864,53 @@
     "waitingForDrone": "Waiting for your drone to connect...",
     "tier": "Tier",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "ਨੋਡ ਜੋੜੋ",
+      "subtitle": "ਕਿਸੇ ਵੀ ADOS ਨੋਡ ਨੂੰ ਜੋੜੋ — ਡਰੋਨ, ਗਰਾਊਂਡ ਸਟੇਸ਼ਨ, ਜਾਂ ਭਵਿੱਖ ਦੇ ਕੰਪਿਊਟ — ਸਿੱਧਾ ਤੁਹਾਡੇ LAN ਉੱਤੇ।",
+      "pairOnLan": "ਆਪਣੇ LAN 'ਤੇ ਇੱਕ ਨੋਡ ਜੋੜੋ",
+      "noAccountRequired": "ਕੋਈ ਖਾਤਾ ਲੋੜੀਂਦਾ ਨਹੀਂ। ਪੂਰੀ ਤਰ੍ਹਾਂ ਆਫਲਾਈਨ ਕੰਮ ਕਰਦਾ ਹੈ।",
+      "hostnamePlaceholder": "skynode.local  ਜਾਂ  http://192.168.1.42:8080",
+      "probeButton": "ਪ੍ਰੋਬ ਕਰੋ",
+      "probingButton": "ਪ੍ਰੋਬ ਕਰ ਰਿਹਾ ਹੈ",
+      "installAgent": "ਨਵਾਂ ਏਜੰਟ ਇੰਸਟਾਲ ਕਰੋ",
+      "installAgentDescription": "ਇਸਨੂੰ SBC 'ਤੇ ਚਲਾਓ, ਫਿਰ ਉੱਪਰ ਹੋਸਟਨੇਮ ਪੇਸਟ ਕਰੋ।",
+      "copyInstallCommand": "ਇੰਸਟਾਲ ਕਮਾਂਡ ਕਾਪੀ ਕਰੋ",
+      "signInForRemote": "ਰਿਮੋਟ ਪਹੁੰਚ ਲਈ ਸਾਈਨ ਇਨ ਕਰੋ",
+      "signInDescription": "ਵਿਕਲਪਿਕ। ਤੁਹਾਨੂੰ ਆਪਣੇ LAN ਤੋਂ ਬਾਹਰੋਂ ਇੱਕ ਜੋੜੇ ਹੋਏ ਨੋਡ ਤੱਕ ਪਹੁੰਚਣ ਦਿੰਦਾ ਹੈ।",
+      "enterHostnameError": "ਪ੍ਰੋਬ ਕਰਨ ਲਈ ਇੱਕ ਹੋਸਟਨੇਮ ਜਾਂ URL ਦਰਜ ਕਰੋ",
+      "probeFailedError": "ਉਸ ਪਤੇ ਤੱਕ ਨਹੀਂ ਪਹੁੰਚ ਸਕੇ। ਜਾਂਚ ਕਰੋ ਕਿ ਏਜੰਟ ਚੱਲ ਰਿਹਾ ਹੈ ਅਤੇ ਉਸੇ ਨੈੱਟਵਰਕ 'ਤੇ ਹੈ।",
+      "alreadyPairedTitle": "ਏਜੰਟ ਪਹਿਲਾਂ ਹੀ ਜੋੜਿਆ ਹੋਇਆ ਹੈ",
+      "alreadyPairedMessage": "ਇਹ ਏਜੰਟ ਪਹਿਲਾਂ ਹੀ ਜੋੜਿਆ ਹੋਇਆ ਹੈ। ਮਾਲਕੀ ਲੈਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰਨ ਲਈ ਸਥਾਨਕ ਤੌਰ 'ਤੇ ਜੋੜੋ — ਜੇਕਰ ਇਹ ਨਹੀਂ ਕਰ ਸਕਦਾ ਤਾਂ ਏਜੰਟ ਇੱਕ ਸਪੱਸ਼ਟ ਗਲਤੀ ਨਾਲ ਜਵਾਬ ਦੇਵੇਗਾ।",
+      "alreadyPairedToOtherBrowser": "ਇਹ ਏਜੰਟ ਕਿਸੇ ਹੋਰ ਬ੍ਰਾਊਜ਼ਰ ਨਾਲ ਪਹਿਲਾਂ ਹੀ ਜੋੜਿਆ ਹੋਇਆ ਹੈ। ਏਜੰਟ ਦੇ ਸੈੱਟਅੱਪ ਪੰਨੇ ਤੋਂ ਅਨਪੇਅਰ ਕਰੋ, ਫਿਰ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+      "pairLocallyButton": "ਸਥਾਨਕ ਤੌਰ 'ਤੇ ਜੋੜੋ",
+      "pairingButton": "ਜੋੜ ਰਿਹਾ ਹੈ",
+      "cancelButton": "ਰੱਦ ਕਰੋ",
+      "mixedContentError": "ਇਹ Mission Control HTTPS ਉੱਤੇ ਪਰੋਸਿਆ ਜਾਂਦਾ ਹੈ। ਬ੍ਰਾਊਜ਼ਰ HTTPS ਪੰਨਿਆਂ ਤੋਂ ਸਾਦੇ HTTP ਪ੍ਰੋਬ ਨੂੰ ਬਲਾਕ ਕਰਦੇ ਹਨ। LAN ਏਜੰਟਾਂ ਨੂੰ ਜੋੜਨ ਲਈ Mission Control ਨੂੰ http:// ਉੱਤੇ ਲੋਡ ਕਰੋ (ਜਾਂ localhost ਬਿਲਡ ਵਰਤੋ)।",
+      "missingDeviceIdError": "ਪ੍ਰੋਬ ਜਵਾਬ ਵਿੱਚ device_id ਗੁੰਮ ਹੈ",
+      "pairedButConnectFailed": "ਜੋੜਿਆ ਗਿਆ, ਪਰ ਇੱਕ ਲਾਈਵ ਕਨੈਕਸ਼ਨ ਸਥਾਪਿਤ ਨਹੀਂ ਕਰ ਸਕੇ: {error}। ਨੋਡ ਸੰਭਾਲਿਆ ਗਿਆ ਹੈ — ਸਾਈਡਬਾਰ ਤੋਂ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।"
+    },
+    "nodes": {
+      "drones": "ਡਰੋਨ",
+      "groundStations": "ਗਰਾਊਂਡ ਸਟੇਸ਼ਨ",
+      "relays": "ਰਿਲੇਅ",
+      "receivers": "ਰਿਸੀਵਰ",
+      "compute": "ਕੰਪਿਊਟ",
+      "local": "ਸਥਾਨਕ",
+      "forgetLocal": "ਸਥਾਨਕ ਨੋਡ ਨੂੰ ਭੁੱਲ ਜਾਓ"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "ਸੰਖੇਪ",
+        "radio": "ਰੇਡੀਓ",
+        "network": "ਨੈੱਟਵਰਕ",
+        "display": "ਡਿਸਪਲੇ",
+        "physicalUi": "ਭੌਤਿਕ UI",
+        "peripherals": "ਪੈਰੀਫੈਰਲ",
+        "mesh": "ਮੈਸ਼",
+        "distributedRx": "ਡਿਸਟ੍ਰੀਬਿਊਟਡ RX"
+      }
+    }
   },
   "agent": {
     "status": "ਸਥਿਤੀ",

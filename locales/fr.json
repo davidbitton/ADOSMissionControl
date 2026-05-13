@@ -864,7 +864,53 @@
     "waitingForDrone": "En attente de connexion de votre drone...",
     "tier": "Niveau",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "Ajouter un nœud",
+      "subtitle": "Appairez n'importe quel nœud ADOS — drone, station au sol, ou futur module de calcul — directement via votre réseau local.",
+      "pairOnLan": "Appairer un nœud sur votre réseau local",
+      "noAccountRequired": "Aucun compte requis. Fonctionne entièrement hors ligne.",
+      "hostnamePlaceholder": "skynode.local  or  http://192.168.1.42:8080",
+      "probeButton": "Sonder",
+      "probingButton": "Sondage en cours",
+      "installAgent": "Installer un nouvel agent",
+      "installAgentDescription": "Exécutez ceci sur le SBC, puis collez le nom d'hôte ci-dessus.",
+      "copyInstallCommand": "Copier la commande d'installation",
+      "signInForRemote": "Se connecter pour l'accès à distance",
+      "signInDescription": "Facultatif. Permet d'atteindre un nœud appairé depuis l'extérieur de votre réseau local.",
+      "enterHostnameError": "Entrez un nom d'hôte ou une URL à sonder",
+      "probeFailedError": "Impossible d'atteindre cette adresse. Vérifiez que l'agent est en cours d'exécution et sur le même réseau.",
+      "alreadyPairedTitle": "L'agent est déjà appairé",
+      "alreadyPairedMessage": "Cet agent est déjà appairé. Appairez localement pour tenter d'en prendre possession — l'agent répondra avec une erreur claire s'il ne le peut pas.",
+      "alreadyPairedToOtherBrowser": "Cet agent est déjà appairé à un autre navigateur. Désappairez depuis la page de configuration de l'agent, puis réessayez.",
+      "pairLocallyButton": "Appairer localement",
+      "pairingButton": "Appairage en cours",
+      "cancelButton": "Annuler",
+      "mixedContentError": "Cette instance de Mission Control est servie via HTTPS. Les navigateurs bloquent les sondes HTTP en clair depuis les pages HTTPS. Chargez Mission Control via http:// (ou utilisez une version localhost) pour appairer des agents sur le réseau local.",
+      "missingDeviceIdError": "La réponse de la sonde ne contient pas de device_id",
+      "pairedButConnectFailed": "Appairé, mais impossible d'établir une connexion active : {error}. Le nœud est enregistré — réessayez depuis la barre latérale."
+    },
+    "nodes": {
+      "drones": "Drones",
+      "groundStations": "Stations au sol",
+      "relays": "Relais",
+      "receivers": "Récepteurs",
+      "compute": "Calcul",
+      "local": "Local",
+      "forgetLocal": "Oublier le nœud local"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "Vue d'ensemble",
+        "radio": "Radio",
+        "network": "Réseau",
+        "display": "Affichage",
+        "physicalUi": "Interface physique",
+        "peripherals": "Périphériques",
+        "mesh": "Maillage",
+        "distributedRx": "RX distribué"
+      }
+    }
   },
   "agent": {
     "status": "Statut",

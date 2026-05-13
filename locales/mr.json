@@ -879,7 +879,53 @@
     "moduleStore": "मॉड्यूल स्टोअर",
     "tier": "टिअर",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "नोड जोडा",
+      "subtitle": "कोणताही ADOS नोड — ड्रोन, ग्राउंड स्टेशन किंवा भविष्यातील कंप्यूट — थेट आपल्या LAN वर पेअर करा.",
+      "pairOnLan": "आपल्या LAN वर नोड पेअर करा",
+      "noAccountRequired": "खात्याची आवश्यकता नाही. पूर्णपणे ऑफलाइन काम करते.",
+      "hostnamePlaceholder": "skynode.local  किंवा  http://192.168.1.42:8080",
+      "probeButton": "प्रोब",
+      "probingButton": "प्रोबिंग",
+      "installAgent": "नवीन एजंट स्थापित करा",
+      "installAgentDescription": "हे SBC वर चालवा, नंतर वरील होस्टनेम पेस्ट करा.",
+      "copyInstallCommand": "इन्स्टॉल कमांड कॉपी करा",
+      "signInForRemote": "रिमोट प्रवेशासाठी साइन इन करा",
+      "signInDescription": "पर्यायी. आपल्या LAN बाहेरून पेअर केलेल्या नोडपर्यंत पोहोचण्याची परवानगी देते.",
+      "enterHostnameError": "प्रोब करण्यासाठी होस्टनेम किंवा URL प्रविष्ट करा",
+      "probeFailedError": "त्या पत्त्यापर्यंत पोहोचता आले नाही. एजंट चालू आहे आणि त्याच नेटवर्कवर आहे का ते तपासा.",
+      "alreadyPairedTitle": "एजंट आधीच पेअर केलेला आहे",
+      "alreadyPairedMessage": "हा एजंट आधीच पेअर केलेला आहे. मालकी घेण्याचा प्रयत्न करण्यासाठी स्थानिकरित्या पेअर करा — जर शक्य नसेल तर एजंट स्पष्ट त्रुटीसह प्रतिसाद देईल.",
+      "alreadyPairedToOtherBrowser": "हा एजंट दुसऱ्या ब्राउझरला आधीच पेअर केलेला आहे. एजंटच्या सेटअप पृष्ठावरून अनपेअर करा, नंतर पुन्हा प्रयत्न करा.",
+      "pairLocallyButton": "स्थानिकरित्या पेअर करा",
+      "pairingButton": "पेअरिंग",
+      "cancelButton": "रद्द करा",
+      "mixedContentError": "हे Mission Control HTTPS वर सर्व्ह केले जाते. ब्राउझर HTTPS पृष्ठांवरून साध्या HTTP प्रोबला ब्लॉक करतात. LAN एजंट पेअर करण्यासाठी Mission Control http:// वर लोड करा (किंवा localhost बिल्ड वापरा).",
+      "missingDeviceIdError": "प्रोब प्रतिसादात device_id गहाळ आहे",
+      "pairedButConnectFailed": "पेअर झाले, परंतु थेट कनेक्शन स्थापित करता आले नाही: {error}. नोड जतन केला आहे — साइडबारमधून पुन्हा प्रयत्न करा."
+    },
+    "nodes": {
+      "drones": "ड्रोन",
+      "groundStations": "ग्राउंड स्टेशन",
+      "relays": "रिले",
+      "receivers": "रिसीव्हर",
+      "compute": "कंप्यूट",
+      "local": "स्थानिक",
+      "forgetLocal": "स्थानिक नोड विसरा"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "विहंगावलोकन",
+        "radio": "रेडिओ",
+        "network": "नेटवर्क",
+        "display": "डिस्प्ले",
+        "physicalUi": "भौतिक UI",
+        "peripherals": "परिधीय",
+        "mesh": "मेश",
+        "distributedRx": "वितरित RX"
+      }
+    }
   },
   "agent": {
     "status": "एजंट स्थिती",

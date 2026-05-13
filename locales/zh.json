@@ -864,7 +864,53 @@
     "waitingForDrone": "等待您的无人机连接...",
     "tier": "层级",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "添加节点",
+      "subtitle": "通过局域网直接配对任何 ADOS 节点——无人机、地面站或未来的计算设备。",
+      "pairOnLan": "在局域网上配对节点",
+      "noAccountRequired": "无需账户。完全离线可用。",
+      "hostnamePlaceholder": "skynode.local  或  http://192.168.1.42:8080",
+      "probeButton": "探测",
+      "probingButton": "正在探测",
+      "installAgent": "安装新的代理",
+      "installAgentDescription": "在 SBC 上运行此命令，然后将主机名粘贴到上方。",
+      "copyInstallCommand": "复制安装命令",
+      "signInForRemote": "登录以进行远程访问",
+      "signInDescription": "可选。允许您从局域网外访问已配对的节点。",
+      "enterHostnameError": "输入要探测的主机名或 URL",
+      "probeFailedError": "无法访问该地址。请检查代理是否正在运行并位于同一网络中。",
+      "alreadyPairedTitle": "代理已配对",
+      "alreadyPairedMessage": "此代理已配对。在本地配对以尝试取得所有权——如果无法取得，代理将返回明确的错误。",
+      "alreadyPairedToOtherBrowser": "此代理已与另一个浏览器配对。请从代理的设置页面取消配对，然后重试。",
+      "pairLocallyButton": "本地配对",
+      "pairingButton": "正在配对",
+      "cancelButton": "取消",
+      "mixedContentError": "此 Mission Control 通过 HTTPS 提供服务。浏览器会阻止从 HTTPS 页面发起的明文 HTTP 探测。请通过 http:// 加载 Mission Control（或使用 localhost 构建）以配对局域网代理。",
+      "missingDeviceIdError": "探测响应缺少 device_id",
+      "pairedButConnectFailed": "已配对，但无法建立实时连接：{error}。节点已保存——请从侧边栏重试。"
+    },
+    "nodes": {
+      "drones": "无人机",
+      "groundStations": "地面站",
+      "relays": "中继",
+      "receivers": "接收器",
+      "compute": "计算设备",
+      "local": "本地",
+      "forgetLocal": "移除本地节点"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "概览",
+        "radio": "无线电",
+        "network": "网络",
+        "display": "显示",
+        "physicalUi": "物理界面",
+        "peripherals": "外设",
+        "mesh": "网状网络",
+        "distributedRx": "分布式接收"
+      }
+    }
   },
   "agent": {
     "status": "状态",

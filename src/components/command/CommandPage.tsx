@@ -39,6 +39,7 @@ import { FleetSidebar } from "./FleetSidebar";
 import { PairingDialog } from "./PairingDialog";
 import { AgentDisconnectedPage } from "./AgentDisconnectedPage";
 import { CommandFleetOverview } from "./CommandFleetOverview";
+import { GroundStationDetailPanel } from "./nodes/ground-station/GroundStationDetailPanel";
 import { CommandFleetMqttBridge } from "./CommandFleetMqttBridge";
 import { CommandFleetStatusBridge } from "./CommandFleetStatusBridge";
 import { DroneContextRail } from "./shared/DroneContextRail";
@@ -69,6 +70,8 @@ export function CommandPage() {
   const visibleTabs = useVisibleTabs();
   const activeFeatureId = useAgentCapabilitiesStore((s) => s.features.active);
   const activeFeatureName = activeFeatureId ? FEATURE_CATALOG[activeFeatureId]?.name ?? null : null;
+  const selectedProfile = useAgentCapabilitiesStore((s) => s.profile);
+  const capsLoaded = useAgentCapabilitiesStore((s) => s.loaded);
 
   const tabConfig: Record<CommandSubTab, { label: string; icon: typeof Monitor }> = useMemo(() => ({
     overview: { label: t("overview"), icon: Monitor },
@@ -375,6 +378,8 @@ export function CommandPage() {
             onOpenAgent={handleOpenAgent}
             onOpenPairing={() => setPairingOpen(true)}
           />
+        ) : status && capsLoaded && selectedProfile === "ground-station" ? (
+          <GroundStationDetailPanel />
         ) : status ? (
           <>
             {/* Sub-tab navigation */}

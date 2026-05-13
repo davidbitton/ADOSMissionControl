@@ -879,7 +879,53 @@
     "moduleStore": "મોડ્યુલ સ્ટોર",
     "tier": "ટિયર",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "નોડ ઉમેરો",
+      "subtitle": "તમારા LAN પર સીધો જ કોઈપણ ADOS નોડ જોડો — ડ્રોન, ગ્રાઉન્ડ સ્ટેશન, અથવા ભવિષ્યનું કમ્પ્યુટ.",
+      "pairOnLan": "તમારા LAN પર નોડ જોડો",
+      "noAccountRequired": "કોઈ ખાતું જરૂરી નથી. સંપૂર્ણપણે ઓફલાઇન કામ કરે છે.",
+      "hostnamePlaceholder": "skynode.local  or  http://192.168.1.42:8080",
+      "probeButton": "તપાસો",
+      "probingButton": "તપાસી રહ્યું છે",
+      "installAgent": "નવો એજન્ટ ઇન્સ્ટોલ કરો",
+      "installAgentDescription": "આને SBC પર ચલાવો, પછી ઉપર હોસ્ટનામ પેસ્ટ કરો.",
+      "copyInstallCommand": "ઇન્સ્ટોલ કમાન્ડ કોપી કરો",
+      "signInForRemote": "રિમોટ ઍક્સેસ માટે સાઇન ઇન કરો",
+      "signInDescription": "વૈકલ્પિક. તમને તમારા LAN ની બહારથી જોડેલા નોડ સુધી પહોંચવા દે છે.",
+      "enterHostnameError": "તપાસવા માટે હોસ્ટનામ અથવા URL દાખલ કરો",
+      "probeFailedError": "તે સરનામા સુધી પહોંચી શકાયું નહીં. તપાસો કે એજન્ટ ચાલી રહ્યો છે અને એ જ નેટવર્ક પર છે.",
+      "alreadyPairedTitle": "એજન્ટ પહેલેથી જ જોડાયેલ છે",
+      "alreadyPairedMessage": "આ એજન્ટ પહેલેથી જ જોડાયેલ છે. માલિકી લેવાનો પ્રયાસ કરવા સ્થાનિક રીતે જોડો — જો ન કરી શકે તો એજન્ટ સ્પષ્ટ ભૂલ સાથે જવાબ આપશે.",
+      "alreadyPairedToOtherBrowser": "આ એજન્ટ બીજા બ્રાઉઝર સાથે પહેલેથી જ જોડાયેલ છે. એજન્ટના સેટઅપ પૃષ્ઠ પરથી અનપેર કરો, પછી ફરી પ્રયાસ કરો.",
+      "pairLocallyButton": "સ્થાનિક રીતે જોડો",
+      "pairingButton": "જોડી રહ્યું છે",
+      "cancelButton": "રદ કરો",
+      "mixedContentError": "આ Mission Control HTTPS પર પીરસવામાં આવે છે. બ્રાઉઝર્સ HTTPS પૃષ્ઠોમાંથી સાદા HTTP પ્રોબ્સને બ્લોક કરે છે. LAN એજન્ટ્સ જોડવા માટે Mission Control ને http:// પર લોડ કરો (અથવા localhost બિલ્ડનો ઉપયોગ કરો).",
+      "missingDeviceIdError": "પ્રોબ પ્રતિસાદમાં device_id ખૂટે છે",
+      "pairedButConnectFailed": "જોડાયેલ, પરંતુ જીવંત કનેક્શન સ્થાપિત કરી શકાયું નહીં: {error}. નોડ સાચવાયેલ છે — સાઇડબારથી ફરી પ્રયાસ કરો."
+    },
+    "nodes": {
+      "drones": "ડ્રોન",
+      "groundStations": "ગ્રાઉન્ડ સ્ટેશન",
+      "relays": "રિલે",
+      "receivers": "રિસીવર",
+      "compute": "કમ્પ્યુટ",
+      "local": "સ્થાનિક",
+      "forgetLocal": "સ્થાનિક નોડ ભૂલી જાઓ"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "ઝાંખી",
+        "radio": "રેડિયો",
+        "network": "નેટવર્ક",
+        "display": "ડિસ્પ્લે",
+        "physicalUi": "ભૌતિક UI",
+        "peripherals": "પેરિફેરલ્સ",
+        "mesh": "મેશ",
+        "distributedRx": "વિતરિત RX"
+      }
+    }
   },
   "agent": {
     "status": "એજન્ટ સ્થિતિ",

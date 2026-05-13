@@ -864,7 +864,53 @@
     "waitingForDrone": "Warte auf Verbindung deiner Drohne...",
     "tier": "Stufe",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "Knoten hinzufügen",
+      "subtitle": "Koppeln Sie einen beliebigen ADOS-Knoten – Drohne, Bodenstation oder zukünftige Recheneinheit – direkt über Ihr LAN.",
+      "pairOnLan": "Einen Knoten im LAN koppeln",
+      "noAccountRequired": "Kein Konto erforderlich. Funktioniert vollständig offline.",
+      "hostnamePlaceholder": "skynode.local  oder  http://192.168.1.42:8080",
+      "probeButton": "Prüfen",
+      "probingButton": "Prüfung läuft",
+      "installAgent": "Einen neuen Agenten installieren",
+      "installAgentDescription": "Führen Sie dies auf dem SBC aus und fügen Sie dann den Hostnamen oben ein.",
+      "copyInstallCommand": "Installationsbefehl kopieren",
+      "signInForRemote": "Für Fernzugriff anmelden",
+      "signInDescription": "Optional. Ermöglicht den Zugriff auf einen gekoppelten Knoten außerhalb Ihres LANs.",
+      "enterHostnameError": "Geben Sie einen Hostnamen oder eine URL zum Prüfen ein",
+      "probeFailedError": "Diese Adresse konnte nicht erreicht werden. Prüfen Sie, ob der Agent läuft und sich im selben Netzwerk befindet.",
+      "alreadyPairedTitle": "Agent ist bereits gekoppelt",
+      "alreadyPairedMessage": "Dieser Agent ist bereits gekoppelt. Koppeln Sie lokal, um die Übernahme zu versuchen – der Agent antwortet mit einer eindeutigen Fehlermeldung, falls dies nicht möglich ist.",
+      "alreadyPairedToOtherBrowser": "Dieser Agent ist bereits mit einem anderen Browser gekoppelt. Entkoppeln Sie ihn auf der Einrichtungsseite des Agenten und versuchen Sie es erneut.",
+      "pairLocallyButton": "Lokal koppeln",
+      "pairingButton": "Kopplung läuft",
+      "cancelButton": "Abbrechen",
+      "mixedContentError": "Diese Mission Control wird über HTTPS bereitgestellt. Browser blockieren einfache HTTP-Anfragen von HTTPS-Seiten. Laden Sie Mission Control über http:// (oder nutzen Sie einen Localhost-Build), um LAN-Agenten zu koppeln.",
+      "missingDeviceIdError": "In der Prüfungsantwort fehlt die device_id",
+      "pairedButConnectFailed": "Gekoppelt, aber es konnte keine Live-Verbindung hergestellt werden: {error}. Der Knoten ist gespeichert – erneut über die Seitenleiste versuchen."
+    },
+    "nodes": {
+      "drones": "Drohnen",
+      "groundStations": "Bodenstationen",
+      "relays": "Relais",
+      "receivers": "Empfänger",
+      "compute": "Recheneinheiten",
+      "local": "Lokal",
+      "forgetLocal": "Lokalen Knoten vergessen"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "Übersicht",
+        "radio": "Funk",
+        "network": "Netzwerk",
+        "display": "Anzeige",
+        "physicalUi": "Physische Bedienoberfläche",
+        "peripherals": "Peripheriegeräte",
+        "mesh": "Mesh",
+        "distributedRx": "Verteilter Empfang"
+      }
+    }
   },
   "agent": {
     "status": "Status",

@@ -879,7 +879,53 @@
     "moduleStore": "モジュールストア",
     "tier": "ティア",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "ノードを追加",
+      "subtitle": "ドローン、地上局、または将来のコンピュートなど、あらゆるADOSノードをLAN経由で直接ペアリングします。",
+      "pairOnLan": "LAN上のノードをペアリング",
+      "noAccountRequired": "アカウント不要。完全オフラインで動作します。",
+      "hostnamePlaceholder": "skynode.local  または  http://192.168.1.42:8080",
+      "probeButton": "プローブ",
+      "probingButton": "プローブ中",
+      "installAgent": "新しいエージェントをインストール",
+      "installAgentDescription": "これをSBCで実行し、上記にホスト名を貼り付けてください。",
+      "copyInstallCommand": "インストールコマンドをコピー",
+      "signInForRemote": "リモートアクセスのためサインイン",
+      "signInDescription": "オプション。LAN外からペアリング済みノードに到達できるようになります。",
+      "enterHostnameError": "プローブするホスト名またはURLを入力してください",
+      "probeFailedError": "そのアドレスに到達できませんでした。エージェントが実行中で同じネットワーク上にあることを確認してください。",
+      "alreadyPairedTitle": "エージェントは既にペアリング済み",
+      "alreadyPairedMessage": "このエージェントは既にペアリングされています。ローカルでペアリングして所有権の取得を試みてください。できない場合、エージェントは明確なエラーで応答します。",
+      "alreadyPairedToOtherBrowser": "このエージェントは別のブラウザにペアリングされています。エージェントのセットアップページからペアリングを解除して、もう一度お試しください。",
+      "pairLocallyButton": "ローカルでペアリング",
+      "pairingButton": "ペアリング中",
+      "cancelButton": "キャンセル",
+      "mixedContentError": "このMission ControlはHTTPS経由で提供されています。ブラウザはHTTPSページからの平文HTTPプローブをブロックします。LANエージェントをペアリングするには、http://経由でMission Controlを読み込む（またはlocalhostビルドを使用する）必要があります。",
+      "missingDeviceIdError": "プローブ応答にdevice_idがありません",
+      "pairedButConnectFailed": "ペアリングしましたが、ライブ接続を確立できませんでした：{error}。ノードは保存されました。サイドバーから再試行してください。"
+    },
+    "nodes": {
+      "drones": "ドローン",
+      "groundStations": "地上局",
+      "relays": "リレー",
+      "receivers": "レシーバー",
+      "compute": "コンピュート",
+      "local": "ローカル",
+      "forgetLocal": "ローカルノードを削除"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "概要",
+        "radio": "無線",
+        "network": "ネットワーク",
+        "display": "ディスプレイ",
+        "physicalUi": "物理UI",
+        "peripherals": "周辺機器",
+        "mesh": "メッシュ",
+        "distributedRx": "分散RX"
+      }
+    }
   },
   "agent": {
     "status": "エージェントステータス",

@@ -864,7 +864,53 @@
     "waitingForDrone": "Esperando conexión de tu dron...",
     "tier": "Nivel",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "Añadir un nodo",
+      "subtitle": "Empareja cualquier nodo ADOS — dron, estación terrestre o cómputo futuro — directamente a través de tu LAN.",
+      "pairOnLan": "Empareja un nodo en tu LAN",
+      "noAccountRequired": "No se requiere cuenta. Funciona totalmente sin conexión.",
+      "hostnamePlaceholder": "skynode.local  o  http://192.168.1.42:8080",
+      "probeButton": "Sondear",
+      "probingButton": "Sondeando",
+      "installAgent": "Instalar un nuevo agente",
+      "installAgentDescription": "Ejecuta esto en el SBC, luego pega el nombre de host arriba.",
+      "copyInstallCommand": "Copiar comando de instalación",
+      "signInForRemote": "Inicia sesión para acceso remoto",
+      "signInDescription": "Opcional. Te permite acceder a un nodo emparejado desde fuera de tu LAN.",
+      "enterHostnameError": "Introduce un nombre de host o URL para sondear",
+      "probeFailedError": "No se pudo alcanzar esa dirección. Comprueba que el agente esté en ejecución y en la misma red.",
+      "alreadyPairedTitle": "El agente ya está emparejado",
+      "alreadyPairedMessage": "Este agente ya está emparejado. Empareja localmente para intentar tomar posesión — el agente responderá con un error claro si no puede.",
+      "alreadyPairedToOtherBrowser": "Este agente ya está emparejado con otro navegador. Desempareja desde la página de configuración del agente y vuelve a intentarlo.",
+      "pairLocallyButton": "Emparejar localmente",
+      "pairingButton": "Emparejando",
+      "cancelButton": "Cancelar",
+      "mixedContentError": "Este Mission Control se sirve por HTTPS. Los navegadores bloquean los sondeos HTTP sin cifrar desde páginas HTTPS. Carga Mission Control sobre http:// (o usa una compilación localhost) para emparejar agentes en la LAN.",
+      "missingDeviceIdError": "Falta device_id en la respuesta del sondeo",
+      "pairedButConnectFailed": "Emparejado, pero no se pudo establecer una conexión en vivo: {error}. El nodo está guardado — reinténtalo desde la barra lateral."
+    },
+    "nodes": {
+      "drones": "Drones",
+      "groundStations": "Estaciones terrestres",
+      "relays": "Repetidores",
+      "receivers": "Receptores",
+      "compute": "Cómputo",
+      "local": "Local",
+      "forgetLocal": "Olvidar nodo local"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "Resumen",
+        "radio": "Radio",
+        "network": "Red",
+        "display": "Pantalla",
+        "physicalUi": "Interfaz física",
+        "peripherals": "Periféricos",
+        "mesh": "Malla",
+        "distributedRx": "RX distribuida"
+      }
+    }
   },
   "agent": {
     "status": "Estado",

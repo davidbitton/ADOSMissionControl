@@ -864,7 +864,53 @@
     "waitingForDrone": "Waiting for your drone to connect...",
     "tier": "Tier",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "ನೋಡ್ ಸೇರಿಸಿ",
+      "subtitle": "ಯಾವುದೇ ADOS ನೋಡ್ ಅನ್ನು ನೇರವಾಗಿ ನಿಮ್ಮ LAN ಮೂಲಕ ಜೋಡಿಸಿ — ಡ್ರೋನ್, ಗ್ರೌಂಡ್ ಸ್ಟೇಷನ್, ಅಥವಾ ಭವಿಷ್ಯದ ಕಂಪ್ಯೂಟ್.",
+      "pairOnLan": "ನಿಮ್ಮ LAN ನಲ್ಲಿ ನೋಡ್ ಜೋಡಿಸಿ",
+      "noAccountRequired": "ಖಾತೆ ಅಗತ್ಯವಿಲ್ಲ. ಸಂಪೂರ್ಣವಾಗಿ ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ಕೆಲಸ ಮಾಡುತ್ತದೆ.",
+      "hostnamePlaceholder": "skynode.local  or  http://192.168.1.42:8080",
+      "probeButton": "ಪರೀಕ್ಷಿಸಿ",
+      "probingButton": "ಪರೀಕ್ಷಿಸುತ್ತಿದೆ",
+      "installAgent": "ಹೊಸ ಏಜೆಂಟ್ ಅನ್ನು ಸ್ಥಾಪಿಸಿ",
+      "installAgentDescription": "ಇದನ್ನು SBC ಯಲ್ಲಿ ರನ್ ಮಾಡಿ, ನಂತರ ಮೇಲಿನ ಹೋಸ್ಟ್‌ನೇಮ್ ಅನ್ನು ಅಂಟಿಸಿ.",
+      "copyInstallCommand": "ಸ್ಥಾಪನಾ ಆದೇಶವನ್ನು ನಕಲಿಸಿ",
+      "signInForRemote": "ರಿಮೋಟ್ ಪ್ರವೇಶಕ್ಕಾಗಿ ಸೈನ್ ಇನ್ ಮಾಡಿ",
+      "signInDescription": "ಐಚ್ಛಿಕ. ನಿಮ್ಮ LAN ಹೊರಗಿನಿಂದ ಜೋಡಿಸಲಾದ ನೋಡ್ ಅನ್ನು ತಲುಪಲು ಅನುಮತಿಸುತ್ತದೆ.",
+      "enterHostnameError": "ಪರೀಕ್ಷಿಸಲು ಹೋಸ್ಟ್‌ನೇಮ್ ಅಥವಾ URL ಅನ್ನು ನಮೂದಿಸಿ",
+      "probeFailedError": "ಆ ವಿಳಾಸವನ್ನು ತಲುಪಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಏಜೆಂಟ್ ರನ್ ಆಗುತ್ತಿದೆಯೇ ಮತ್ತು ಅದೇ ನೆಟ್‌ವರ್ಕ್‌ನಲ್ಲಿದೆಯೇ ಎಂಬುದನ್ನು ಪರಿಶೀಲಿಸಿ.",
+      "alreadyPairedTitle": "ಏಜೆಂಟ್ ಈಗಾಗಲೇ ಜೋಡಿಸಲಾಗಿದೆ",
+      "alreadyPairedMessage": "ಈ ಏಜೆಂಟ್ ಈಗಾಗಲೇ ಜೋಡಿಸಲಾಗಿದೆ. ಮಾಲೀಕತ್ವವನ್ನು ತೆಗೆದುಕೊಳ್ಳಲು ಸ್ಥಳೀಯವಾಗಿ ಜೋಡಿಸಿ — ಸಾಧ್ಯವಾಗದಿದ್ದರೆ ಏಜೆಂಟ್ ಸ್ಪಷ್ಟ ದೋಷದೊಂದಿಗೆ ಪ್ರತಿಕ್ರಿಯಿಸುತ್ತದೆ.",
+      "alreadyPairedToOtherBrowser": "ಈ ಏಜೆಂಟ್ ಈಗಾಗಲೇ ಮತ್ತೊಂದು ಬ್ರೌಸರ್‌ಗೆ ಜೋಡಿಸಲಾಗಿದೆ. ಏಜೆಂಟ್‌ನ ಸೆಟಪ್ ಪುಟದಿಂದ ಜೋಡಣೆ ತೆಗೆದುಹಾಕಿ, ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+      "pairLocallyButton": "ಸ್ಥಳೀಯವಾಗಿ ಜೋಡಿಸಿ",
+      "pairingButton": "ಜೋಡಿಸುತ್ತಿದೆ",
+      "cancelButton": "ರದ್ದುಮಾಡಿ",
+      "mixedContentError": "ಈ Mission Control HTTPS ಮೂಲಕ ಸೇವೆ ಸಲ್ಲಿಸಲಾಗಿದೆ. ಬ್ರೌಸರ್‌ಗಳು HTTPS ಪುಟಗಳಿಂದ ಸಾದಾ HTTP ಪರೀಕ್ಷೆಗಳನ್ನು ತಡೆಯುತ್ತವೆ. LAN ಏಜೆಂಟ್‌ಗಳನ್ನು ಜೋಡಿಸಲು Mission Control ಅನ್ನು http:// ಮೂಲಕ ಲೋಡ್ ಮಾಡಿ (ಅಥವಾ ಲೋಕಲ್‌ಹೋಸ್ಟ್ ಬಿಲ್ಡ್ ಬಳಸಿ).",
+      "missingDeviceIdError": "ಪರೀಕ್ಷಾ ಪ್ರತಿಕ್ರಿಯೆಯಲ್ಲಿ device_id ಕಾಣುತ್ತಿಲ್ಲ",
+      "pairedButConnectFailed": "ಜೋಡಿಸಲಾಗಿದೆ, ಆದರೆ ಲೈವ್ ಸಂಪರ್ಕವನ್ನು ಸ್ಥಾಪಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ: {error}. ನೋಡ್ ಉಳಿಸಲಾಗಿದೆ — ಸೈಡ್‌ಬಾರ್‌ನಿಂದ ಮರುಪ್ರಯತ್ನಿಸಿ."
+    },
+    "nodes": {
+      "drones": "ಡ್ರೋನ್‌ಗಳು",
+      "groundStations": "ಗ್ರೌಂಡ್ ಸ್ಟೇಷನ್‌ಗಳು",
+      "relays": "ರಿಲೇಗಳು",
+      "receivers": "ರಿಸೀವರ್‌ಗಳು",
+      "compute": "ಕಂಪ್ಯೂಟ್",
+      "local": "ಸ್ಥಳೀಯ",
+      "forgetLocal": "ಸ್ಥಳೀಯ ನೋಡ್ ಮರೆತುಬಿಡಿ"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "ಅವಲೋಕನ",
+        "radio": "ರೇಡಿಯೋ",
+        "network": "ನೆಟ್‌ವರ್ಕ್",
+        "display": "ಡಿಸ್ಪ್ಲೇ",
+        "physicalUi": "ಭೌತಿಕ UI",
+        "peripherals": "ಪರಿಧಿಗಳು",
+        "mesh": "ಮೆಶ್",
+        "distributedRx": "ವಿತರಿತ RX"
+      }
+    }
   },
   "agent": {
     "status": "ಸ್ಥಿತಿ",

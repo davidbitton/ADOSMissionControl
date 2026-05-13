@@ -879,7 +879,53 @@
     "moduleStore": "Module Store",
     "tier": "Tier",
     "allAgents": "All Agents",
-    "pairedCount": "{count} paired"
+    "pairedCount": "{count} paired",
+    "addNode": {
+      "title": "Add a node",
+      "subtitle": "Pair any ADOS node — drone, ground station, or future compute — directly over your LAN.",
+      "pairOnLan": "Pair a node on your LAN",
+      "noAccountRequired": "No account required. Works fully offline.",
+      "hostnamePlaceholder": "skynode.local  or  http://192.168.1.42:8080",
+      "probeButton": "Probe",
+      "probingButton": "Probing",
+      "installAgent": "Install a new agent",
+      "installAgentDescription": "Run this on the SBC, then paste the hostname above.",
+      "copyInstallCommand": "Copy install command",
+      "signInForRemote": "Sign in for remote access",
+      "signInDescription": "Optional. Lets you reach a paired node from outside your LAN.",
+      "enterHostnameError": "Enter a hostname or URL to probe",
+      "probeFailedError": "Could not reach that address. Check the agent is running and on the same network.",
+      "alreadyPairedTitle": "Agent is already paired",
+      "alreadyPairedMessage": "This agent is already paired. Pair locally to attempt to take ownership — the agent will respond with a clear error if it can't.",
+      "alreadyPairedToOtherBrowser": "This agent is already paired to another browser. Unpair from the agent's setup page, then try again.",
+      "pairLocallyButton": "Pair locally",
+      "pairingButton": "Pairing",
+      "cancelButton": "Cancel",
+      "mixedContentError": "This Mission Control is served over HTTPS. Browsers block plain HTTP probes from HTTPS pages. Load Mission Control over http:// (or use a localhost build) to pair LAN agents.",
+      "missingDeviceIdError": "Probe response missing device_id",
+      "pairedButConnectFailed": "Paired, but could not establish a live connection: {error}. The node is saved — retry from the sidebar."
+    },
+    "nodes": {
+      "drones": "Drones",
+      "groundStations": "Ground stations",
+      "relays": "Relays",
+      "receivers": "Receivers",
+      "compute": "Compute",
+      "local": "Local",
+      "forgetLocal": "Forget local node"
+    },
+    "groundStation": {
+      "tabs": {
+        "overview": "Overview",
+        "radio": "Radio",
+        "network": "Network",
+        "display": "Display",
+        "physicalUi": "Physical UI",
+        "peripherals": "Peripherals",
+        "mesh": "Mesh",
+        "distributedRx": "Distributed RX"
+      }
+    }
   },
   "agent": {
     "status": "Agent Status",
