@@ -11,6 +11,8 @@ import { useDroneMetadataStore } from "@/stores/drone-metadata-store";
 import { randomId } from "@/lib/utils";
 import { getPreset } from "@/lib/presets/presets";
 import { BuildPresetPicker } from "./BuildPresetPicker";
+import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
+import { cmdDroneStatusApi } from "@/lib/community-api-drones";
 
 const QUICK_PRESETS = [
   { label: "mavlink-router", url: "ws://localhost:14550" },
@@ -20,6 +22,13 @@ const QUICK_PRESETS = [
   { label: "SITL #4", url: "ws://localhost:5790" },
   { label: "SITL #5", url: "ws://localhost:5800" },
 ];
+
+/** Cloud-status row shape projected for the discovered-rigs section. */
+type DiscoveredRig = {
+  deviceId: string;
+  name: string;
+  mavlinkWs: string;
+};
 
 /** Detect SITL-like URLs (ws://localhost:576*). */
 function isSitlUrl(url: string): boolean {
@@ -44,6 +53,36 @@ export function WebSocketPanel({
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
   const addDrone = useDroneManager((s) => s.addDrone);
   const attachLinkToDrone = useDroneManager((s) => s.attachLinkToDrone);
+
+  // Discovered rigs — the cloud heartbeat from every paired agent
+  // carries a LAN-routable MAVLink WebSocket URL. Surface those as
+  // one-click chips so the operator can switch from cloud relay to
+  // direct LAN without copy-pasting addresses. Query is gated by the
+  // skip guard so it returns undefined when Convex auth is unavailable.
+  const cloudRows = useConvexSkipQuery(cmdDroneStatusApi.listMyCloudStatuses, {
+    enabled: true,
+  });
+  const discoveredRigs: DiscoveredRig[] = useMemo(() => {
+    if (!Array.isArray(cloudRows)) return [];
+    const rigs: DiscoveredRig[] = [];
+    for (const row of cloudRows as Array<{
+      drone?: { deviceId?: string; name?: string };
+      status?: {
+        manualConnectionUrls?: { mavlinkWs?: string | null };
+      } | null;
+    }>) {
+      const ws = row?.status?.manualConnectionUrls?.mavlinkWs;
+      const deviceId = row?.drone?.deviceId;
+      if (typeof ws === "string" && ws && typeof deviceId === "string") {
+        rigs.push({
+          deviceId,
+          name: row?.drone?.name || deviceId,
+          mavlinkWs: ws,
+        });
+      }
+    }
+    return rigs;
+  }, [cloudRows]);
 
   const effectiveUrl = url ?? localUrl;
 
@@ -129,6 +168,30 @@ export function WebSocketPanel({
         }}
         placeholder="ws://localhost:14550"
       />
+
+      {discoveredRigs.length > 0 && (
+        <div>
+          <div className="text-[10px] uppercase tracking-wide text-text-tertiary mb-1.5">
+            Discovered rigs
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {discoveredRigs.map((rig) => (
+              <button
+                key={rig.deviceId}
+                onClick={() => handleUrlChange(rig.mavlinkWs)}
+                className={`px-2 py-1 text-[10px] font-mono border transition-colors cursor-pointer ${
+                  effectiveUrl === rig.mavlinkWs
+                    ? "border-accent-primary text-accent-primary bg-accent-primary/10"
+                    : "border-border-default text-text-tertiary hover:text-text-secondary hover:border-border-strong"
+                }`}
+                title={rig.mavlinkWs}
+              >
+                {rig.name} — {rig.mavlinkWs.replace(/^wss?:\/\//, "")}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick-connect presets */}
       <div className="flex flex-wrap gap-1.5">

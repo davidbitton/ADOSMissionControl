@@ -366,6 +366,23 @@ interface AgentCapabilitiesState {
    * path. "failed" means neither path is up. Defaults to "local"
    * for legacy heartbeats. */
   wfbFailoverState: "local" | "cloud_relay" | "failed";
+  /** LAN-routable manual-connection URLs the agent advertises so
+   * the operator can dial directly from a workstation on the same
+   * network. Each field independently null when the agent can't
+   * compute a usable URL (no MAVLink TCP listener, no video
+   * pipeline, etc.). Undefined for legacy heartbeats. */
+  manualConnectionUrls: {
+    mavlinkTcp: string | null;
+    mavlinkWs: string | null;
+    videoViewer: string | null;
+    videoWhep: string | null;
+  } | null;
+  /** Cloud relay backend the agent is paired to (Convex deployment),
+   * or null when unpaired. Distinct from Cloudflare tunnel state. */
+  cloudRelayUrl: string | null;
+  /** Cloudflare tunnel ingress URL when the inbound tunnel is up,
+   * or null when disabled. Distinct from cloud relay state. */
+  cloudflareUrl: string | null;
   /** True once we've received at least one capabilities payload. */
   loaded: boolean;
 }
@@ -407,6 +424,9 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
   pairingCodeExpiresAt: null,
   mavlinkWsUrlPrev: null,
   wfbFailoverState: "local",
+  manualConnectionUrls: null,
+  cloudRelayUrl: null,
+  cloudflareUrl: null,
   loaded: false,
 
   setCapabilities(caps: AgentCapabilities | Record<string, unknown>) {
@@ -531,6 +551,46 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
           ? null
           : undefined;
 
+    // Manual connection URLs. Forward-permissive: undefined keeps
+    // the prior block. A partial block (e.g., only mavlinkWs set) is
+    // accepted as-is so the GCS can render whichever fallbacks the
+    // agent currently advertises.
+    const rawManual = (caps as { manualConnectionUrls?: unknown })
+      .manualConnectionUrls;
+    let manualConnectionUrls:
+      | { mavlinkTcp: string | null; mavlinkWs: string | null; videoViewer: string | null; videoWhep: string | null }
+      | null
+      | undefined = undefined;
+    if (rawManual && typeof rawManual === "object") {
+      const m = rawManual as Record<string, unknown>;
+      const pick = (v: unknown): string | null =>
+        typeof v === "string" && v.length > 0 ? v : null;
+      manualConnectionUrls = {
+        mavlinkTcp: pick(m.mavlinkTcp),
+        mavlinkWs: pick(m.mavlinkWs),
+        videoViewer: pick(m.videoViewer),
+        videoWhep: pick(m.videoWhep),
+      };
+    } else if (rawManual === null) {
+      manualConnectionUrls = null;
+    }
+
+    const rawCloudRelay = (caps as { cloudRelayUrl?: unknown }).cloudRelayUrl;
+    const cloudRelayUrl: string | null | undefined =
+      typeof rawCloudRelay === "string" && rawCloudRelay.length > 0
+        ? rawCloudRelay
+        : rawCloudRelay === null
+          ? null
+          : undefined;
+
+    const rawCloudflare = (caps as { cloudflareUrl?: unknown }).cloudflareUrl;
+    const cloudflareUrl: string | null | undefined =
+      typeof rawCloudflare === "string" && rawCloudflare.length > 0
+        ? rawCloudflare
+        : rawCloudflare === null
+          ? null
+          : undefined;
+
     // Forward-permissive: undefined keeps the prior value, a known
     // string sets it, anything else clamps to "local" so an agent
     // shipping a future variant can't put the UI into an invalid
@@ -589,6 +649,14 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
         wfbFailoverState === undefined
           ? state.wfbFailoverState
           : wfbFailoverState,
+      manualConnectionUrls:
+        manualConnectionUrls === undefined
+          ? state.manualConnectionUrls
+          : manualConnectionUrls,
+      cloudRelayUrl:
+        cloudRelayUrl === undefined ? state.cloudRelayUrl : cloudRelayUrl,
+      cloudflareUrl:
+        cloudflareUrl === undefined ? state.cloudflareUrl : cloudflareUrl,
       loaded: true,
     }));
   },
@@ -639,6 +707,9 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
       pairingCodeExpiresAt: null,
       mavlinkWsUrlPrev: null,
       wfbFailoverState: "local",
+      manualConnectionUrls: null,
+      cloudRelayUrl: null,
+      cloudflareUrl: null,
       loaded: false,
     });
   },

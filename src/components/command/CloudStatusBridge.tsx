@@ -313,6 +313,31 @@ export function CloudStatusBridge() {
       ? (cloudRecord.wfbFailoverState as "local" | "cloud_relay" | "failed")
       : "local";
 
+    // Manual-connection URL block (LAN-routable fallbacks the operator
+    // can paste into a manual MAVLink / video form). Per-field optional.
+    const rawManual = cloudRecord.manualConnectionUrls;
+    const pickStringOrNull = (v: unknown): string | null =>
+      typeof v === "string" && v.length > 0 ? v : null;
+    const manualConnectionUrls =
+      rawManual && typeof rawManual === "object"
+        ? {
+            mavlinkTcp: pickStringOrNull(
+              (rawManual as Record<string, unknown>).mavlinkTcp,
+            ),
+            mavlinkWs: pickStringOrNull(
+              (rawManual as Record<string, unknown>).mavlinkWs,
+            ),
+            videoViewer: pickStringOrNull(
+              (rawManual as Record<string, unknown>).videoViewer,
+            ),
+            videoWhep: pickStringOrNull(
+              (rawManual as Record<string, unknown>).videoWhep,
+            ),
+          }
+        : null;
+    const cloudRelayUrl = pickStringOrNull(cloudRecord.cloudRelayUrl);
+    const cloudflareUrl = pickStringOrNull(cloudRecord.cloudflareUrl);
+
     // Top-level heartbeat extras the agent forwards every tick. These
     // refresh the LCD live state (active page, last touch, snapshot
     // URL) and the local video tap snapshot independent of any
@@ -406,6 +431,9 @@ export function CloudStatusBridge() {
           pairingCodeExpiresAt,
           mavlinkWsUrlPrev,
           wfbFailoverState,
+          manualConnectionUrls,
+          cloudRelayUrl,
+          cloudflareUrl,
         };
         if (setupState !== undefined) payload.setupState = setupState;
         if (profileSource !== undefined) payload.profileSource = profileSource;
@@ -465,6 +493,9 @@ export function CloudStatusBridge() {
         pairingCodeExpiresAt,
         mavlinkWsUrlPrev,
         wfbFailoverState,
+        manualConnectionUrls,
+        cloudRelayUrl,
+        cloudflareUrl,
         ...(radioFromHeartbeat !== undefined ? { radio: radioFromHeartbeat } : {}),
       } as Record<string, unknown>);
     }

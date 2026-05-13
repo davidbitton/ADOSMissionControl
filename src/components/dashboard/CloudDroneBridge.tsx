@@ -91,6 +91,16 @@ export function CloudDroneBridge() {
               | undefined)
           : undefined;
 
+      const manualMavlinkWsUrl =
+        typeof (drone as { manualMavlinkWsUrl?: unknown })
+          .manualMavlinkWsUrl === "string" &&
+        ((drone as { manualMavlinkWsUrl: string }).manualMavlinkWsUrl as string)
+          .length > 0
+          ? ((drone as { manualMavlinkWsUrl: string }).manualMavlinkWsUrl as
+              | string
+              | undefined)
+          : undefined;
+
       const fleetDrone: FleetDrone = {
         id: fleetId,
         name: drone.name || `Agent ${drone.deviceId.slice(0, 8)}`,
@@ -110,6 +120,7 @@ export function CloudDroneBridge() {
         videoPipelineFlavor,
         videoEncoderName,
         videoEncoderHwAccel,
+        manualMavlinkWsUrl,
       };
 
       if (trackedIds.current.has(fleetId)) {

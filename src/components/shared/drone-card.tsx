@@ -95,6 +95,22 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
               </Badge>
             </span>
           )}
+          {drone.manualMavlinkWsUrl && (
+            <span
+              title={`Direct LAN MAVLink available — ${drone.manualMavlinkWsUrl}\nClick to copy to clipboard.`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (drone.manualMavlinkWsUrl) {
+                  navigator.clipboard?.writeText(drone.manualMavlinkWsUrl);
+                }
+              }}
+              className="cursor-pointer"
+            >
+              <Badge variant="success" className="text-[10px]">
+                Direct
+              </Badge>
+            </span>
+          )}
           {(drone.profileSource === "detected" ||
             drone.profileSource === "tiebreaker" ||
             drone.profileSource === "default") && (

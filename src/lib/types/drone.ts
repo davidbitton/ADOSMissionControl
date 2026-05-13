@@ -80,6 +80,11 @@ export interface FleetDrone extends DroneInfo {
   profile?: "drone" | "ground-station" | "compute" | "lite";
   /** Ground-station role when applicable. Undefined / null on drones. */
   role?: "direct" | "relay" | "receiver" | null;
+  /** Direct LAN MAVLink WebSocket URL the agent advertises in its
+   * heartbeat. Drives the "Direct" pill on the fleet drone card so
+   * the operator can switch from cloud relay to direct LAN in one
+   * click. Undefined when the agent reports no LAN-routable URL. */
+  manualMavlinkWsUrl?: string;
 }
 
 export type AlertSeverity = "info" | "warning" | "critical";

@@ -72,6 +72,16 @@ export const pushStatus = internalMutation({
     mavlinkWsPort: v.optional(v.number()),
     mavlinkWsUrl: v.optional(v.string()),
     mavlinkWsUrlPrev: v.optional(v.string()),
+    manualConnectionUrls: v.optional(
+      v.object({
+        mavlinkTcp: v.optional(v.union(v.string(), v.null())),
+        mavlinkWs: v.optional(v.union(v.string(), v.null())),
+        videoViewer: v.optional(v.union(v.string(), v.null())),
+        videoWhep: v.optional(v.union(v.string(), v.null())),
+      }),
+    ),
+    cloudRelayUrl: v.optional(v.union(v.string(), v.null())),
+    cloudflareUrl: v.optional(v.union(v.string(), v.null())),
     remoteAccess: v.optional(v.any()),
     peripherals: v.optional(v.any()),
     scripts: v.optional(v.any()),
@@ -176,6 +186,17 @@ export const pushStatus = internalMutation({
       }
     }
 
+    // Direct LAN MAVLink URL denormalized onto cmd_drones so the
+    // fleet card can render a "Direct" pill without joining
+    // cmd_droneStatus on every render.
+    let manualMavlinkWsUrl: string | undefined;
+    if (args.manualConnectionUrls && typeof args.manualConnectionUrls === "object") {
+      const ws = (args.manualConnectionUrls as { mavlinkWs?: unknown }).mavlinkWs;
+      if (typeof ws === "string" && ws.length > 0) {
+        manualMavlinkWsUrl = ws;
+      }
+    }
+
     // Also update the cmd_drones table lastSeen, fcConnected, lastIp
     const drone = await ctx.db
       .query("cmd_drones")
@@ -196,6 +217,7 @@ export const pushStatus = internalMutation({
           : {}),
         ...(args.profile !== undefined ? { profile: args.profile } : {}),
         ...(args.role !== undefined ? { role: args.role } : {}),
+        ...(manualMavlinkWsUrl !== undefined ? { manualMavlinkWsUrl } : {}),
       });
     }
 

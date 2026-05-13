@@ -548,6 +548,12 @@ fullName: v.optional(v.string()),
     // to ground stations only.
     profile: v.optional(v.string()),
     role: v.optional(v.string()),
+    // Direct LAN MAVLink WebSocket URL the agent advertises in its
+    // heartbeat's manualConnectionUrls block. Denormalized onto
+    // cmd_drones so the fleet card can render a "Direct" pill (and
+    // popover with the URL) without joining cmd_droneStatus on every
+    // render. Null when the agent reports no LAN-routable URL.
+    manualMavlinkWsUrl: v.optional(v.string()),
     pairedAt: v.number(),
   })
     .index("by_userId", ["userId"])
@@ -615,6 +621,23 @@ fullName: v.optional(v.string()),
     // surfacing a connection error so a brief rotation doesn't drop
     // an in-flight session.
     mavlinkWsUrlPrev: v.optional(v.string()),
+    // LAN-routable manual-connection URLs the agent advertises so
+    // the operator can dial directly from a workstation on the same
+    // network. All optional; each independently null when the agent
+    // can't compute a usable URL (no MAVLink TCP listener, no video
+    // pipeline, etc.).
+    manualConnectionUrls: v.optional(
+      v.object({
+        mavlinkTcp: v.optional(v.union(v.string(), v.null())),
+        mavlinkWs: v.optional(v.union(v.string(), v.null())),
+        videoViewer: v.optional(v.union(v.string(), v.null())),
+        videoWhep: v.optional(v.union(v.string(), v.null())),
+      }),
+    ),
+    // Cloud relay = MQTT-to-Convex pair, Cloudflare = inbound tunnel.
+    // Split because the prior single "Remote" surface conflated them.
+    cloudRelayUrl: v.optional(v.union(v.string(), v.null())),
+    cloudflareUrl: v.optional(v.union(v.string(), v.null())),
     remoteAccess: v.optional(v.any()),
     peripherals: v.optional(v.any()),
     scripts: v.optional(v.any()),
