@@ -17,6 +17,7 @@ import { useConvexAvailable } from "@/app/ConvexClientProvider";
 import { useAuthStore } from "@/stores/auth-store";
 import { SignInModal } from "@/components/auth/SignInModal";
 import { AddNodeCard } from "./disconnected/AddNodeCard";
+import { ClaimPairingCodeCard } from "./disconnected/ClaimPairingCodeCard";
 import { CloudPairingCodeSection } from "./disconnected/CloudPairingCodeSection";
 import { FeatureGrid } from "./disconnected/FeatureGrid";
 import { RequirementsFooter } from "./disconnected/RequirementsFooter";
@@ -64,6 +65,16 @@ export function AgentDisconnectedPage({
             onPaired={handlePaired}
           />
         </div>
+
+        {/* Pair-by-code — HTTPS-safe entry point that claims the
+            agent's beaconed pairing code via Convex. Mounted only
+            when signed in to the cloud; the card self-gates and
+            renders null when convex/auth is missing. */}
+        {convexAvailable && isAuthenticated && (
+          <div className="max-w-md mx-auto">
+            <ClaimPairingCodeCard />
+          </div>
+        )}
 
         {/* Cloud pair code — only when signed in. Optional path. */}
         {convexAvailable && isAuthenticated && (

@@ -61,6 +61,7 @@ export function AddNodeCard({
   const [probing, setProbing] = useState(false);
   const [probe, setProbe] = useState<ProbeResult | null>(null);
   const [probeError, setProbeError] = useState<string | null>(null);
+  const [probeErrorCode, setProbeErrorCode] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -77,6 +78,7 @@ export function AddNodeCard({
 
   async function handleProbeHost(rawHost: string) {
     setProbeError(null);
+    setProbeErrorCode(null);
     setProbe(null);
     setProbing(true);
     abortRef.current?.abort();
@@ -98,6 +100,7 @@ export function AddNodeCard({
         } catch {
           msg = e.message;
         }
+        setProbeErrorCode(e.code);
       } else if (e instanceof Error) {
         msg = e.message;
       } else {
@@ -106,6 +109,18 @@ export function AddNodeCard({
       setProbeError(msg);
     } finally {
       if (!ctrl.signal.aborted) setProbing(false);
+    }
+  }
+
+  function handleScrollToCodeCard() {
+    const el = document.getElementById("claim-pairing-code-card");
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    const input = el.querySelector<HTMLInputElement>('input[type="text"]');
+    if (input) {
+      // Defer focus so the smooth-scroll lands first; otherwise
+      // some browsers cancel the scroll on focus.
+      setTimeout(() => input.focus(), 250);
     }
   }
 
@@ -246,13 +261,19 @@ export function AddNodeCard({
         </div>
 
         {probeError && (
-          <p
-            role="alert"
-            aria-live="polite"
-            className="text-xs text-status-error"
-          >
-            {probeError}
-          </p>
+          <div role="alert" aria-live="polite" className="space-y-2">
+            <p className="text-xs text-status-error">{probeError}</p>
+            {probeErrorCode === "mixedContentError" && (
+              <button
+                type="button"
+                onClick={handleScrollToCodeCard}
+                className="inline-flex items-center gap-1 text-xs font-medium text-accent-primary hover:text-accent-primary/80 transition-colors"
+              >
+                Jump to the pair-by-code card
+                <ChevronRight size={12} />
+              </button>
+            )}
+          </div>
         )}
       </div>
 

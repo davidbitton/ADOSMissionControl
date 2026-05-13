@@ -80,7 +80,7 @@ function assertReachable(host: string): void {
   ) {
     throw new PairClientError(
       "mixedContentError",
-      "Mission Control is served over HTTPS but the target is HTTP. Load Mission Control over http:// to pair LAN agents.",
+      "Mission Control is on HTTPS and browsers block direct HTTP fetches to LAN agents. Use the 'Pair with a code' card below, or run the desktop app or a localhost build to pair over LAN.",
     );
   }
 }

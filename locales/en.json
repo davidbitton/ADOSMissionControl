@@ -906,7 +906,7 @@
       "pairLocallyButton": "Pair locally",
       "pairingButton": "Pairing",
       "cancelButton": "Cancel",
-      "mixedContentError": "This Mission Control is served over HTTPS. Browsers block plain HTTP probes from HTTPS pages. Load Mission Control over http:// (or use a localhost build) to pair LAN agents.",
+      "mixedContentError": "Mission Control is on HTTPS and browsers block direct HTTP fetches to LAN agents. Use the \"Pair with a code\" card below, or run the desktop app or a localhost build to pair over LAN.",
       "missingDeviceIdError": "Probe response missing device_id",
       "probeFailedStatusError": "Probe failed: {status} {statusText}",
       "pairFailedStatusError": "Pair failed: {status} {statusText}",
