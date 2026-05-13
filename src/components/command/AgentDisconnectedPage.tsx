@@ -67,12 +67,16 @@ export function AgentDisconnectedPage({
         </div>
 
         {/* Pair-by-code — HTTPS-safe entry point that claims the
-            agent's beaconed pairing code via Convex. Mounted only
-            when signed in to the cloud; the card self-gates and
-            renders null when convex/auth is missing. */}
-        {convexAvailable && isAuthenticated && (
+            agent's beaconed pairing code via Convex. The card self-
+            gates: returns null when convex isn't available, renders
+            a sign-in stub when convex is up but the user is
+            unauthenticated, renders the full input form when
+            authenticated. Always present (when convex is available)
+            so the LAN-direct error block's scroll CTA always lands
+            on something. */}
+        {convexAvailable && (
           <div className="max-w-md mx-auto">
-            <ClaimPairingCodeCard />
+            <ClaimPairingCodeCard onSignIn={() => setSignInOpen(true)} />
           </div>
         )}
 

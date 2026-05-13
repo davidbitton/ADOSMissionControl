@@ -18,16 +18,59 @@
 
 import { useId, useState } from "react";
 import { useMutation } from "convex/react";
-import { Check, KeyRound, Loader2 } from "lucide-react";
+import { Check, ChevronRight, KeyRound, Loader2 } from "lucide-react";
 import { useConvexAvailable } from "@/app/ConvexClientProvider";
 import { useAuthStore } from "@/stores/auth-store";
 import { cmdPairingApi } from "@/lib/community-api-drones";
 
-export function ClaimPairingCodeCard() {
+interface ClaimPairingCodeCardProps {
+  /** Open the sign-in modal. The card surfaces a sign-in stub when
+   * the user is unauthenticated so the "Jump to pair-by-code" CTA
+   * on the LAN-direct error block lands on something actionable. */
+  onSignIn?: () => void;
+}
+
+export function ClaimPairingCodeCard({ onSignIn }: ClaimPairingCodeCardProps) {
   const convexAvailable = useConvexAvailable();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  if (!convexAvailable || !isAuthenticated) return null;
+  if (!convexAvailable) return null;
+  if (!isAuthenticated) return <ClaimPairingSignInStub onSignIn={onSignIn} />;
   return <ClaimPairingCodeCardInner />;
+}
+
+function ClaimPairingSignInStub({ onSignIn }: { onSignIn?: () => void }) {
+  return (
+    <button
+      id="claim-pairing-code-card"
+      type="button"
+      onClick={() => onSignIn?.()}
+      className="w-full text-left p-5 bg-bg-secondary border border-border-default rounded-lg space-y-3 hover:bg-bg-tertiary transition-colors group"
+    >
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-accent-primary/10 flex items-center justify-center">
+          <KeyRound size={14} className="text-accent-primary" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-text-primary">
+            Pair with a code from your drone
+          </p>
+          <p className="text-[10px] text-text-tertiary">
+            Works over HTTPS. No LAN access required.
+          </p>
+        </div>
+        <ChevronRight
+          size={14}
+          className="text-text-tertiary group-hover:text-text-secondary transition-colors"
+        />
+      </div>
+      <p className="text-xs text-text-secondary leading-relaxed">
+        Sign in to claim the 6-character code your agent shows in{" "}
+        <code className="font-mono text-text-primary">ados status</code> or the
+        install banner. The cloud relay routes the handshake through Convex so
+        the browser never has to reach your LAN.
+      </p>
+    </button>
+  );
 }
 
 function ClaimPairingCodeCardInner() {
