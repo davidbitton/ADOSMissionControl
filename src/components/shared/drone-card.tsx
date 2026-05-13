@@ -61,6 +61,20 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
               {tStatus("runtimeMode.lite")}
             </Badge>
           )}
+          {drone.profile === "ground-station" && (
+            <span title={drone.role ? `Ground station — ${drone.role}` : "Ground station"}>
+              <Badge variant="info" className="text-[10px]">
+                GS{drone.role && drone.role !== "direct" ? ` / ${drone.role}` : ""}
+              </Badge>
+            </span>
+          )}
+          {drone.profile === "compute" && (
+            <span title="Compute node">
+              <Badge variant="info" className="text-[10px]">
+                CMP
+              </Badge>
+            </span>
+          )}
           {drone.videoPipelineFlavor === "gst-native" && (
             <span
               title={

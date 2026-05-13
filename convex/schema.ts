@@ -541,6 +541,13 @@ fullName: v.optional(v.string()),
     // "auto" pill without an extra query. One of "detected",
     // "tiebreaker", "default", "override", "user", or undefined.
     profileSource: v.optional(v.string()),
+    // Wire-contract node profile and role. Synced from cmd_droneStatus
+    // heartbeats so listMyDrones consumers (fleet cards, node sidebar)
+    // can render profile pills without joining the status row. Profile
+    // is "drone" | "ground-station" | "compute" | "lite"; role applies
+    // to ground stations only.
+    profile: v.optional(v.string()),
+    role: v.optional(v.string()),
     pairedAt: v.number(),
   })
     .index("by_userId", ["userId"])

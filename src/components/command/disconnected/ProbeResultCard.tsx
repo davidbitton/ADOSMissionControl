@@ -9,7 +9,7 @@
  * @license GPL-3.0-only
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, Loader2, Radio, X } from "lucide-react";
 import {
   pairLocally,
@@ -42,12 +42,27 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
   const [pairing, setPairing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const addNode = useLocalNodesStore((s) => s.addNode);
+  const abortRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+    };
+  }, []);
 
   async function handlePair() {
+    if (pairing) return;
     setPairing(true);
     setError(null);
+    abortRef.current?.abort();
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
     try {
-      const claim = await pairLocally(probe.hostname);
+      const claim = await pairLocally(probe.hostname, ctrl.signal);
+      if (!mountedRef.current) return;
       addNode({
         deviceId: claim.deviceId,
         name: claim.name,
@@ -61,23 +76,37 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
         pairedAt: Date.now(),
         lastSeenAt: Date.now(),
       });
-      // Activate this node immediately so the operator can use it
-      // without an extra click. Existing local-mode polling lifecycle
-      // takes over from here.
-      void useAgentConnectionStore
-        .getState()
-        .connect(probe.hostname, claim.apiKey);
+      // Activate this node immediately. Await so connect failures
+      // surface here instead of behind onPaired().
+      try {
+        await useAgentConnectionStore
+          .getState()
+          .connect(probe.hostname, claim.apiKey);
+      } catch (connectErr) {
+        if (!mountedRef.current) return;
+        const msg =
+          connectErr instanceof Error ? connectErr.message : String(connectErr);
+        setError(
+          `Paired, but could not establish a live connection: ${msg}. The node is saved — retry from the sidebar.`,
+        );
+        return;
+      }
+      if (!mountedRef.current) return;
       onPaired(claim.deviceId);
     } catch (e) {
+      if (!mountedRef.current) return;
       if (e instanceof AgentAlreadyPairedError) {
         setError(
           "This agent is already paired to another browser. Unpair from the agent's setup page, then try again.",
         );
+      } else if (e instanceof DOMException && e.name === "AbortError") {
+        // Component unmounted or user navigated away. No-op.
+        return;
       } else {
         setError(e instanceof Error ? e.message : String(e));
       }
     } finally {
-      setPairing(false);
+      if (mountedRef.current) setPairing(false);
     }
   }
 
@@ -120,8 +149,8 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
         <div className="flex items-start gap-2 p-2 bg-status-warning/10 border border-status-warning/30 rounded text-xs text-status-warning">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           <span>
-            This agent is already paired. Unpair from the agent first if you want
-            this browser to take ownership.
+            This agent is already paired. Pair locally to attempt to take
+            ownership — the agent will respond with a clear error if it can&apos;t.
           </span>
         </div>
       )}
@@ -136,7 +165,7 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
       <div className="flex items-center gap-2">
         <button
           onClick={handlePair}
-          disabled={pairing || probe.paired}
+          disabled={pairing}
           className="flex-1 px-4 py-2 text-xs font-medium bg-accent-primary text-white rounded hover:bg-accent-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
         >
           {pairing ? (

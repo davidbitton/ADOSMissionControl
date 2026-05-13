@@ -194,6 +194,8 @@ export const pushStatus = internalMutation({
         ...(args.profileSource !== undefined
           ? { profileSource: args.profileSource }
           : {}),
+        ...(args.profile !== undefined ? { profile: args.profile } : {}),
+        ...(args.role !== undefined ? { role: args.role } : {}),
       });
     }
 

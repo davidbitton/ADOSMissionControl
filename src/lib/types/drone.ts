@@ -73,6 +73,13 @@ export interface FleetDrone extends DroneInfo {
   videoEncoderName?: string;
   /** True when the chosen encoder is a hardware path. */
   videoEncoderHwAccel?: boolean;
+  /** Wire-contract node profile. "drone" or "ground-station" today,
+   * "compute" / "lite" in the future. Drives node grouping in the
+   * Command-tab sidebar and panel selection in the right pane.
+   * Defaults to "drone" for legacy heartbeats. */
+  profile?: "drone" | "ground-station" | "compute" | "lite";
+  /** Ground-station role when applicable. Undefined / null on drones. */
+  role?: "direct" | "relay" | "receiver" | null;
 }
 
 export type AlertSeverity = "info" | "warning" | "critical";
