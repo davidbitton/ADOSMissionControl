@@ -67,22 +67,25 @@ export function normaliseHost(input: string): string {
 
 const FETCH_TIMEOUT_MS = 8000;
 
-/** Reject before fetch if Mission Control is on HTTPS but the target
- * is HTTP. Browsers block plain HTTP probes from HTTPS pages silently;
- * surfacing a typed error gives the operator a clear message. Called
- * by every pair-client REST helper so the guard never gets bypassed
- * through one entry point but missed on another. */
-function assertReachable(host: string): void {
-  if (
+/** When the GCS is loaded over HTTPS the browser blocks direct
+ * `fetch(http://groundnode.local:8080/...)` calls. We bridge by
+ * routing the three pair-flow calls through Mission Control's own
+ * Next.js server (`/api/lan-pair/*`), which performs the HTTP
+ * request server-side. The server-side proxy enforces the same
+ * private-address whitelist via `host-validation.ts` so this
+ * doesn't widen the attack surface beyond what the operator could
+ * already do from a local terminal.
+ *
+ * On HTTP origins (Electron at `http://127.0.0.1`, dev at
+ * `http://localhost:4000`, or a self-hosted HTTP build), the
+ * proxy is unnecessary and we fall back to the direct fetch
+ * shape so the pair flow stays a single round-trip.
+ */
+function shouldUseProxy(): boolean {
+  return (
     typeof window !== "undefined" &&
-    window.location.protocol === "https:" &&
-    host.startsWith("http://")
-  ) {
-    throw new PairClientError(
-      "mixedContentError",
-      "Mission Control is on HTTPS and browsers block direct HTTP fetches to LAN agents. Use the 'Pair with a code' card below, or run the desktop app or a localhost build to pair over LAN.",
-    );
-  }
+    window.location.protocol === "https:"
+  );
 }
 
 /** Combine an optional caller signal with a local timeout signal. */
@@ -105,6 +108,12 @@ function combineSignals(
 
 /** Hit ``/api/pairing/info`` and return the agent identity.
  * Times out after 8s so a non-responsive host doesn't hang the UI.
+ *
+ * Cross-protocol path: when the GCS is on HTTPS, the request goes
+ * through Mission Control's own `/api/lan-pair/probe` route, which
+ * forwards the HTTP request to the LAN agent server-side. On HTTP
+ * origins the direct fetch is preferred so the pair stays a single
+ * round-trip.
  */
 export async function probeAgent(
   rawHost: string,
@@ -114,20 +123,45 @@ export async function probeAgent(
   if (!host) {
     throw new PairClientError("enterHostnameError", "Enter a hostname or URL to probe");
   }
-  assertReachable(host);
-  const resp = await fetch(`${host}/api/pairing/info`, {
-    method: "GET",
-    headers: { Accept: "application/json" },
-    signal: combineSignals(signal),
-  });
-  if (!resp.ok) {
-    throw new PairClientError(
-      "probeFailedStatusError",
-      `Probe failed: ${resp.status} ${resp.statusText}`,
-      { status: resp.status, statusText: resp.statusText },
-    );
+  let body: Record<string, unknown>;
+  if (shouldUseProxy()) {
+    const resp = await fetch(`/api/lan-pair/probe`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ host }),
+      signal: combineSignals(signal),
+    });
+    if (!resp.ok) {
+      const parsed = (await safeJson(resp)) as
+        | { error?: string; message?: string }
+        | null;
+      throw new PairClientError(
+        parsed?.error === "host_not_private"
+          ? "hostNotPrivateError"
+          : "probeFailedStatusError",
+        parsed?.message ?? `Probe failed: ${resp.status} ${resp.statusText}`,
+        { status: resp.status, statusText: resp.statusText },
+      );
+    }
+    body = (await resp.json()) as Record<string, unknown>;
+  } else {
+    const resp = await fetch(`${host}/api/pairing/info`, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: combineSignals(signal),
+    });
+    if (!resp.ok) {
+      throw new PairClientError(
+        "probeFailedStatusError",
+        `Probe failed: ${resp.status} ${resp.statusText}`,
+        { status: resp.status, statusText: resp.statusText },
+      );
+    }
+    body = (await resp.json()) as Record<string, unknown>;
   }
-  const body = (await resp.json()) as Record<string, unknown>;
   const deviceId = String(body.device_id ?? "");
   if (!deviceId) {
     throw new PairClientError("missingDeviceIdError", "Probe response missing device_id");
@@ -148,6 +182,14 @@ export async function probeAgent(
     role: role as ProbeResult["role"],
     hostname: host,
   };
+}
+
+async function safeJson(resp: Response): Promise<unknown> {
+  try {
+    return await resp.json();
+  } catch {
+    return null;
+  }
 }
 
 export class AgentAlreadyPairedError extends Error {
@@ -204,17 +246,26 @@ export async function pairLocally(
   signal?: AbortSignal,
 ): Promise<ClaimResult> {
   const host = normaliseHost(rawHost);
-  assertReachable(host);
   const userId = getBrowserId();
-  const resp = await fetch(`${host}/api/pairing/claim`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ user_id: userId }),
-    signal: combineSignals(signal),
-  });
+  const resp = shouldUseProxy()
+    ? await fetch(`/api/lan-pair/claim`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ host, userId }),
+        signal: combineSignals(signal),
+      })
+    : await fetch(`${host}/api/pairing/claim`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ user_id: userId }),
+        signal: combineSignals(signal),
+      });
   if (resp.status === 409) {
     throw new AgentAlreadyPairedError();
   }
@@ -242,15 +293,24 @@ export async function unpairLocal(
   signal?: AbortSignal,
 ): Promise<void> {
   const host = normaliseHost(hostname);
-  assertReachable(host);
-  const resp = await fetch(`${host}/api/pairing/unpair`, {
-    method: "POST",
-    headers: {
-      "X-API-Key": apiKey,
-      Accept: "application/json",
-    },
-    signal,
-  });
+  const resp = shouldUseProxy()
+    ? await fetch(`/api/lan-pair/unpair`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ host, apiKey }),
+        signal,
+      })
+    : await fetch(`${host}/api/pairing/unpair`, {
+        method: "POST",
+        headers: {
+          "X-API-Key": apiKey,
+          Accept: "application/json",
+        },
+        signal,
+      });
   if (!resp.ok && resp.status !== 409) {
     throw new PairClientError(
       "unpairFailedStatusError",

@@ -907,6 +907,7 @@
       "pairingButton": "Pairing",
       "cancelButton": "Cancel",
       "mixedContentError": "Mission Control is on HTTPS and browsers block direct HTTP fetches to LAN agents. Use the \"Pair with a code\" card below, or run the desktop app or a localhost build to pair over LAN.",
+      "hostNotPrivateError": "Only private network hosts (RFC1918 IPs, *.local names, or loopback) are allowed for LAN pairing.",
       "missingDeviceIdError": "Probe response missing device_id",
       "probeFailedStatusError": "Probe failed: {status} {statusText}",
       "pairFailedStatusError": "Pair failed: {status} {statusText}",
