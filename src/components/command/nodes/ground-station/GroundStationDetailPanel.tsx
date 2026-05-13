@@ -80,7 +80,10 @@ export function GroundStationDetailPanel() {
             role="tab"
             aria-selected={visibleTab === tab.id}
             aria-controls={`gs-tabpanel-${tab.id}`}
-            tabIndex={visibleTab === tab.id ? 0 : -1}
+            // Use default tabIndex=0 on all tabs (not roving) to match
+            // DroneDetailPanel precedent. aria-selected carries the
+            // active-state signal to screen readers; full keyboard
+            // navigation between tabs happens via standard Tab/Shift+Tab.
             onClick={() => setActiveTab(tab.id)}
             className={
               visibleTab === tab.id

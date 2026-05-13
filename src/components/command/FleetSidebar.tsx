@@ -136,6 +136,10 @@ function FleetSidebarBase({
   const agentConnectCloud = useAgentConnectionStore((s) => s.connectCloud);
   const agentConnect = useAgentConnectionStore((s) => s.connect);
   const agentConnected = useAgentConnectionStore((s) => s.connected);
+  // Subscribe reactively so localStorage rehydration on first mount
+  // triggers the auto-reconnect effect once the local-nodes-store
+  // has caught up.
+  const localNodes = useLocalNodesStore((s) => s.nodes);
 
   // One-shot flag: only auto-reconnect on initial page load, not on
   // subsequent watchdog-driven disconnects. Without this, when the agent is
@@ -202,9 +206,7 @@ function FleetSidebarBase({
     if (!agentConnected && selectedPairedId) {
       if (selectedPairedId.startsWith("local:")) {
         const deviceId = selectedPairedId.slice("local:".length);
-        const node = useLocalNodesStore
-          .getState()
-          .nodes.find((n) => n.deviceId === deviceId);
+        const node = localNodes.find((n) => n.deviceId === deviceId);
         if (node && node.hostname && node.apiKey) {
           autoConnectDone.current = true;
           void agentConnect(node.hostname, node.apiKey);
@@ -220,6 +222,7 @@ function FleetSidebarBase({
   }, [
     selectedPairedId,
     pairedDrones,
+    localNodes,
     agentConnected,
     agentConnect,
     agentConnectCloud,

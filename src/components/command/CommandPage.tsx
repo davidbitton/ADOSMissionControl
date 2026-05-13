@@ -97,9 +97,13 @@ export function CommandPage() {
   // grows again, causing a UI race. `renderedActiveTab` is omitted
   // from deps because it's derived from `visibleTabs + activeTab`;
   // including it would re-run the effect on every activeTab change.
+  // Skip reconciliation when visibleTabs is momentarily empty
+  // (mid-disconnect, capabilities clearing) so we don't churn the
+  // operator's last tab choice to overview permanently.
   useEffect(() => {
+    if (visibleTabs.length === 0) return;
     if (!visibleTabs.includes(activeTab)) {
-      setActiveTab(visibleTabs[0] ?? "overview");
+      setActiveTab(visibleTabs[0]);
     }
   }, [visibleTabs, activeTab]);
   const [urlInput, setUrlInput] = useState("http://localhost:8080");

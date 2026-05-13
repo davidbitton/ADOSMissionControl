@@ -25,7 +25,12 @@ export interface FleetNodeEntry extends PairedDrone {
   isLocal: boolean;
 }
 
-function adaptLocal(n: LocalNode): FleetNodeEntry {
+function adaptLocal(n: LocalNode, cloudShadow?: PairedDrone): FleetNodeEntry {
+  // When a local node shadows a cloud-paired entry with the same
+  // deviceId, keep the cloud fields the operator depends on for the
+  // sidebar freshness signal (lastSeen, fcConnected, lastIp, tier,
+  // os). Identity fields (apiKey, hostname via mdnsHost) come from
+  // the local entry so connect() uses the LAN credentials.
   return {
     _id: `local:${n.deviceId}`,
     userId: "local",
@@ -33,11 +38,13 @@ function adaptLocal(n: LocalNode): FleetNodeEntry {
     name: n.name,
     apiKey: n.apiKey,
     agentVersion: n.version,
-    board: n.board,
+    board: n.board ?? cloudShadow?.board,
+    tier: cloudShadow?.tier,
+    os: cloudShadow?.os,
     mdnsHost: n.mdnsHost,
-    lastIp: undefined,
-    lastSeen: n.lastSeenAt,
-    fcConnected: undefined,
+    lastIp: cloudShadow?.lastIp,
+    lastSeen: n.lastSeenAt ?? cloudShadow?.lastSeen,
+    fcConnected: cloudShadow?.fcConnected,
     pairedAt: n.pairedAt,
     profile: n.profile,
     role: n.role,
@@ -58,17 +65,23 @@ function adaptCloud(d: PairedDrone): FleetNodeEntry {
 }
 
 /** Pure merge function exposed for unit tests. Local nodes shadow
- * cloud entries with the same deviceId; the result is sorted by
- * pairedAt ascending. */
+ * cloud entries with the same deviceId, but the cloud heartbeat
+ * fields (lastSeen, fcConnected, lastIp, tier, os) are preserved
+ * through the shadow so the sidebar freshness signal is not lost.
+ * The result is sorted by pairedAt ascending.
+ */
 export function mergeFleetNodes(
   cloudPaired: readonly PairedDrone[],
   localNodes: readonly LocalNode[],
 ): FleetNodeEntry[] {
+  const cloudByDeviceId = new Map(cloudPaired.map((d) => [d.deviceId, d]));
   const localById = new Map(localNodes.map((n) => [n.deviceId, n]));
   const cloudAdapted = cloudPaired
     .filter((d) => !localById.has(d.deviceId))
     .map(adaptCloud);
-  const localAdapted = localNodes.map(adaptLocal);
+  const localAdapted = localNodes.map((n) =>
+    adaptLocal(n, cloudByDeviceId.get(n.deviceId)),
+  );
   return [...cloudAdapted, ...localAdapted].sort(
     (a, b) => a.pairedAt - b.pairedAt,
   );

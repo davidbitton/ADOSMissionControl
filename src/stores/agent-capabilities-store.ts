@@ -26,6 +26,11 @@ import type {
   RadioTopology,
 } from "@/lib/api/ground-station/types";
 
+// Module-scoped set of unknown profile strings we've already warned
+// about. Prevents the heartbeat-rate console spam when a future agent
+// advertises a profile the GCS doesn't know yet.
+const _seenUnknownProfiles = new Set<string>();
+
 const DEFAULT_COMPUTE: ComputeCapability = {
   npu_available: false,
   npu_runtime: null,
@@ -450,18 +455,20 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>((set) =>
         : "drone";
     // Forward-compat dev hint: if a future agent ships a profile
     // string we don't know yet, the cap store clamps to "drone" so
-    // the GCS doesn't crash, but we surface the unknown value in
-    // dev tooling so the next plan/audit catches it.
+    // the GCS doesn't crash. Warn ONCE per unknown profile string
+    // (module-scoped Set) so a heartbeat at 1Hz doesn't spam devtools.
     if (
       typeof rawProfile === "string" &&
       rawProfile !== "drone" &&
       rawProfile !== "ground-station" &&
       rawProfile !== "compute" &&
       rawProfile !== "lite" &&
-      typeof console !== "undefined"
+      typeof console !== "undefined" &&
+      !_seenUnknownProfiles.has(rawProfile)
     ) {
+      _seenUnknownProfiles.add(rawProfile);
       console.warn(
-        "[agent-capabilities-store] unknown profile %s — clamped to drone",
+        "[agent-capabilities-store] unknown profile %s clamped to drone",
         rawProfile,
       );
     }

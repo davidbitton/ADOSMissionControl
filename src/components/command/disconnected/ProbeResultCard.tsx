@@ -66,22 +66,12 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
     try {
       const claim = await pairLocally(probe.hostname, ctrl.signal);
       if (!mountedRef.current) return;
-      // Activate the live connection FIRST so a failed handshake
-      // doesn't leave an orphan node entry that the operator has to
-      // manually clean up. Only persist to local-nodes-store after
-      // the agent confirms the link is up.
-      try {
-        await useAgentConnectionStore
-          .getState()
-          .connect(probe.hostname, claim.apiKey);
-      } catch (connectErr) {
-        if (!mountedRef.current) return;
-        const msg =
-          connectErr instanceof Error ? connectErr.message : String(connectErr);
-        setError(t("pairedButConnectFailed", { error: msg }));
-        return;
-      }
-      if (!mountedRef.current) return;
+      // Persist to local-nodes-store FIRST so the apiKey is durable
+      // before we attempt the live link. If the operator navigates
+      // away mid-connect the agent stays paired and the entry is
+      // still in the sidebar for a retry. If connect itself fails
+      // we surface the error but keep the node — operator can click
+      // it again from the sidebar to retry.
       addNode({
         deviceId: claim.deviceId,
         name: claim.name,
@@ -95,6 +85,18 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
         pairedAt: Date.now(),
         lastSeenAt: Date.now(),
       });
+      try {
+        await useAgentConnectionStore
+          .getState()
+          .connect(probe.hostname, claim.apiKey);
+      } catch (connectErr) {
+        if (!mountedRef.current) return;
+        const msg =
+          connectErr instanceof Error ? connectErr.message : String(connectErr);
+        setError(t("pairedButConnectFailed", { error: msg }));
+        return;
+      }
+      if (!mountedRef.current) return;
       onPaired(claim.deviceId);
     } catch (e) {
       if (!mountedRef.current) return;
