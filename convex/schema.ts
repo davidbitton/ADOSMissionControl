@@ -620,6 +620,12 @@ fullName: v.optional(v.string()),
     // the plugin host, peripheral manager, scripting, and ROS surfaces
     // in Mission Control. Absent values default to "full".
     runtimeMode: v.optional(v.string()),
+    // Wire-contract identity for the Command-tab node hub. "profile"
+    // is "drone" or "ground-station"; "role" is "direct" | "relay" |
+    // "receiver" on a ground station, null on a drone. Older agents
+    // that don't emit these fields default the GCS to "drone".
+    profile: v.optional(v.string()),
+    role: v.optional(v.string()),
     // True when the agent's foxglove_bridge process failed to bind
     // its WebSocket port at last restart. Surfaced in the ROS tab so
     // operators can spot a port collision without opening journal

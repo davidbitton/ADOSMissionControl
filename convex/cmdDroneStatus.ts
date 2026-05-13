@@ -81,6 +81,12 @@ export const pushStatus = internalMutation({
     telemetry: v.optional(v.any()),
     logs: v.optional(v.any()),
     runtimeMode: v.optional(v.string()),
+    // Wire-contract identity for the Command-tab node hub. "profile"
+    // is "drone" or "ground-station"; "role" is "direct" | "relay" |
+    // "receiver" on a ground station, null on a drone. Older agents
+    // that don't emit these fields default the GCS to "drone".
+    profile: v.optional(v.string()),
+    role: v.optional(v.string()),
     foxgloveBindFailed: v.optional(v.boolean()),
     wfbFailoverState: v.optional(v.string()),
     setupState: v.optional(v.string()),
