@@ -165,7 +165,15 @@ export async function probeByCode(
     code: cleaned,
     browserUserId: getBrowserId(),
   });
-  const hostFrom = lookup.mdnsHost || lookup.localIp || "";
+  // The server-side LAN proxy (used on HTTPS) runs inside a
+  // container that doesn't speak mDNS — Node's default resolver
+  // can't translate `*.local`. Prefer the local IP when we'll go
+  // through the proxy; prefer the mDNS hostname when the browser
+  // is dialling directly (HTTP / Electron / dev) so an IP
+  // renumber after DHCP doesn't kill a future session.
+  const hostFrom = shouldUseProxy()
+    ? lookup.localIp || lookup.mdnsHost || ""
+    : lookup.mdnsHost || lookup.localIp || "";
   if (!hostFrom) {
     throw new PairClientError(
       "codeNoHostError",
