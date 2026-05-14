@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { KeyRound, Loader2, X } from "lucide-react";
 import { useMutation } from "convex/react";
 import { cn } from "@/lib/utils";
 import { useConvexAvailable } from "@/app/ConvexClientProvider";
@@ -18,6 +18,7 @@ import { cmdPairingApi } from "@/lib/community-api-drones";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePairingStore } from "@/stores/pairing-store";
 import { SignInModal } from "@/components/auth/SignInModal";
+import { Tabs } from "@/components/ui/tabs";
 import { PairingPrompt } from "./pairing/PairingPrompt";
 import { PairingConfirm } from "./pairing/PairingConfirm";
 import { PairingResult } from "./pairing/PairingResult";
@@ -27,6 +28,8 @@ import {
   type ClaimCodeMutation,
   type PreGenerateMutation,
 } from "./pairing/use-pairing-flow";
+
+type DialogTab = "enter" | "generate";
 
 interface PairingDialogProps {
   open: boolean;
@@ -88,11 +91,25 @@ function PairingDialogBase({
   const [signInOpen, setSignInOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedInstall, setCopiedInstall] = useState(false);
+  // The modal opens on the code-entry tab by default. Operators with a
+  // paired rig already advertising a code in `ados status` pick that
+  // up immediately; the generate-code path is one click away for
+  // zero-touch installs.
+  const [activeTab, setActiveTab] = useState<DialogTab>("enter");
 
   const onCodeReset = useCallback(() => {
     setCopiedCode(false);
     setCopiedInstall(false);
   }, []);
+
+  // Reset the tab to the default when the dialog reopens, unless an
+  // initialCode (deep-link) is in play — that path skips the tabs
+  // entirely and renders straight into the claim state machine.
+  useEffect(() => {
+    if (open && !initialCode) {
+      setActiveTab("enter");
+    }
+  }, [open, initialCode]);
 
   const flow = usePairingFlow({
     open,
@@ -102,9 +119,23 @@ function PairingDialogBase({
     onPaired,
     onCodeReset,
     initialCode,
+    // Only auto-generate when the operator has already chosen the
+    // generate-code tab; the enter-code tab uses claimDiscovered with
+    // an operator-typed code instead.
+    autoGenerate: activeTab === "generate",
   });
 
   const discoveredAgents = usePairingStore((s) => s.discoveredAgents);
+
+  // When the operator switches to the generate-code tab and we haven't
+  // generated a code yet (state still "setup"), kick off generation.
+  // Stays a no-op when an initialCode is in play.
+  useEffect(() => {
+    if (!open || initialCode || requiresSignIn) return;
+    if (activeTab === "generate" && flow.state === "setup") {
+      flow.generateCode();
+    }
+  }, [activeTab, open, initialCode, requiresSignIn, flow]);
 
   // Close on ESC
   useEffect(() => {
@@ -163,47 +194,188 @@ function PairingDialogBase({
           </button>
         </div>
 
-        <div className="px-5 py-5 space-y-5">
-          {requiresSignIn && (
+        {/* Sign-in prompt sits outside the tabs because neither tab can
+            do anything until the user is authenticated. */}
+        {requiresSignIn ? (
+          <div className="px-5 py-5">
             <PairingPrompt variant="sign-in" onSignIn={() => setSignInOpen(true)} />
-          )}
-
-          {!requiresSignIn && flow.state === "setup" && (
-            <PairingPrompt variant="setup" />
-          )}
-
-          {flow.state === "waiting" && flow.preGenCode && (
-            <PairingConfirm
-              code={flow.preGenCode}
-              secondsLeft={flow.secondsLeft}
-              copiedCode={copiedCode}
-              copiedInstall={copiedInstall}
-              installCommand={buildInstallCommand(flow.preGenCode)}
-              discoveredAgents={discoveredAgents}
-              onCopyCode={handleCopyCode}
-              onCopyInstall={handleCopyInstall}
-              onDiscoveredPair={flow.claimDiscovered}
+          </div>
+        ) : initialCode ? (
+          // Deep-link entry runs the claim state machine without tabs.
+          <div className="px-5 py-5 space-y-5">
+            {flow.state === "success" && flow.pairedInfo && (
+              <PairingResult variant="success" info={flow.pairedInfo} />
+            )}
+            {flow.state === "error" && (
+              <PairingResult
+                variant="error"
+                message={flow.errorMessage}
+                onRetry={flow.generateCode}
+              />
+            )}
+          </div>
+        ) : (
+          <>
+            <Tabs
+              activeTab={activeTab}
+              onChange={(id) => setActiveTab(id as DialogTab)}
+              tabs={[
+                { id: "enter", label: t("pairing.tab.enterCode") },
+                { id: "generate", label: t("pairing.tab.generateCode") },
+              ]}
+              className="px-4"
             />
-          )}
-
-          {flow.state === "success" && flow.pairedInfo && (
-            <PairingResult variant="success" info={flow.pairedInfo} />
-          )}
-
-          {flow.state === "error" && (
-            <PairingResult
-              variant="error"
-              message={flow.errorMessage}
-              onRetry={flow.generateCode}
-            />
-          )}
-
-          {flow.state === "expired" && (
-            <PairingResult variant="expired" onRetry={flow.generateCode} />
-          )}
-        </div>
+            <div className="px-5 py-5 space-y-5">
+              {activeTab === "enter" && (
+                <EnterPairCodeTab
+                  onClaim={flow.claimDiscovered}
+                  state={flow.state}
+                  errorMessage={flow.errorMessage}
+                  pairedInfo={flow.pairedInfo}
+                />
+              )}
+              {activeTab === "generate" && (
+                <>
+                  {flow.state === "setup" && <PairingPrompt variant="setup" />}
+                  {flow.state === "waiting" && flow.preGenCode && (
+                    <PairingConfirm
+                      code={flow.preGenCode}
+                      secondsLeft={flow.secondsLeft}
+                      copiedCode={copiedCode}
+                      copiedInstall={copiedInstall}
+                      installCommand={buildInstallCommand(flow.preGenCode)}
+                      discoveredAgents={discoveredAgents}
+                      onCopyCode={handleCopyCode}
+                      onCopyInstall={handleCopyInstall}
+                      onDiscoveredPair={flow.claimDiscovered}
+                    />
+                  )}
+                  {flow.state === "success" && flow.pairedInfo && (
+                    <PairingResult variant="success" info={flow.pairedInfo} />
+                  )}
+                  {flow.state === "error" && (
+                    <PairingResult
+                      variant="error"
+                      message={flow.errorMessage}
+                      onRetry={flow.generateCode}
+                    />
+                  )}
+                  {flow.state === "expired" && (
+                    <PairingResult variant="expired" onRetry={flow.generateCode} />
+                  )}
+                </>
+              )}
+            </div>
+          </>
+        )}
       </div>
       <SignInModal open={signInOpen} onClose={() => setSignInOpen(false)} />
+    </div>
+  );
+}
+
+/**
+ * Tab body that lets the operator type the 6-character pair code the
+ * agent already advertises (in `ados status`, the install banner, or
+ * the setup webapp) and claim the agent via the cloud relay. Uses the
+ * existing usePairingFlow claimDiscovered handler so error mapping
+ * stays consistent with the rest of the modal.
+ */
+function EnterPairCodeTab({
+  onClaim,
+  state,
+  errorMessage,
+  pairedInfo,
+}: {
+  onClaim: (agent: { pairingCode: string }) => Promise<void>;
+  state: ReturnType<typeof usePairingFlow>["state"];
+  errorMessage: string;
+  pairedInfo: ReturnType<typeof usePairingFlow>["pairedInfo"];
+}) {
+  const t = useTranslations("command.pairing");
+  const [code, setCode] = useState("");
+  const submitting = state === "waiting";
+
+  const cleaned = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const ready = cleaned.length === 6 && !submitting;
+
+  async function handleSubmit() {
+    if (!ready) return;
+    await onClaim({ pairingCode: cleaned });
+  }
+
+  function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void handleSubmit();
+    }
+  }
+
+  if (state === "success" && pairedInfo) {
+    return <PairingResult variant="success" info={pairedInfo} />;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-accent-primary/10 flex items-center justify-center">
+          <KeyRound size={14} className="text-accent-primary" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-text-primary">
+            {t("enterCodeTitle")}
+          </p>
+          <p className="text-[10px] text-text-tertiary">
+            {t("enterCodeSubtitle")}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder="------"
+          disabled={submitting}
+          maxLength={12}
+          autoCapitalize="characters"
+          autoComplete="off"
+          spellCheck={false}
+          autoFocus
+          className="flex-1 px-3 py-2 bg-bg-primary border border-border-default rounded text-sm font-mono uppercase tracking-widest text-text-primary placeholder:text-text-tertiary/40 placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:border-accent-primary disabled:opacity-50"
+        />
+        <button
+          type="button"
+          onClick={() => void handleSubmit()}
+          disabled={!ready}
+          className="px-3 py-2 text-xs font-medium bg-accent-primary text-white rounded hover:bg-accent-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+        >
+          {submitting ? (
+            <>
+              <Loader2 size={12} className="animate-spin" />
+              {t("pairing")}
+            </>
+          ) : (
+            t("pair")
+          )}
+        </button>
+      </div>
+
+      <p className="text-[10px] text-text-tertiary leading-relaxed">
+        {t("enterCodeHint")}
+      </p>
+
+      {state === "error" && errorMessage && (
+        <p
+          role="alert"
+          aria-live="polite"
+          className="text-xs text-status-error"
+        >
+          {errorMessage}
+        </p>
+      )}
     </div>
   );
 }

@@ -829,6 +829,17 @@
     "pairFirstDrone": "Pair Your First Drone",
     "pairNewDrone": "Pair New Drone",
     "pairDrone": "Pair Drone",
+    "pairing": {
+      "tab": {
+        "enterCode": "Enter drone's code",
+        "generateCode": "Generate a code"
+      },
+      "enterCodeTitle": "Pair with a code from your drone",
+      "enterCodeSubtitle": "Works over HTTPS. No LAN access required.",
+      "enterCodeHint": "Run `ados status` on your drone to see its current code, or copy it from the install banner.",
+      "pair": "Pair",
+      "pairing": "Pairing"
+    },
     "unpair": "Unpair",
     "disconnect": "Disconnect",
     "connecting": "Connecting...",

@@ -51,6 +51,12 @@ interface FlowOptions {
   /** Pre-filled code from a deep-link entry. Skips the auto-generate path
    *  and immediately tries to claim the supplied code. */
   initialCode?: string | null;
+  /** When true (default), the flow auto-generates a fresh pair code on
+   *  dialog open. Pass false when the dialog opens on a tab whose body
+   *  expects the operator to type the drone's own code instead — the
+   *  generate step then runs only when the operator manually switches
+   *  to the "Generate a code" tab. */
+  autoGenerate?: boolean;
 }
 
 export function usePairingFlow({
@@ -61,6 +67,7 @@ export function usePairingFlow({
   onPaired,
   onCodeReset,
   initialCode,
+  autoGenerate = true,
 }: FlowOptions) {
   const [state, setState] = useState<PairingState>("setup");
   const [preGenCode, setPreGenCode] = useState<string | null>(null);
@@ -151,10 +158,12 @@ export function usePairingFlow({
       claimDiscovered({ pairingCode: initialCode } as DiscoveredAgent);
       return () => stopCountdown();
     }
-    generateCode();
+    if (autoGenerate) {
+      generateCode();
+    }
     return () => stopCountdown();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, requiresSignIn, initialCode]);
+  }, [open, requiresSignIn, initialCode, autoGenerate]);
 
   // Watch for new drones appearing (zero-touch flow)
   useEffect(() => {
