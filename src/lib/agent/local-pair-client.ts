@@ -143,40 +143,72 @@ interface LanDiscoveredAgent {
   txt: Record<string, string>;
 }
 
-/** Probe each LAN-discovered agent for its current pair code and
- *  return the host whose code matches. Returns null if no agent on
- *  the LAN advertises the code OR if the discover route returned an
- *  empty list (Docker-without-host-network, mDNS off, no agents on
- *  LAN, etc.). Errors per-agent are swallowed so one slow node
- *  can't poison the whole scan.
+/** Summary of one unpaired agent visible on the LAN, used to give the
+ *  operator a fresh pair-code hint when their typed code missed. */
+export interface LanScanCandidate {
+  name: string;
+  /** Current pair code visible on the agent. Codes rotate on a TTL,
+   *  so this is the value at probe time. */
+  code: string;
+  /** Best-effort hostname for the user to recognise the agent. */
+  host: string;
+}
+
+/** Result of a LAN scan-by-code: the matched host (or null if the
+ *  entered code didn't match anything we could see) plus the list
+ *  of unpaired LAN agents whose info we successfully read. Lets the
+ *  caller surface a "did you mean these?" hint when no match. */
+export interface LanScanResult {
+  matchedHost: string | null;
+  unpaired: LanScanCandidate[];
+}
+
+/** Probe each LAN-discovered agent for its current pair code. Returns
+ *  the host whose code matches AND a list of every unpaired agent we
+ *  could see, so the caller can hint at fresh codes if the input was
+ *  stale (codes rotate on a 15-minute TTL). Errors per-agent are
+ *  swallowed so one slow node can't poison the whole scan; the
+ *  surviving probes still populate ``unpaired``.
  */
 export async function findHostByCodeOnLan(
   code: string,
   signal?: AbortSignal,
-): Promise<string | null> {
+): Promise<LanScanResult> {
   try {
     const discoverResp = await fetch("/api/lan-pair/discover", {
       method: "GET",
       headers: { Accept: "application/json" },
       signal: combineSignals(signal, 5000),
     });
-    if (!discoverResp.ok) return null;
+    if (!discoverResp.ok) return { matchedHost: null, unpaired: [] };
     const { agents } = (await discoverResp.json()) as {
       agents?: LanDiscoveredAgent[];
     };
-    if (!agents || agents.length === 0) return null;
+    if (!agents || agents.length === 0) {
+      return { matchedHost: null, unpaired: [] };
+    }
 
     // Probe every candidate target in parallel. An mDNS record can
     // carry a stale IPv4 (agent renumbered after a DHCP lease change
     // or briefly served its own WiFi AP) while the hostname still
     // resolves correctly, or vice versa. Trying both per agent keeps
-    // the scan tolerant of either staleness. First matching code wins.
+    // the scan tolerant of either staleness.
     const targets: string[] = [];
     for (const a of agents) {
       if (a.host) targets.push(a.host);
       if (a.ipv4) targets.push(a.ipv4);
     }
-    const probes = targets.map(async (target) => {
+    interface ProbeOutcome {
+      target: string;
+      info: {
+        device_id?: string;
+        name?: string;
+        pairing_code?: string | null;
+        paired?: boolean;
+        mdns_host?: string;
+      } | null;
+    }
+    const probes: Promise<ProbeOutcome>[] = targets.map(async (target) => {
       try {
         const probeResp = await fetch("/api/lan-pair/probe", {
           method: "POST",
@@ -187,25 +219,46 @@ export async function findHostByCodeOnLan(
           body: JSON.stringify({ host: target }),
           signal: combineSignals(signal, 4000),
         });
-        if (!probeResp.ok) return null;
-        const info = (await probeResp.json()) as {
-          pairing_code?: string | null;
-          paired?: boolean;
-          mdns_host?: string;
-        };
-        if (info.paired) return null;
-        if (info.pairing_code !== code) return null;
-        // Prefer the agent's own advertised mdns_host (stable across
-        // DHCP renumbers); fall back to the target we connected on.
-        return (info.mdns_host as string | undefined) || target;
+        if (!probeResp.ok) return { target, info: null };
+        const info = (await probeResp.json()) as ProbeOutcome["info"];
+        return { target, info };
       } catch {
-        return null;
+        return { target, info: null };
       }
     });
-    const results = await Promise.all(probes);
-    return results.find((r): r is string => Boolean(r)) ?? null;
+    const outcomes = await Promise.all(probes);
+
+    // Dedupe by device_id so the host+ipv4 dual probe doesn't list
+    // the same agent twice in the unpaired summary.
+    const byDeviceId = new Map<string, { target: string; info: ProbeOutcome["info"] }>();
+    for (const o of outcomes) {
+      if (!o.info) continue;
+      const id = o.info.device_id;
+      if (!id) continue;
+      if (!byDeviceId.has(id)) byDeviceId.set(id, o);
+    }
+
+    let matchedHost: string | null = null;
+    const unpaired: LanScanCandidate[] = [];
+    for (const { target, info } of byDeviceId.values()) {
+      if (!info) continue;
+      if (info.paired) continue;
+      const host = info.mdns_host || target;
+      const codeVal = info.pairing_code ?? "";
+      if (codeVal) {
+        unpaired.push({
+          name: info.name || info.device_id || host,
+          code: codeVal,
+          host,
+        });
+      }
+      if (codeVal === code && !matchedHost) {
+        matchedHost = host;
+      }
+    }
+    return { matchedHost, unpaired };
   } catch {
-    return null;
+    return { matchedHost: null, unpaired: [] };
   }
 }
 
@@ -240,15 +293,17 @@ export async function probeByCode(
   //    and pick the one whose published code matches. Local-only, no
   //    Convex round-trip, works when the agent's cloud beacon is
   //    disabled (the default since agent 0.26.5).
-  const lanHost = await findHostByCodeOnLan(cleaned, signal);
-  if (lanHost) {
-    return probeAgent(lanHost, signal);
+  const lan = await findHostByCodeOnLan(cleaned, signal);
+  if (lan.matchedHost) {
+    return probeAgent(lan.matchedHost, signal);
   }
 
   // 2) Cross-network fallback via Convex. Only works when the agent
   //    has beacon_enabled=true and has registered the code with the
   //    relay. Agents with the default beacon-off setting will not
-  //    appear here — the user gets the `codeNoLanMatchError` message.
+  //    appear here — the user gets the `codeNoLanMatchError` message,
+  //    enriched with the current codes of any unpaired LAN agents we
+  //    saw so a rotation foot-gun is recoverable in one step.
   let lookup: CodeClaimResult;
   try {
     lookup = await claimAnon({
@@ -256,13 +311,16 @@ export async function probeByCode(
       browserUserId: getBrowserId(),
     });
   } catch (e) {
-    // ConvexError "Invalid pairing code" arrives here when the relay
-    // has no record of the code. Surface a friendlier message that
-    // names the LAN-first design and points at the agent setting.
     if (e instanceof Error && /invalid pairing code/i.test(e.message)) {
+      const hint =
+        lan.unpaired.length > 0
+          ? ` LAN agents we see right now: ${lan.unpaired
+              .map((a) => `${a.name} → ${a.code}`)
+              .join(", ")}.`
+          : "";
       throw new PairClientError(
         "codeNoLanMatchError",
-        "No agent on this LAN is advertising that pair code. Make sure you're on the same Wi-Fi as the agent, the code is current (run `ados status`), and either the agent is local OR cloud relay is enabled in its setup webapp.",
+        `No agent on this LAN is advertising that pair code. Codes rotate every 15 minutes — check \`ados status\` on the agent for the current code.${hint}`,
       );
     }
     throw e;

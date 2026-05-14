@@ -148,17 +148,51 @@ describe("findHostByCodeOnLan", () => {
           ],
         },
       },
+      "probe:ados-aa.local": {
+        ok: true,
+        body: {
+          device_id: "aa",
+          name: "ados-aa",
+          pairing_code: "ZZZZZZ",
+          paired: false,
+          mdns_host: "ados-aa.local",
+        },
+      },
       "probe:192.168.1.10": {
         ok: true,
-        body: { pairing_code: "ZZZZZZ", paired: false, mdns_host: "ados-aa.local" },
+        body: {
+          device_id: "aa",
+          name: "ados-aa",
+          pairing_code: "ZZZZZZ",
+          paired: false,
+          mdns_host: "ados-aa.local",
+        },
+      },
+      "probe:ados-bb.local": {
+        ok: true,
+        body: {
+          device_id: "bb",
+          name: "ados-bb",
+          pairing_code: "NCBH76",
+          paired: false,
+          mdns_host: "ados-bb.local",
+        },
       },
       "probe:192.168.1.11": {
         ok: true,
-        body: { pairing_code: "NCBH76", paired: false, mdns_host: "ados-bb.local" },
+        body: {
+          device_id: "bb",
+          name: "ados-bb",
+          pairing_code: "NCBH76",
+          paired: false,
+          mdns_host: "ados-bb.local",
+        },
       },
     });
     const out = await findHostByCodeOnLan("NCBH76");
-    expect(out).toBe("ados-bb.local");
+    expect(out.matchedHost).toBe("ados-bb.local");
+    expect(out.unpaired).toHaveLength(2);
+    expect(out.unpaired.map((a) => a.code).sort()).toEqual(["NCBH76", "ZZZZZZ"]);
   });
 
   it("falls back to the IPv4 when the agent omits mdns_host", async () => {
@@ -171,13 +205,14 @@ describe("findHostByCodeOnLan", () => {
           ],
         },
       },
+      "probe:ados-cc.local": { ok: false, body: {} },
       "probe:192.168.1.12": {
         ok: true,
-        body: { pairing_code: "S4KK24", paired: false },
+        body: { device_id: "cc", name: "ados-cc", pairing_code: "S4KK24", paired: false },
       },
     });
     const out = await findHostByCodeOnLan("S4KK24");
-    expect(out).toBe("192.168.1.12");
+    expect(out.matchedHost).toBe("192.168.1.12");
   });
 
   it("skips agents that are already paired even if the code matches", async () => {
@@ -190,9 +225,21 @@ describe("findHostByCodeOnLan", () => {
           ],
         },
       },
+      "probe:ados-dd.local": {
+        ok: true,
+        body: {
+          device_id: "dd",
+          name: "ados-dd",
+          pairing_code: "X9N883",
+          paired: true,
+          mdns_host: "ados-dd.local",
+        },
+      },
       "probe:192.168.1.13": {
         ok: true,
         body: {
+          device_id: "dd",
+          name: "ados-dd",
           pairing_code: "X9N883",
           paired: true,
           mdns_host: "ados-dd.local",
@@ -200,18 +247,20 @@ describe("findHostByCodeOnLan", () => {
       },
     });
     const out = await findHostByCodeOnLan("X9N883");
-    expect(out).toBe(null);
+    expect(out.matchedHost).toBe(null);
+    expect(out.unpaired).toEqual([]);
   });
 
-  it("returns null when the discover route returns no agents", async () => {
+  it("returns null match when the discover route returns no agents", async () => {
     mockFetchSequence({
       "/api/lan-pair/discover": { ok: true, body: { agents: [] } },
     });
     const out = await findHostByCodeOnLan("NCBH76");
-    expect(out).toBe(null);
+    expect(out.matchedHost).toBe(null);
+    expect(out.unpaired).toEqual([]);
   });
 
-  it("returns null when no agent advertises the requested code", async () => {
+  it("returns the unpaired summary when no agent advertises the requested code", async () => {
     mockFetchSequence({
       "/api/lan-pair/discover": {
         ok: true,
@@ -221,13 +270,32 @@ describe("findHostByCodeOnLan", () => {
           ],
         },
       },
+      "probe:ados-ee.local": {
+        ok: true,
+        body: {
+          device_id: "ee",
+          name: "ados-ee",
+          pairing_code: "WRONG1",
+          paired: false,
+          mdns_host: "ados-ee.local",
+        },
+      },
       "probe:192.168.1.14": {
         ok: true,
-        body: { pairing_code: "WRONG1", paired: false, mdns_host: "ados-ee.local" },
+        body: {
+          device_id: "ee",
+          name: "ados-ee",
+          pairing_code: "WRONG1",
+          paired: false,
+          mdns_host: "ados-ee.local",
+        },
       },
     });
     const out = await findHostByCodeOnLan("NCBH76");
-    expect(out).toBe(null);
+    expect(out.matchedHost).toBe(null);
+    expect(out.unpaired).toHaveLength(1);
+    expect(out.unpaired[0].code).toBe("WRONG1");
+    expect(out.unpaired[0].name).toBe("ados-ee");
   });
 
   it("swallows per-agent probe errors so one slow node doesn't poison the scan", async () => {
@@ -241,21 +309,39 @@ describe("findHostByCodeOnLan", () => {
           ],
         },
       },
+      "probe:broken.local": { ok: false, body: {} },
       "probe:192.168.1.15": { ok: false, body: { error: "upstream_unreachable" } },
+      "probe:good.local": {
+        ok: true,
+        body: {
+          device_id: "good",
+          name: "good",
+          pairing_code: "NCBH76",
+          paired: false,
+          mdns_host: "good.local",
+        },
+      },
       "probe:192.168.1.16": {
         ok: true,
-        body: { pairing_code: "NCBH76", paired: false, mdns_host: "good.local" },
+        body: {
+          device_id: "good",
+          name: "good",
+          pairing_code: "NCBH76",
+          paired: false,
+          mdns_host: "good.local",
+        },
       },
     });
     const out = await findHostByCodeOnLan("NCBH76");
-    expect(out).toBe("good.local");
+    expect(out.matchedHost).toBe("good.local");
   });
 
-  it("returns null when the discover route fails entirely", async () => {
+  it("returns null match when the discover route fails entirely", async () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
       new TypeError("Failed to fetch"),
     );
     const out = await findHostByCodeOnLan("NCBH76");
-    expect(out).toBe(null);
+    expect(out.matchedHost).toBe(null);
+    expect(out.unpaired).toEqual([]);
   });
 });
