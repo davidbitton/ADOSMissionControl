@@ -208,7 +208,12 @@ export function usePairingFlow({
     stopCountdown,
   ]);
 
-  const claimDiscovered = useCallback(async (agent: DiscoveredAgent) => {
+  // Only `pairingCode` is read here. Declare that narrow contract so
+  // callers that don't have a full DiscoveredAgent (e.g. the modal's
+  // EnterPairCodeTab where the operator typed a code into an input
+  // field) can pass `{ pairingCode }` without the strict-function
+  // check rejecting a wider-input function.
+  const claimDiscovered = useCallback(async (agent: Pick<DiscoveredAgent, "pairingCode">) => {
     setPairingInProgress(true);
     setPairingError(null);
 
