@@ -3065,5 +3065,49 @@
   },
   "ros": {
     "foxgloveBindFailed": "Foxglove bridge failed to bind"
+  },
+  "groundStationOverview": {
+    "mesh": {
+      "title": "Mesh",
+      "role": {
+        "direct": "Direct",
+        "relay": "Relay",
+        "receiver": "Receiver",
+        "unset": "Unset"
+      },
+      "status": "Status",
+      "up": "Up",
+      "down": "Down",
+      "peers": "Peers",
+      "partition": "Partition",
+      "partitioned": "Partitioned",
+      "connected": "Connected",
+      "meshId": "Mesh ID",
+      "notCapable": "Mesh not enabled on this node."
+    },
+    "link": {
+      "title": "Link",
+      "rssi": "RSSI",
+      "bitrate": "Bitrate",
+      "fecLost": "FEC lost",
+      "channel": "Channel"
+    },
+    "uplink": {
+      "title": "Uplink",
+      "active": "Active",
+      "health": "Health",
+      "status": {
+        "ok": "OK",
+        "degraded": "Degraded",
+        "down": "Down"
+      },
+      "priority": "Priority",
+      "dataCap": "Data cap",
+      "none": "None"
+    },
+    "pairedDrone": {
+      "title": "Paired drone",
+      "unpaired": "No drone paired"
+    }
   }
 }

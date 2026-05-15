@@ -2,108 +2,19 @@
 
 /**
  * @module AgentOverviewTab
- * @description Main overview tab showing agent status, services, resources, CPU/memory sparklines, and logs.
+ * @description Default tab in the Command-tab agent view. Defers to
+ * `NodeOverviewRouter` which picks a per-profile overview component
+ * (drone / ground-station / lite / compute) based on the connected
+ * agent's `profile` + `runtimeMode`.
+ *
+ * The drone overview body (video, flight, RC, battery, services,
+ * resources, logs) lives in `overview/DroneOverview.tsx` — this file
+ * only delegates.
  * @license GPL-3.0-only
  */
 
-import { useEffect } from "react";
-import { useTranslations } from "next-intl";
-import { useAgentConnectionStore } from "@/stores/agent-connection-store";
-import { useAgentSystemStore } from "@/stores/agent-system-store";
-import { AgentStatusCard } from "./shared/AgentStatusCard";
-import { ServiceTable } from "./shared/ServiceTable";
-import { SystemResourceGauges } from "./shared/SystemResourceGauges";
-import { CpuSparkline } from "./shared/CpuSparkline";
-import { MemorySparkline } from "./shared/MemorySparkline";
-import { LogViewer } from "./shared/LogViewer";
-import { AgentDisconnectedPage } from "./AgentDisconnectedPage";
-import { StaleBanner } from "./shared/StaleBanner";
-import { VideoRestartBanner } from "./shared/VideoRestartBanner";
-import { VideoFeedCard } from "./shared/VideoFeedCard";
-import { BatteryCard } from "./shared/BatteryCard";
-import { RcInputCard } from "./shared/RcInputCard";
-import { FlightDataCard } from "./shared/FlightDataCard";
-import { SensorStatusCard } from "./shared/SensorStatusCard";
-import { ComputeMetricsCard } from "./shared/ComputeMetricsCard";
+import { NodeOverviewRouter } from "./overview/NodeOverviewRouter";
 
 export function AgentOverviewTab() {
-  const t = useTranslations("agent");
-  const connected = useAgentConnectionStore((s) => s.connected);
-  const status = useAgentSystemStore((s) => s.status);
-  const services = useAgentSystemStore((s) => s.services);
-  const resources = useAgentSystemStore((s) => s.resources);
-  const logs = useAgentSystemStore((s) => s.logs);
-  const processCpu = useAgentSystemStore((s) => s.processCpuPercent);
-  const processMemMb = useAgentSystemStore((s) => s.processMemoryMb);
-  const fetchServices = useAgentSystemStore((s) => s.fetchServices);
-  const fetchResources = useAgentSystemStore((s) => s.fetchResources);
-  const fetchLogs = useAgentSystemStore((s) => s.fetchLogs);
-  const restartService = useAgentSystemStore((s) => s.restartService);
-
-  useEffect(() => {
-    if (connected) {
-      fetchServices();
-      fetchResources();
-      fetchLogs();
-    }
-  }, [connected, fetchServices, fetchResources, fetchLogs]);
-
-  // Note: we do NOT gate this tab on `connected`. Once we have a `status`
-  // snapshot we keep showing it — the StaleBanner, header dot, and per-card
-  // dim/PAUSED overlays communicate that the feed is stale. Completely hiding
-  // the UI on disconnect would lose the last-known state the operator needs.
-  if (!status) {
-    if (!connected) {
-      return <AgentDisconnectedPage />;
-    }
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <div className="w-5 h-5 border-2 border-accent-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-text-secondary">{t("waitingForStatus")}</p>
-        <p className="text-xs text-text-tertiary">{t("shouldReportShortly")}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-4 space-y-4">
-      <StaleBanner />
-      <VideoRestartBanner />
-      {/* Agent Status spans 2/3, Flight Telemetry column starts at top */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* Status card spans 2 columns */}
-        <div className="xl:col-span-2">
-          {status && <AgentStatusCard status={status} />}
-        </div>
-
-        {/* Column 3: Video + Flight Telemetry (starts at same level as status) */}
-        <div className="xl:row-span-3 space-y-3">
-          <VideoFeedCard />
-          <FlightDataCard />
-          <RcInputCard />
-        </div>
-
-        {/* Below status: 2 columns — logs+services left, resources right */}
-        <div className="space-y-4">
-          <LogViewer logs={logs} onRefresh={fetchLogs} />
-          <ServiceTable
-            services={services}
-            onRestart={restartService}
-            onRestartAll={() => restartService("ados-supervisor")}
-            processCpu={processCpu}
-            processMemoryMb={processMemMb}
-          />
-        </div>
-
-        <div className="space-y-4">
-          {resources && <SystemResourceGauges resources={resources} />}
-          <CpuSparkline />
-          <MemorySparkline />
-          <BatteryCard />
-          <ComputeMetricsCard />
-          <SensorStatusCard />
-        </div>
-      </div>
-    </div>
-  );
+  return <NodeOverviewRouter />;
 }

@@ -6,7 +6,7 @@
  * @license GPL-3.0-only
  */
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useTranslations } from "next-intl";
 import {
   Monitor,
@@ -201,6 +201,24 @@ export function CommandPage() {
       useAgentConnectionStore.getState().stopPolling();
     };
   }, []);
+
+  // Auto-route to the single paired node on first load so the operator
+  // lands on a useful surface instead of an empty fleet sidebar. Fires
+  // once per session: subsequent fleet returns (via `handleShowFleet`)
+  // are sticky and not overridden. Multi-node fleets stay on the fleet
+  // overview by default — the operator picks.
+  const autoRoutedRef = useRef(false);
+  useEffect(() => {
+    if (autoRoutedRef.current) return;
+    if (viewMode !== "fleet") return;
+    if (pairedDrones.length !== 1) return;
+    const only = pairedDrones[0];
+    autoRoutedRef.current = true;
+    usePairingStore.getState().selectPairedDrone(only._id);
+    setViewMode("agent");
+    setActiveTab("overview");
+    connectCloud(only.deviceId);
+  }, [pairedDrones, viewMode, connectCloud]);
 
   // Cloud-relay watchdog. When the user clicks a node and we route through
   // cloud relay, the click handler sets cloudMode + connected synchronously
