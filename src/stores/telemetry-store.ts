@@ -3,6 +3,37 @@ import { RingBuffer } from "@/lib/ring-buffer";
 import type { AttitudeData, PositionData, BatteryData, GpsData, VfrData, RcData, SysStatusData, RadioData, EkfData, VibrationData, ServoOutputData, WindData, TerrainData, LocalPositionData, DebugData, GimbalData, ObstacleData, ScaledImuData, HomePositionData, PowerStatusData, DistanceSensorData, FenceStatusData, EstimatorStatusData, CameraTriggerData, NavControllerData } from "@/lib/types";
 import type { INavAdsbVehicle } from "@/lib/protocol/msp/msp-decoders-inav";
 
+/** Generic scalar telemetry sample for derived/quality channels. */
+export interface TelemetrySample {
+  ts: number;
+  value: number;
+}
+
+/** Telemetry sample whose value may be unknown (e.g. unknown distance). */
+export interface NullableTelemetrySample {
+  ts: number;
+  value: number | null;
+}
+
+/**
+ * Heuristic VIO quality from an ODOMETRY poseCovariance row-major
+ * upper-triangular array. Indices 0, 6, 11 are the diagonal entries
+ * for x, y, z position variance in the 6x6 covariance matrix.
+ * Returns 0..100 where higher means tighter covariance.
+ */
+export function computeVioQuality(poseCovariance: number[] | undefined): number {
+  if (!poseCovariance || poseCovariance.length < 12) return 0;
+  const vx = poseCovariance[0];
+  const vy = poseCovariance[6];
+  const vz = poseCovariance[11];
+  if (!Number.isFinite(vx) || !Number.isFinite(vy) || !Number.isFinite(vz)) return 0;
+  const trace = vx + vy + vz;
+  const q = 100 - trace * 10;
+  if (q < 0) return 0;
+  if (q > 100) return 100;
+  return q;
+}
+
 interface TelemetryStoreState {
   _version: number;
   attitude: RingBuffer<AttitudeData>;
@@ -31,6 +62,9 @@ interface TelemetryStoreState {
   estimatorStatus: RingBuffer<EstimatorStatusData>;
   cameraTrigger: RingBuffer<CameraTriggerData>;
   navController: RingBuffer<NavControllerData>;
+  flowQuality: RingBuffer<TelemetrySample>;
+  flowDistance: RingBuffer<NullableTelemetrySample>;
+  vioQuality: RingBuffer<TelemetrySample>;
 
   pushAttitude: (data: AttitudeData) => void;
   pushPosition: (data: PositionData) => void;
@@ -58,6 +92,9 @@ interface TelemetryStoreState {
   pushEstimatorStatus: (data: EstimatorStatusData) => void;
   pushCameraTrigger: (data: CameraTriggerData) => void;
   pushNavController: (data: NavControllerData) => void;
+  pushFlowQuality: (ts: number, q: number) => void;
+  pushFlowDistance: (ts: number, d: number | null) => void;
+  pushVioQuality: (ts: number, q: number) => void;
 
   // iNav-specific fields
   navState: number | null;
@@ -148,6 +185,9 @@ export const useTelemetryStore = create<TelemetryStoreState>((set, get) => ({
   estimatorStatus: new RingBuffer<EstimatorStatusData>(60), // 1Hz x 60s
   cameraTrigger: new RingBuffer<CameraTriggerData>(100),    // event-driven
   navController: new RingBuffer<NavControllerData>(120),   // 2Hz x 60s
+  flowQuality: new RingBuffer<TelemetrySample>(1000),       // ~10-50Hz, 20-100s window
+  flowDistance: new RingBuffer<NullableTelemetrySample>(1000),
+  vioQuality: new RingBuffer<TelemetrySample>(1000),
 
   pushAttitude: (data) => { get().attitude.push(data); scheduleVersionBump(); },
   pushPosition: (data) => { get().position.push(data); scheduleVersionBump(); },
@@ -175,6 +215,9 @@ export const useTelemetryStore = create<TelemetryStoreState>((set, get) => ({
   pushEstimatorStatus: (data) => { get().estimatorStatus.push(data); scheduleVersionBump(); },
   pushCameraTrigger: (data) => { get().cameraTrigger.push(data); scheduleVersionBump(); },
   pushNavController: (data) => { get().navController.push(data); scheduleVersionBump(); },
+  pushFlowQuality: (ts, q) => { get().flowQuality.push({ ts, value: q }); scheduleVersionBump(); },
+  pushFlowDistance: (ts, d) => { get().flowDistance.push({ ts, value: d }); scheduleVersionBump(); },
+  pushVioQuality: (ts, q) => { get().vioQuality.push({ ts, value: q }); scheduleVersionBump(); },
 
   navState: null,
   navAction: null,
@@ -244,6 +287,9 @@ export const useTelemetryStore = create<TelemetryStoreState>((set, get) => ({
       estimatorStatus: new RingBuffer<EstimatorStatusData>(60),
       cameraTrigger: new RingBuffer<CameraTriggerData>(100),
       navController: new RingBuffer<NavControllerData>(120),
+      flowQuality: new RingBuffer<TelemetrySample>(1000),
+      flowDistance: new RingBuffer<NullableTelemetrySample>(1000),
+      vioQuality: new RingBuffer<TelemetrySample>(1000),
       navState: null,
       navAction: null,
       navStatusUpdated: 0,

@@ -15,6 +15,9 @@ export function DebugPanel() {
   const getSelectedProtocol = useDroneManager((s) => s.getSelectedProtocol);
   const selectedDroneId = useDroneManager((s) => s.selectedDroneId);
   const debugRing = useTelemetryStore((s) => s.debug);
+  const flowQualityRing = useTelemetryStore((s) => s.flowQuality);
+  const flowDistanceRing = useTelemetryStore((s) => s.flowDistance);
+  const vioQualityRing = useTelemetryStore((s) => s.vioQuality);
 
   const [view, setView] = useState<ViewMode>("table");
   const [values, setValues] = useState<Map<string, DebugValue>>(new Map());
@@ -67,6 +70,52 @@ export function DebugPanel() {
     setValues(nextValues);
     setGraphHistory(nextHistory);
   }, [debugRing.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Vision-navigation derived channels. Drained from three dedicated
+  // ring buffers and folded into the same values/history maps so they
+  // appear alongside NAMED_VALUE_FLOAT / NAMED_VALUE_INT / DEBUG entries.
+  useEffect(() => {
+    const flowQ = flowQualityRing.toArray();
+    const flowD = flowDistanceRing.toArray();
+    const vioQ = vioQualityRing.toArray();
+    if (flowQ.length === 0 && flowD.length === 0 && vioQ.length === 0) return;
+
+    const nextValues = new Map(valuesRef.current);
+    const nextHistory = new Map(historyRef.current);
+
+    const drain = (
+      key: string,
+      type: DebugValue["type"],
+      samples: { ts: number; value: number | null }[],
+    ) => {
+      const arr = nextHistory.get(key) ?? [];
+      const last = arr[arr.length - 1];
+      let mostRecent: { ts: number; value: number | null } | undefined;
+      for (const s of samples) {
+        if (s.value === null || !Number.isFinite(s.value)) continue;
+        if (last && s.ts <= last.t) continue;
+        arr.push({ t: s.ts, v: s.value });
+        mostRecent = s;
+      }
+      if (arr.length > MAX_HISTORY) arr.splice(0, arr.length - MAX_HISTORY);
+      nextHistory.set(key, arr);
+      if (mostRecent && mostRecent.value !== null) {
+        nextValues.set(key, {
+          name: key,
+          value: mostRecent.value,
+          type,
+          lastUpdate: mostRecent.ts,
+        });
+      }
+    };
+
+    drain("Flow Quality", "int", flowQ);
+    drain("Flow Distance", "float", flowD);
+    drain("VIO Quality", "float", vioQ);
+
+    setValues(nextValues);
+    setGraphHistory(nextHistory);
+  }, [flowQualityRing.length, flowDistanceRing.length, vioQualityRing.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleGraphKey = useCallback((key: string) => {
     setSelectedGraphKeys((prev) => {

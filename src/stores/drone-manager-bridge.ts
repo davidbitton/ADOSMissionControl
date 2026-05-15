@@ -5,7 +5,7 @@
  */
 
 import type { DroneProtocol } from "@/lib/protocol/types";
-import { useTelemetryStore } from "./telemetry-store";
+import { useTelemetryStore, computeVioQuality } from "./telemetry-store";
 import { useDroneStore } from "./drone-store";
 import { useFleetStore } from "./fleet-store";
 import { useSettingsStore } from "./settings-store";
@@ -187,6 +187,28 @@ export function bridgeTelemetry(
         len: data.len,
         data: data.data,
       });
+    })] : []),
+
+    // Vision-navigation quality channels. The plugin-side emitter
+    // for these MAVLink messages may not be active; ring buffers
+    // stay empty when no data flows.
+    ...(protocol.onOpticalFlowRad ? [protocol.onOpticalFlowRad((data) => {
+      const ts = Date.now();
+      const t = useTelemetryStore.getState();
+      t.pushFlowQuality(ts, data.quality);
+      // OPTICAL_FLOW_RAD reserves a sentinel when distance is unknown.
+      // The decoded payload may surface this as a non-finite or negative
+      // value; coerce that into null so consumers can mark "no data".
+      const d = data.distance;
+      const known = Number.isFinite(d) && d >= 0;
+      t.pushFlowDistance(ts, known ? d : null);
+      rec("opticalFlowRad", data);
+    })] : []),
+    ...(protocol.onOdometry ? [protocol.onOdometry((data) => {
+      const ts = Date.now();
+      const q = data.quality ?? computeVioQuality(data.poseCovariance);
+      useTelemetryStore.getState().pushVioQuality(ts, q);
+      rec("odometry", data);
     })] : []),
 
     // capture ArduPilot prearm STATUSTEXT lines into a per-drone
