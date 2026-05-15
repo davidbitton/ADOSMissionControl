@@ -15,6 +15,7 @@ import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useAgentSystemStore } from "@/stores/agent-system-store";
 import { useAgentPeripheralsStore } from "@/stores/agent-peripherals-store";
 import { useAgentScriptsStore } from "@/stores/agent-scripts-store";
+import { usePairingStore } from "@/stores/pairing-store";
 import { useVideoStore } from "@/stores/video-store";
 import { cmdDroneStatusApi, cmdDroneCommandsApi } from "@/lib/community-api-drones";
 import { useConvexAvailable } from "@/app/ConvexClientProvider";
@@ -254,14 +255,36 @@ export function CloudStatusBridge() {
     const videoWhepUrl = (cloudStatus as Record<string, unknown>).videoWhepUrl as string | undefined;
     const lastIp = (cloudStatus as Record<string, unknown>).lastIp as string | undefined;
 
+    // LAN fallback: when the agent's cloud heartbeat lags (or is broken
+    // outright) the Convex row may not yet carry videoWhepUrl/lastIp. If
+    // the paired-drone record cached at pair time has an mDNS host, we can
+    // still synthesize a WHEP URL the cascade can attempt on the LAN.
+    // Prefers the Convex-published URL when present (lets future
+    // out-of-LAN setups still work).
+    const pairedDrone = usePairingStore
+      .getState()
+      .pairedDrones.find((d) => d.deviceId === cloudDeviceId);
+    const lanHost = pairedDrone?.mdnsHost || pairedDrone?.lastIp || lastIp;
+
     if (videoState) {
       let whepUrl: string | null = null;
       if (videoState === "running" && videoWhepUrl) {
         whepUrl = videoWhepUrl;
       } else if (videoState === "running" && lastIp && videoWhepPort && videoWhepPort > 0) {
         whepUrl = `http://${lastIp}:${videoWhepPort}/main/whep`;
+      } else if (videoState === "running" && lanHost) {
+        // mediamtx default WHEP port is stable across deployments.
+        whepUrl = `http://${lanHost}:8889/main/whep`;
       }
       useVideoStore.getState().setAgentVideoStatus(videoState, whepUrl);
+    } else if (lanHost) {
+      // Convex doesn't yet know the video state (heartbeat hasn't landed,
+      // or the field is missing). Assume "running" so the cascade has a
+      // URL to attempt; if the agent rejects the WHEP POST the cascade
+      // surfaces a normal failure and falls through to the next mode.
+      useVideoStore
+        .getState()
+        .setAgentVideoStatus("running", `http://${lanHost}:8889/main/whep`);
     }
 
     // MAVLink WebSocket URL from agent heartbeat
@@ -271,6 +294,12 @@ export function CloudStatusBridge() {
       useAgentConnectionStore.getState().setMavlinkUrl(mavlinkWsUrl);
     } else if (lastIp && mavlinkWsPort && mavlinkWsPort > 0) {
       useAgentConnectionStore.getState().setMavlinkUrl(`ws://${lastIp}:${mavlinkWsPort}/`);
+    } else if (lanHost) {
+      // LAN fallback: ados-mavlink defaults to port 8765 across all
+      // shipped agents, mirroring the WHEP default above.
+      useAgentConnectionStore
+        .getState()
+        .setMavlinkUrl(`ws://${lanHost}:8765/`);
     }
 
     // Infer capabilities from cloud status (board SoC → NPU, peripherals → cameras).

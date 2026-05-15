@@ -7,11 +7,32 @@
  */
 
 import { useAgentSystemStore } from "../agent-system-store";
+import { usePairingStore } from "../pairing-store";
 import type {
   CloudStateSlice,
   AgentConnectionSliceCreator,
 } from "./types";
 import { MAX_CPU_HISTORY } from "./types";
+
+/** Build a LAN URL from a paired-drone record when the agent's hostname or
+ * cached IP is known. Returns null when no usable host is available; callers
+ * fall back to the Convex heartbeat metadata. */
+function resolveLanAgentUrl(deviceId: string): string | null {
+  const pairedDrones = usePairingStore.getState().pairedDrones;
+  const match = pairedDrones.find((d) => d.deviceId === deviceId);
+  if (!match) return null;
+  const host = match.mdnsHost || match.lastIp;
+  if (!host) return null;
+  return `http://${host}:8080`;
+}
+
+/** Look up the paired drone's API key for direct LAN HTTP calls. */
+function resolvePairedApiKey(deviceId: string): string | null {
+  const match = usePairingStore
+    .getState()
+    .pairedDrones.find((d) => d.deviceId === deviceId);
+  return match?.apiKey ?? null;
+}
 
 export const cloudStateSlice: AgentConnectionSliceCreator<CloudStateSlice> = (
   set,
@@ -24,12 +45,20 @@ export const cloudStateSlice: AgentConnectionSliceCreator<CloudStateSlice> = (
 
   connectCloud(deviceId) {
     get().stopPolling();
+    // Pre-populate the LAN agent URL from the cached paired-drone record so
+    // every downstream consumer (video-latency poll, clock-offset probe,
+    // transport cascade, WHEP fallback) can attempt the agent directly
+    // before relying on the Convex heartbeat. The Convex subscription stays
+    // active as a fallback when the agent isn't reachable on the LAN.
+    const lanUrl = resolveLanAgentUrl(deviceId);
+    const lanKey = resolvePairedApiKey(deviceId);
     set({
       cloudMode: true,
       cloudDeviceId: deviceId,
       connected: true,
       connectionError: null,
-      agentUrl: null,
+      agentUrl: lanUrl,
+      apiKey: lanKey,
       client: null,
       mavlinkUrl: null,
       // Give the watchdog a grace period so it doesn't immediately re-flip
