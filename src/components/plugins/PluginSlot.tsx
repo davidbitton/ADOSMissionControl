@@ -2,14 +2,17 @@
 
 import { useTranslations } from "next-intl";
 
+import { useConvexAvailable } from "@/app/ConvexClientProvider";
 import { useToast } from "@/components/ui/toast";
 import { slotToCapability, type PluginSlotName } from "@/lib/plugins/types";
 
 import {
+  usePluginHost,
   useSlotContributions,
   type PluginSlotContribution,
 } from "./PluginHostProvider";
 import { PluginIframeHost } from "./PluginIframeHost";
+import { usePluginTokenValidator } from "./use-plugin-token-validator";
 
 // Module-scoped dedupe set so the operator sees one toast per
 // (plugin, slot) pair across the whole session. Without this the
@@ -60,6 +63,15 @@ export function PluginSlot({
   const t = useTranslations("plugins");
   const { toast } = useToast();
   const fromContext = useSlotContributions(name);
+  const host = usePluginHost();
+  const deviceId = host?.deviceId ?? null;
+  // The validator path runs Convex hooks; tests and the local-first
+  // build (no Convex backend) do not have a `<ConvexProvider>` in the
+  // tree. We pick the mount component once per render based on the
+  // availability context — it is stable per provider lifecycle, so
+  // React never sees the two branches alternate.
+  const convexAvailable = useConvexAvailable();
+  const validatorEligible = convexAvailable && deviceId !== null;
   const raw = contributions ?? fromContext;
   // Capability gate: a contribution can only mount when its
   // grantedCapabilities include the slot's matching ui.slot.<id>
@@ -90,20 +102,107 @@ export function PluginSlot({
   if (list.length === 0) return <>{emptyState}</>;
   return (
     <div data-plugin-slot={name} className={className}>
-      {list.map((c) => (
-        <PluginIframeHost
-          key={`${c.pluginId}::${c.panelId}`}
-          pluginId={c.pluginId}
-          slot={name}
-          bundleUrl={c.bundleUrl}
-          grantedCapabilities={c.grantedCapabilities}
-          handlers={c.handlers}
-          themeVars={c.themeVars}
-          title={c.title ?? `${c.pluginId} ${c.panelId}`}
-          className={c.iframeClassName ?? iframeClassName}
-          onSecurityEvent={onSecurityEvent}
-        />
-      ))}
+      {list.map((c) =>
+        validatorEligible && deviceId !== null ? (
+          <PluginSlotMountValidated
+            key={`${c.pluginId}::${c.panelId}`}
+            contribution={c}
+            slotName={name}
+            deviceId={deviceId}
+            iframeClassName={iframeClassName}
+            onSecurityEvent={onSecurityEvent}
+          />
+        ) : (
+          <PluginSlotMountPlain
+            key={`${c.pluginId}::${c.panelId}`}
+            contribution={c}
+            slotName={name}
+            deviceId={deviceId}
+            iframeClassName={iframeClassName}
+            onSecurityEvent={onSecurityEvent}
+          />
+        ),
+      )}
     </div>
+  );
+}
+
+interface PluginSlotMountProps {
+  contribution: PluginSlotContribution;
+  slotName: PluginSlotName;
+  deviceId: string | null;
+  iframeClassName?: string;
+  onSecurityEvent?: React.ComponentProps<
+    typeof PluginIframeHost
+  >["onSecurityEvent"];
+}
+
+interface PluginSlotMountValidatedProps
+  extends Omit<PluginSlotMountProps, "deviceId"> {
+  /** Always present at the validated mount; the parent gates on
+   * non-null before picking this component branch. */
+  deviceId: string;
+}
+
+/**
+ * Validator-on mount. Calls the Convex-aware token validator hook to
+ * build the bridge's per-RPC verification options. Used when Convex
+ * is available AND the slot is bound to a drone; the bridge then runs
+ * the full 5-check verification pipeline on every iframe RPC.
+ */
+function PluginSlotMountValidated({
+  contribution: c,
+  slotName,
+  deviceId,
+  iframeClassName,
+  onSecurityEvent,
+}: PluginSlotMountValidatedProps) {
+  const installId = c.pluginInstallId ?? c.pluginId;
+  const tokenValidator = usePluginTokenValidator({
+    pluginInstallId: installId,
+    deviceId,
+  });
+  return (
+    <PluginIframeHost
+      pluginId={c.pluginId}
+      slot={slotName}
+      bundleUrl={c.bundleUrl}
+      grantedCapabilities={c.grantedCapabilities}
+      handlers={c.handlers}
+      themeVars={c.themeVars}
+      title={c.title ?? `${c.pluginId} ${c.panelId}`}
+      className={c.iframeClassName ?? iframeClassName}
+      onSecurityEvent={onSecurityEvent}
+      agentId={deviceId}
+      tokenValidator={tokenValidator}
+    />
+  );
+}
+
+/**
+ * Validator-off mount. Skips the Convex-aware hook chain entirely so
+ * fleet-wide slots and Convex-less test environments still render. The
+ * bridge runs in legacy capability-set-only mode for these iframes.
+ */
+function PluginSlotMountPlain({
+  contribution: c,
+  slotName,
+  deviceId,
+  iframeClassName,
+  onSecurityEvent,
+}: PluginSlotMountProps) {
+  return (
+    <PluginIframeHost
+      pluginId={c.pluginId}
+      slot={slotName}
+      bundleUrl={c.bundleUrl}
+      grantedCapabilities={c.grantedCapabilities}
+      handlers={c.handlers}
+      themeVars={c.themeVars}
+      title={c.title ?? `${c.pluginId} ${c.panelId}`}
+      className={c.iframeClassName ?? iframeClassName}
+      onSecurityEvent={onSecurityEvent}
+      agentId={deviceId}
+    />
   );
 }
