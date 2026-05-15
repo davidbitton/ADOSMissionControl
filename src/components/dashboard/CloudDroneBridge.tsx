@@ -101,6 +101,16 @@ export function CloudDroneBridge() {
               | undefined)
           : undefined;
 
+      // GPS-denied navigation flag for the fleet-card pill. Denormalized
+      // from cmd_drones so we don't need a join against cmd_droneStatus
+      // on every render. Undefined when the agent has no nav plugin.
+      const navigationGpsDenied =
+        typeof (drone as { navigationGpsDenied?: unknown })
+          .navigationGpsDenied === "boolean"
+          ? ((drone as { navigationGpsDenied?: boolean })
+              .navigationGpsDenied as boolean | undefined)
+          : undefined;
+
       const fleetDrone: FleetDrone = {
         id: fleetId,
         name: drone.name || `Agent ${drone.deviceId.slice(0, 8)}`,
@@ -121,6 +131,7 @@ export function CloudDroneBridge() {
         videoEncoderName,
         videoEncoderHwAccel,
         manualMavlinkWsUrl,
+        navigationGpsDenied,
       };
 
       if (trackedIds.current.has(fleetId)) {

@@ -85,6 +85,11 @@ export interface FleetDrone extends DroneInfo {
    * the operator can switch from cloud relay to direct LAN in one
    * click. Undefined when the agent reports no LAN-routable URL. */
   manualMavlinkWsUrl?: string;
+  /** True when the agent reports an active GPS-denied estimator
+   * (optical flow or VIO). Denormalized from cmd_drones so the fleet
+   * card can render a "VIO" pill without joining cmd_droneStatus.
+   * Undefined for agents that predate the navigation surface. */
+  navigationGpsDenied?: boolean;
 }
 
 export type AlertSeverity = "info" | "warning" | "critical";

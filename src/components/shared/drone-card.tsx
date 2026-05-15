@@ -95,6 +95,13 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
               </Badge>
             </span>
           )}
+          {drone.navigationGpsDenied === true && (
+            <span title="GPS-denied navigation active (optical flow or VIO)">
+              <Badge variant="info" className="text-[10px]">
+                VIO
+              </Badge>
+            </span>
+          )}
           {drone.manualMavlinkWsUrl && (
             <span
               title={`Direct LAN MAVLink available — ${drone.manualMavlinkWsUrl}\nClick to copy to clipboard.`}

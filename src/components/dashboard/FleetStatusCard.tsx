@@ -33,6 +33,11 @@ export function FleetStatusCard() {
     return acc;
   }, {});
 
+  const gpsDeniedCount = drones.reduce(
+    (n, d) => (d.navigationGpsDenied === true ? n + 1 : n),
+    0,
+  );
+
   const statuses: DroneStatus[] = ["in_mission", "online", "idle", "returning", "maintenance", "offline"];
 
   return (
@@ -57,6 +62,20 @@ export function FleetStatusCard() {
             </div>
           );
         })}
+        {gpsDeniedCount > 0 && (
+          <div className="flex items-center justify-between border-t border-border-primary/40 mt-1 pt-1.5">
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className="inline-flex h-2 w-2 rounded-full bg-accent-primary"
+              />
+              <span className="text-xs text-text-secondary">GPS-denied</span>
+            </div>
+            <span className="text-xs font-mono text-text-primary tabular-nums">
+              {gpsDeniedCount}
+            </span>
+          </div>
+        )}
       </div>
     </Card>
   );
