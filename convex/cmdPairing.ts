@@ -381,7 +381,12 @@ export const registerAgent = mutation({
       .withIndex("by_deviceId", (q) => q.eq("deviceId", deviceId))
       .first();
     if (existing) {
-      if (existing.claimedBy) return { alreadyClaimed: true };
+      if (existing.claimedBy) {
+        // Surface the owner so the agent's beacon-claim handler can
+        // record the real claimant (signed-in user id, or "browser:UUID"
+        // for anon claims) instead of defaulting to the literal "cloud".
+        return { alreadyClaimed: true, userId: existing.claimedBy };
+      }
       if (existing.expiresAt < now) {
         await ctx.db.delete(existing._id);
       } else if (existing.pairingCode !== pairingCode) {
