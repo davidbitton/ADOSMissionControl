@@ -7,7 +7,7 @@
  */
 
 import { AgentClient, normaliseSystemResources } from "@/lib/agent/client";
-import type { AgentStatus } from "@/lib/agent/types";
+import type { AgentStatus, ServiceInfo } from "@/lib/agent/types";
 import { inferCapabilities } from "@/lib/agent/infer-capabilities";
 import { useAgentSystemStore } from "../agent-system-store";
 import { useAgentPeripheralsStore } from "../agent-peripherals-store";
@@ -234,12 +234,53 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
             };
             useAgentSystemStore.getState().setStatus(status as AgentStatus);
             if (full.services) {
-              // Map service state field name for compatibility.
-              const mapped = full.services.map((s: { name: string; state: string; task_done: boolean; uptimeSeconds: number }) => ({
-                ...s,
-                status: s.state,
+              // Map the consolidated service shape (`state` + camelCase
+              // metric fields) into the canonical ServiceInfo the rest
+              // of the GCS consumes (`status` + snake_case fields).
+              // Defensive on each field so a partial agent response
+              // never produces NaN.toFixed() crashes downstream.
+              type RawService = {
+                name?: unknown;
+                state?: unknown;
+                pid?: unknown;
+                cpu_percent?: unknown;
+                cpuPercent?: unknown;
+                memory_mb?: unknown;
+                memoryMb?: unknown;
+                uptime_seconds?: unknown;
+                uptimeSeconds?: unknown;
+                category?: unknown;
+              };
+              const mapped: ServiceInfo[] = (full.services as RawService[]).map((s) => ({
+                name: typeof s.name === "string" ? s.name : "unknown",
+                status: (typeof s.state === "string"
+                  ? s.state
+                  : "stopped") as ServiceInfo["status"],
+                pid: typeof s.pid === "number" ? s.pid : null,
+                cpu_percent:
+                  typeof s.cpu_percent === "number"
+                    ? s.cpu_percent
+                    : typeof s.cpuPercent === "number"
+                      ? s.cpuPercent
+                      : 0,
+                memory_mb:
+                  typeof s.memory_mb === "number"
+                    ? s.memory_mb
+                    : typeof s.memoryMb === "number"
+                      ? s.memoryMb
+                      : 0,
+                uptime_seconds:
+                  typeof s.uptime_seconds === "number"
+                    ? s.uptime_seconds
+                    : typeof s.uptimeSeconds === "number"
+                      ? s.uptimeSeconds
+                      : 0,
+                category:
+                  typeof s.category === "string"
+                    ? (s.category as ServiceInfo["category"])
+                    : undefined,
               }));
-              useAgentSystemStore.setState({ services: mapped as never[] });
+              useAgentSystemStore.setState({ services: mapped });
             }
             if (full.resources) {
               // /api/status/full returns ONLY percentages (no
@@ -255,10 +296,12 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
                 stale: false,
               });
             }
-            if (full.video) {
+            if (full.video && typeof full.video.state === "string") {
               useVideoStore.getState().setAgentVideoStatus(
                 full.video.state,
-                full.video.whep_url,
+                typeof full.video.whep_url === "string"
+                  ? full.video.whep_url
+                  : null,
               );
             }
             // Populate capabilities from consolidated response or infer from legacy data.
