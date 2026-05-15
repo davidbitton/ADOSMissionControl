@@ -11,8 +11,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Radio } from "lucide-react";
 import { PageIntro } from "@/components/hardware/PageIntro";
+import { CloudModeLimitedNotice } from "@/components/command/shared/CloudModeLimitedNotice";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { groundStationApiFromAgent } from "@/lib/api/ground-station-api";
@@ -217,17 +217,7 @@ export function NetworkTab() {
           title="Network"
           description="Manage every uplink path: WiFi access point, WiFi client, Ethernet, and 4G modem. The active uplink decides which network the agent uses for cloud relay."
         />
-        <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-border-default bg-bg-secondary text-text-tertiary">
-            <Radio size={24} />
-          </div>
-          <h2 className="text-sm font-display font-semibold text-text-primary">
-            No ground station connected
-          </h2>
-          <p className="mt-2 max-w-md text-xs text-text-tertiary leading-relaxed">
-            Connect to an ADOS ground station agent to configure network settings.
-          </p>
-        </div>
+        <CloudModeLimitedNotice feature="network" />
       </div>
     );
   }

@@ -23,6 +23,7 @@ import { RoleChangeCard } from "@/components/hardware/RoleChangeCard";
 import { PageIntro } from "@/components/hardware/PageIntro";
 import { HintChip } from "@/components/hardware/HintChip";
 import { Button } from "@/components/ui/button";
+import { CloudModeLimitedNotice } from "@/components/command/shared/CloudModeLimitedNotice";
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -75,6 +76,8 @@ export function MeshTab() {
     if (api) void loadMesh(api);
   };
 
+  const onCloudOnly = !agentUrl;
+
   return (
     <div className="flex flex-col">
       <PageIntro
@@ -84,6 +87,7 @@ export function MeshTab() {
           <HintChip>Gateway election picks the node with the best cloud uplink.</HintChip>
         }
       />
+      {onCloudOnly ? <CloudModeLimitedNotice feature="mesh" /> : null}
       <div className="flex flex-col gap-4">
       <MeshHealthCard />
       <MeshNeighborsTable />

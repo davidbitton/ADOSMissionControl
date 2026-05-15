@@ -10,8 +10,8 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Monitor } from "lucide-react";
 import { BluetoothPairModal } from "@/components/hardware/BluetoothPairModal";
+import { CloudModeLimitedNotice } from "@/components/command/shared/CloudModeLimitedNotice";
 import { LocalDisplayCard } from "@/components/hardware/LocalDisplayCard";
 import { LcdPagePreview } from "@/components/hardware/LcdPagePreview";
 import { PageIntro } from "@/components/hardware/PageIntro";
@@ -119,17 +119,7 @@ export function PhysicalUiTab() {
           title="Physical UI"
           description="Live preview of the OLED screen and four front buttons on the ground station box. Pair Bluetooth peripherals here too."
         />
-        <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-border-default bg-bg-secondary text-text-tertiary">
-            <Monitor size={24} />
-          </div>
-          <h2 className="text-sm font-display font-semibold text-text-primary">
-            No ground station connected
-          </h2>
-          <p className="mt-2 max-w-md text-xs text-text-tertiary leading-relaxed">
-            Connect to an ADOS ground station agent to configure the physical UI.
-          </p>
-        </div>
+        <CloudModeLimitedNotice feature="physicalUi" />
       </div>
     );
   }

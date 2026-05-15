@@ -19,6 +19,7 @@ import { groundStationApiFromAgent } from "@/lib/api/ground-station-api";
 import type { PeripheralSummary } from "@/lib/api/ground-station-api";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useGroundStationStore } from "@/stores/ground-station-store";
+import { CloudModeLimitedNotice } from "@/components/command/shared/CloudModeLimitedNotice";
 
 const POLL_INTERVAL_MS = 5000;
 const RESCAN_TIMEOUT_MS = 10_000;
@@ -132,6 +133,7 @@ export function PeripheralsTab() {
   };
 
   const rows = useMemo(() => peripherals.list, [peripherals.list]);
+  const onCloudOnly = !agentUrl;
 
   return (
     <div className="flex flex-col">
@@ -139,20 +141,23 @@ export function PeripheralsTab() {
         title="Peripherals"
         description="Plugin-managed peripherals declared by the agent: cameras, sensors, custom hardware. Per-plugin configuration support arrives one plugin at a time."
         trailing={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onRescan}
-            disabled={rescanning}
-          >
-            <RefreshCw
-              size={14}
-              className={rescanning ? "mr-1.5 animate-spin" : "mr-1.5"}
-            />
-            {rescanning ? t("common.scanning") : t("common.rescan")}
-          </Button>
+          onCloudOnly ? null : (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onRescan}
+              disabled={rescanning}
+            >
+              <RefreshCw
+                size={14}
+                className={rescanning ? "mr-1.5 animate-spin" : "mr-1.5"}
+              />
+              {rescanning ? t("common.scanning") : t("common.rescan")}
+            </Button>
+          )
         }
       />
+      {onCloudOnly ? <CloudModeLimitedNotice feature="peripherals" /> : null}
       {peripherals.error ? (
         <div className="mb-4 rounded border border-status-error/50 bg-status-error/10 px-4 py-3 text-sm text-status-error">
           {peripherals.error}

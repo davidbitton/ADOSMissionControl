@@ -10,9 +10,9 @@
  */
 
 import { useState } from "react";
-import { Monitor } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { LocalDisplayCard } from "@/components/hardware/LocalDisplayCard";
+import { CloudModeLimitedNotice } from "@/components/command/shared/CloudModeLimitedNotice";
 import { LcdPagePreview } from "@/components/hardware/LcdPagePreview";
 import { LcdRemoteControl } from "@/components/hardware/LcdRemoteControl";
 import { LcdThemeToggle } from "@/components/hardware/LcdThemeToggle";
@@ -25,7 +25,6 @@ import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 export function DisplayTab() {
   const agentUrl = useAgentConnectionStore((s) => s.agentUrl);
   const t = useTranslations("hardware.displayPage");
-  const tOverview = useTranslations("hardware.overviewPage");
 
   const [calibrationOpen, setCalibrationOpen] = useState(false);
 
@@ -33,17 +32,7 @@ export function DisplayTab() {
     return (
       <div className="flex flex-col">
         <PageIntro title={t("title")} description={t("description")} />
-        <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-border-default bg-bg-secondary text-text-tertiary">
-            <Monitor size={24} />
-          </div>
-          <h2 className="text-sm font-display font-semibold text-text-primary">
-            {tOverview("noAgentTitle")}
-          </h2>
-          <p className="mt-2 max-w-md text-xs text-text-tertiary leading-relaxed">
-            {tOverview("noAgentBody")}
-          </p>
-        </div>
+        <CloudModeLimitedNotice feature="display" />
       </div>
     );
   }

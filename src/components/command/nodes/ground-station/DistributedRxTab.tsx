@@ -16,6 +16,7 @@ import { groundStationApiFromAgent } from "@/lib/api/ground-station-api";
 import { DistributedRxPanel } from "@/components/hardware/DistributedRxPanel";
 import { PageIntro } from "@/components/hardware/PageIntro";
 import { HintChip } from "@/components/hardware/HintChip";
+import { CloudModeLimitedNotice } from "@/components/command/shared/CloudModeLimitedNotice";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -42,6 +43,8 @@ export function DistributedRxTab() {
     };
   }, [agentUrl, apiKey, loadRole, loadDistributedRx]);
 
+  const onCloudOnly = !agentUrl;
+
   return (
     <div className="flex flex-col">
       <PageIntro
@@ -51,6 +54,7 @@ export function DistributedRxTab() {
           <HintChip>Direct = solo. Relay forwards. Receiver combines.</HintChip>
         }
       />
+      {onCloudOnly ? <CloudModeLimitedNotice feature="distributedRx" /> : null}
       <DistributedRxPanel />
     </div>
   );
