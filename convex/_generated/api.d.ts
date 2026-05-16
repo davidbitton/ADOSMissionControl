@@ -8,11 +8,13 @@
  * @module
  */
 
+import type * as airportData from "../airportData.js";
 import type * as auth from "../auth.js";
 import type * as changelogSync from "../changelogSync.js";
 import type * as changelogSyncMutations from "../changelogSyncMutations.js";
 import type * as clientConfig from "../clientConfig.js";
 import type * as cmdAiUsage from "../cmdAiUsage.js";
+import type * as cmdDroneAccess from "../cmdDroneAccess.js";
 import type * as cmdDroneCommands from "../cmdDroneCommands.js";
 import type * as cmdDroneStatus from "../cmdDroneStatus.js";
 import type * as cmdDrones from "../cmdDrones.js";
@@ -20,6 +22,7 @@ import type * as cmdFlightLogs from "../cmdFlightLogs.js";
 import type * as cmdMissions from "../cmdMissions.js";
 import type * as cmdPairing from "../cmdPairing.js";
 import type * as cmdPluginArchives from "../cmdPluginArchives.js";
+import type * as cmdPluginArchivesVerify from "../cmdPluginArchivesVerify.js";
 import type * as cmdPluginCapabilityTokens from "../cmdPluginCapabilityTokens.js";
 import type * as cmdPluginInstallJobs from "../cmdPluginInstallJobs.js";
 import type * as cmdPlugins from "../cmdPlugins.js";
@@ -34,6 +37,7 @@ import type * as contactSubmissions from "../contactSubmissions.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as operatorHmacSecrets from "../operatorHmacSecrets.js";
+import type * as pluginRegistry from "../pluginRegistry.js";
 import type * as profiles from "../profiles.js";
 import type * as storage from "../storage.js";
 
@@ -44,11 +48,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  airportData: typeof airportData;
   auth: typeof auth;
   changelogSync: typeof changelogSync;
   changelogSyncMutations: typeof changelogSyncMutations;
   clientConfig: typeof clientConfig;
   cmdAiUsage: typeof cmdAiUsage;
+  cmdDroneAccess: typeof cmdDroneAccess;
   cmdDroneCommands: typeof cmdDroneCommands;
   cmdDroneStatus: typeof cmdDroneStatus;
   cmdDrones: typeof cmdDrones;
@@ -56,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   cmdMissions: typeof cmdMissions;
   cmdPairing: typeof cmdPairing;
   cmdPluginArchives: typeof cmdPluginArchives;
+  cmdPluginArchivesVerify: typeof cmdPluginArchivesVerify;
   cmdPluginCapabilityTokens: typeof cmdPluginCapabilityTokens;
   cmdPluginInstallJobs: typeof cmdPluginInstallJobs;
   cmdPlugins: typeof cmdPlugins;
@@ -70,6 +77,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   http: typeof http;
   operatorHmacSecrets: typeof operatorHmacSecrets;
+  pluginRegistry: typeof pluginRegistry;
   profiles: typeof profiles;
   storage: typeof storage;
 }>;
