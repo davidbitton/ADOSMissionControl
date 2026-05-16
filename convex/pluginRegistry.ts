@@ -81,6 +81,7 @@ export const getPlugin = query({
       .withIndex("by_plugin_id", (q) => q.eq("plugin_id", args.pluginId))
       .first();
     if (!plugin) return null;
+    if (plugin.status !== "published") return null;
 
     const recentVersions = await ctx.db
       .query("registry_versions")

@@ -21,7 +21,15 @@ import type { AgentStatus } from "@/lib/agent/types";
 
 const MQTT_WS_URL_DEFAULT = "wss://mqtt.altnautica.com/mqtt";
 
-export function MqttBridge({ mqttBrokerUrl }: { mqttBrokerUrl?: string | null }) {
+export function MqttBridge({
+  mqttBrokerUrl,
+  mqttViewerUsername,
+  mqttViewerPassword,
+}: {
+  mqttBrokerUrl?: string | null;
+  mqttViewerUsername?: string | null;
+  mqttViewerPassword?: string | null;
+}) {
   const cloudDeviceId = useAgentConnectionStore((s) => s.cloudDeviceId);
   const setCloudStatus = useAgentConnectionStore((s) => s.setCloudStatus);
   const setMqttConnected = useAgentConnectionStore((s) => s.setMqttConnected);
@@ -48,11 +56,24 @@ export function MqttBridge({ mqttBrokerUrl }: { mqttBrokerUrl?: string | null })
           throw new Error("mqtt.connect not found in module");
         }
 
-        const client = (connectFn as typeof mqttModule.connect)(mqttBrokerUrl || MQTT_WS_URL_DEFAULT, {
+        // Pass viewer credentials when the broker requires auth. The
+        // broker's ACL grants this user read-only access on `ados/+/#`;
+        // it cannot publish. When the credentials are absent (bench
+        // broker / OSS self-host with anonymous mode), connect without
+        // username so the legacy anonymous path keeps working.
+        const connectOptions: Record<string, unknown> = {
           protocolVersion: 5,
           clean: true,
           reconnectPeriod: 5000,
-        });
+        };
+        if (mqttViewerUsername && mqttViewerPassword) {
+          connectOptions.username = mqttViewerUsername;
+          connectOptions.password = mqttViewerPassword;
+        }
+        const client = (connectFn as typeof mqttModule.connect)(
+          mqttBrokerUrl || MQTT_WS_URL_DEFAULT,
+          connectOptions,
+        );
 
         clientRef.current = client;
 

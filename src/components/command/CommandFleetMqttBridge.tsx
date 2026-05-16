@@ -21,9 +21,13 @@ type MqttClient = {
 export function CommandFleetMqttBridge({
   pairedDrones,
   mqttBrokerUrl,
+  mqttViewerUsername,
+  mqttViewerPassword,
 }: {
   pairedDrones: PairedDrone[];
   mqttBrokerUrl?: string | null;
+  mqttViewerUsername?: string | null;
+  mqttViewerPassword?: string | null;
 }) {
   const deviceIds = useMemo(
     () => pairedDrones.map((drone) => drone.deviceId).sort(),
@@ -46,9 +50,18 @@ export function CommandFleetMqttBridge({
           throw new Error("mqtt.connect not found in module");
         }
 
+        const connectOptions: Record<string, unknown> = {
+          protocolVersion: 5,
+          clean: true,
+          reconnectPeriod: 5000,
+        };
+        if (mqttViewerUsername && mqttViewerPassword) {
+          connectOptions.username = mqttViewerUsername;
+          connectOptions.password = mqttViewerPassword;
+        }
         const client = (connectFn as typeof mqttModule.connect)(
           mqttBrokerUrl || MQTT_WS_URL_DEFAULT,
-          { protocolVersion: 5, clean: true, reconnectPeriod: 5000 },
+          connectOptions,
         ) as unknown as MqttClient & {
           on: (event: "message", cb: (topic: string, payload: { toString: () => string }) => void) => void;
         };
