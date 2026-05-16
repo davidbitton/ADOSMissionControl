@@ -12,6 +12,7 @@
  */
 
 import type { Transport, TransportEventMap } from "../types/transport";
+import { getMqttBrokerCredential } from "@/lib/mqtt-broker-credential";
 
 const MQTT_WS_URL = "wss://mqtt.altnautica.com/mqtt";
 const CONNECT_TIMEOUT_MS = 10_000;
@@ -37,8 +38,15 @@ export class MqttMavlinkTransport implements Transport {
    * Connect to MQTT broker and subscribe to MAVLink frame topic.
    * @param deviceId — Agent device ID (used in topic path)
    * @param brokerUrl — MQTT WebSocket URL (default: mqtt.altnautica.com)
+   * @param auth — Optional broker username/password (production broker
+   *   enforces auth via the `gcs-viewer` credential published from
+   *   Convex `clientConfig.getClientConfig`).
    */
-  async connect(deviceId: string, brokerUrl?: string): Promise<void> {
+  async connect(
+    deviceId: string,
+    brokerUrl?: string,
+    auth?: { username?: string | null; password?: string | null },
+  ): Promise<void> {
     if (this._connected) {
       throw new Error("Already connected");
     }
@@ -70,13 +78,19 @@ export class MqttMavlinkTransport implements Transport {
           throw new Error("mqtt.connect not found in module");
         }
 
+        const connectOptions: Record<string, unknown> = {
+          protocolVersion: 5,
+          clean: true,
+          reconnectPeriod: 5000,
+        };
+        const cred = auth ?? getMqttBrokerCredential();
+        if (cred?.username && cred?.password) {
+          connectOptions.username = cred.username;
+          connectOptions.password = cred.password;
+        }
         this.client = (connectFn as typeof mqttModule.connect)(
           brokerUrl || MQTT_WS_URL,
-          {
-            protocolVersion: 5,
-            clean: true,
-            reconnectPeriod: 5000,
-          },
+          connectOptions,
         );
 
         // mqtt.js fires 'connect' on every (re)connect. We resubscribe

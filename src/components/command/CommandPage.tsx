@@ -11,6 +11,7 @@ import { useTranslations } from "next-intl";
 import { LayoutGrid, Plug } from "lucide-react";
 import { cn, isDemoMode } from "@/lib/utils";
 import { communityApi } from "@/lib/community-api";
+import { setMqttBrokerCredential } from "@/lib/mqtt-broker-credential";
 import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useAgentSystemStore } from "@/stores/agent-system-store";
@@ -118,6 +119,16 @@ export function CommandPage() {
   const clientConfig = useConvexSkipQuery(communityApi.clientConfig.get);
   // Sync Convex fleet data into Zustand store (deduplicate by deviceId, keep newest).
   useFleetSync();
+
+  // Populate the process-level MQTT broker credential singleton so
+  // non-React modules (MqttMavlinkTransport, WebRTC signaling) can
+  // authenticate against the production broker without prop drilling.
+  useEffect(() => {
+    setMqttBrokerCredential({
+      username: clientConfig?.mqttViewerUsername ?? null,
+      password: clientConfig?.mqttViewerPassword ?? null,
+    });
+  }, [clientConfig?.mqttViewerUsername, clientConfig?.mqttViewerPassword]);
 
   useEffect(() => {
     return () => {

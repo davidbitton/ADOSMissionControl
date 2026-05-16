@@ -40,6 +40,12 @@ interface CascadeOpts {
   videoEl: HTMLVideoElement | null;
   retryKey: number;                // bump to force re-cascade
   enabled: boolean;                // false when video service not running
+  // Optional broker viewer credential. When the production broker
+  // enforces auth, this is the `gcs-viewer` read-only pair published
+  // by Convex `clientConfig.getClientConfig`. Omitted on bench / OSS
+  // deployments with anonymous brokers.
+  mqttViewerUsername?: string | null;
+  mqttViewerPassword?: string | null;
 }
 
 interface CascadeResult {
@@ -68,6 +74,8 @@ export function useVideoTransportCascade(opts: CascadeOpts): CascadeResult {
     videoEl,
     retryKey,
     enabled,
+    mqttViewerUsername,
+    mqttViewerPassword,
   } = opts;
 
   const [state, setState] = useState<CascadeResult["state"]>("idle");
@@ -159,7 +167,13 @@ export function useVideoTransportCascade(opts: CascadeOpts): CascadeResult {
           if (!cloudDeviceId) {
             throw new Error("P2P MQTT unavailable: agent not paired");
           }
-          return await startStreamViaMqttSignaling(cloudDeviceId, modeController.signal);
+          return await startStreamViaMqttSignaling(
+            cloudDeviceId,
+            modeController.signal,
+            mqttViewerUsername && mqttViewerPassword
+              ? { username: mqttViewerUsername, password: mqttViewerPassword }
+              : undefined,
+          );
         }
         return null;
       } catch (err) {

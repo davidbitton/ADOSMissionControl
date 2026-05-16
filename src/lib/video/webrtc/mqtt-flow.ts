@@ -31,6 +31,7 @@ import {
 import { attachSeiTransform } from "./sei-transform";
 import { getPc, setPc } from "./session-state";
 import { startStatsPolling, stopStatsPolling } from "./stats-tracker";
+import { getMqttBrokerCredential } from "@/lib/mqtt-broker-credential";
 
 /**
  * Start a WebRTC stream via MQTT-relayed SDP signaling.
@@ -44,6 +45,7 @@ import { startStatsPolling, stopStatsPolling } from "./stats-tracker";
 export async function startStreamViaMqttSignaling(
   deviceId: string,
   signal?: AbortSignal,
+  auth?: { username?: string | null; password?: string | null },
 ): Promise<MediaStream> {
   const store = useVideoStore.getState();
   const startedAt = Date.now();
@@ -146,9 +148,19 @@ export async function startStreamViaMqttSignaling(
     const topicOffer = `ados/${deviceId}/webrtc/offer`;
     const topicAnswer = `ados/${deviceId}/webrtc/answer`;
 
+    const mqttConnectOptions: Record<string, unknown> = {
+      protocolVersion: 5,
+      clean: true,
+      reconnectPeriod: 0,
+    };
+    const cred = auth ?? getMqttBrokerCredential();
+    if (cred?.username && cred?.password) {
+      mqttConnectOptions.username = cred.username;
+      mqttConnectOptions.password = cred.password;
+    }
     mqttClient = (connectFn as typeof mqttModule.connect)(
       MQTT_SIGNALING_WS_URL,
-      { protocolVersion: 5, clean: true, reconnectPeriod: 0 },
+      mqttConnectOptions,
     ) as unknown as MqttClient;
 
     // Wait for broker connect (separate timeout from answer wait so we can
