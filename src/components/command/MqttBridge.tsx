@@ -95,8 +95,56 @@ export function MqttBridge({ mqttBrokerUrl }: { mqttBrokerUrl?: string | null })
           if (!cancelled) console.debug("[MqttBridge] reconnecting");
         });
 
-        client.on("message", (_topic: string, payload: Buffer) => {
+        client.on("message", (topic: string, payload: Buffer) => {
           if (cancelled) return;
+
+          // Plugin auto-update events arrive on a dedicated topic. The
+          // agent emits a fresh event each time its registry sweep
+          // finds an update that the auto-update loop will not apply
+          // automatically (major bump, new permissions, board mismatch,
+          // or version pin). The GCS surfaces the event as a toast and
+          // a per-plugin badge.
+          if (topic.endsWith("/plugin/update_available")) {
+            try {
+              const data = JSON.parse(payload.toString());
+              if (
+                typeof data.plugin_id !== "string" ||
+                typeof data.current_version !== "string" ||
+                typeof data.latest_version !== "string"
+              ) {
+                return;
+              }
+              const reason = (
+                ["major_bump", "permission_delta", "board_mismatch", "pinned"].includes(
+                  data.reason,
+                )
+                  ? data.reason
+                  : "major_bump"
+              ) as PluginUpdateReason;
+              usePluginUpdateStore.getState().addUpdate({
+                deviceId: cloudDeviceId as string,
+                pluginId: data.plugin_id,
+                currentVersion: data.current_version,
+                latestVersion: data.latest_version,
+                reason,
+                newPermissions: Array.isArray(data.new_permissions)
+                  ? data.new_permissions
+                  : [],
+                timestamp:
+                  typeof data.timestamp_ms === "number"
+                    ? data.timestamp_ms
+                    : Date.now(),
+              });
+              toastRef.current(
+                `Plugin update available: ${data.plugin_id} v${data.current_version} -> v${data.latest_version}`,
+                "info",
+              );
+            } catch (e) {
+              console.warn("[MqttBridge] failed to parse plugin update event:", e);
+            }
+            return;
+          }
+
           try {
             const data = JSON.parse(payload.toString());
             // Map MQTT status to AgentStatus if it has expected fields

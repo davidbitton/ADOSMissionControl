@@ -2985,6 +2985,27 @@
       },
       "back": "Back",
       "cancel": "Cancel"
+    },
+    "autoUpdate": {
+      "badge": "Update available",
+      "tooltipReason": {
+        "major_bump": "Major version bump (v{current} to v{latest}) requires review",
+        "permission_delta": "New permissions required",
+        "board_mismatch": "Not compatible with this drone's board",
+        "pinned": "Pinned to v{current}"
+      },
+      "settings": {
+        "title": "Update settings: {pluginName}",
+        "currentVersion": "Current version",
+        "latestAvailable": "Latest available",
+        "autoUpdateLabel": "Auto-update this plugin",
+        "autoUpdateHint": "Edit via the ados plugin auto-update CLI on the drone.",
+        "pinnedVersionLabel": "Pin to version",
+        "pinnedVersionAuto": "Auto (latest)",
+        "lastChecked": "Last checked {time}",
+        "lastCheckedNever": "Never checked",
+        "close": "Close"
+      }
     }
   },
   "commandFleet": {

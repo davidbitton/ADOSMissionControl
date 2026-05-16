@@ -47,6 +47,8 @@ import {
   DronePluginStatusPill,
   type DronePluginStatusLabel,
 } from "./DronePluginStatusPill";
+import { UpdateAvailableBadge } from "./UpdateAvailableBadge";
+import { PluginUpdateSettings } from "./PluginUpdateSettings";
 
 export interface DronePluginCardData extends PluginInstallSummary {
   /** Convex install row id, used to drive enable/disable mutations. */
@@ -66,6 +68,7 @@ export function DronePluginCard({ install, className }: DronePluginCardProps) {
   const { toast } = useToast();
 
   const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false);
+  const [updateSettingsOpen, setUpdateSettingsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   // Convex mutations. These resolve through `api.*` to keep the
@@ -219,6 +222,11 @@ export function DronePluginCard({ install, className }: DronePluginCardProps) {
           </code>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
+          <UpdateAvailableBadge
+            deviceId={install.deviceId}
+            pluginId={install.pluginId}
+            onClick={() => setUpdateSettingsOpen(true)}
+          />
           <DronePluginStatusPill label={statusLabel} />
           <RiskBadge level={install.risk} size="sm" />
           {trustSignals.map((s) => (
@@ -293,6 +301,19 @@ export function DronePluginCard({ install, className }: DronePluginCardProps) {
         confirmLabel={t("uninstall")}
         variant="danger"
       />
+
+      {updateSettingsOpen ? (
+        <PluginUpdateSettings
+          deviceId={install.deviceId}
+          pluginId={install.pluginId}
+          pluginName={install.name}
+          currentVersion={install.version}
+          autoUpdate={true}
+          pinnedVersion={null}
+          lastUpdateCheckAt={null}
+          onClose={() => setUpdateSettingsOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
