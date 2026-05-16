@@ -40,7 +40,7 @@ afterEach(() => {
 });
 
 describe("useVisibleTabs", () => {
-  it("returns overview + features + system + scripts for a loaded full agent with no extras", () => {
+  it("returns overview + features + system + scripts + plugins for a loaded full agent with no extras", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
       runtimeMode: "full",
@@ -51,6 +51,7 @@ describe("useVisibleTabs", () => {
       "features",
       "system",
       "scripts",
+      "plugins",
     ]);
   });
 
@@ -65,7 +66,7 @@ describe("useVisibleTabs", () => {
     expect(result.current).toContain("scripts");
   });
 
-  it("drops scripts, smart-modes, and ros for a lite agent", () => {
+  it("drops scripts, smart-modes, ros, and plugins for a lite agent", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
       runtimeMode: "lite",
@@ -87,6 +88,7 @@ describe("useVisibleTabs", () => {
     expect(result.current).not.toContain("scripts");
     expect(result.current).not.toContain("smart-modes");
     expect(result.current).not.toContain("ros");
+    expect(result.current).not.toContain("plugins");
   });
 
   it("keeps overview, features, and system visible for a lite agent", () => {
@@ -105,5 +107,24 @@ describe("useVisibleTabs", () => {
     });
     const { result } = renderHook(() => useVisibleTabs());
     expect(result.current).toContain("scripts");
+    expect(result.current).toContain("plugins");
+  });
+
+  it("shows plugins for a full agent and hides it on a ground station", () => {
+    useAgentCapabilitiesStore.setState({
+      loaded: true,
+      runtimeMode: "full",
+    });
+    expect(renderHook(() => useVisibleTabs()).result.current).toContain(
+      "plugins",
+    );
+    useAgentCapabilitiesStore.setState({
+      loaded: true,
+      runtimeMode: "full",
+      profile: "ground-station",
+    });
+    expect(
+      renderHook(() => useVisibleTabs()).result.current,
+    ).not.toContain("plugins");
   });
 });

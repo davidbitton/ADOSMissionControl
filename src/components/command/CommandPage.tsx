@@ -44,6 +44,7 @@ function TabSuspenseFallback() {
 
 const AgentOverviewTab = dynamic(() => import("./AgentOverviewTab").then(m => ({ default: m.AgentOverviewTab })), { ssr: false });
 const ScriptsTab = dynamic(() => import("./ScriptsTab").then(m => ({ default: m.ScriptsTab })), { ssr: false });
+const PluginsTab = dynamic(() => import("./PluginsTab").then(m => ({ default: m.PluginsTab })), { ssr: false });
 const FeaturesTab = dynamic(() => import("./FeaturesTab").then(m => ({ default: m.FeaturesTab })), { ssr: false });
 const SmartModesTab = dynamic(() => import("./SmartModesTab").then(m => ({ default: m.SmartModesTab })), { ssr: false });
 const SystemTab = dynamic(() => import("./SystemTab").then(m => ({ default: m.SystemTab })), { ssr: false });
@@ -373,6 +374,13 @@ export function CommandPage() {
                 <TabErrorBoundary>
                   <Suspense fallback={<TabSuspenseFallback />}>
                     <ScriptsTab />
+                  </Suspense>
+                </TabErrorBoundary>
+              )}
+              {renderedActiveTab === "plugins" && (
+                <TabErrorBoundary>
+                  <Suspense fallback={<TabSuspenseFallback />}>
+                    <PluginsTab />
                   </Suspense>
                 </TabErrorBoundary>
               )}

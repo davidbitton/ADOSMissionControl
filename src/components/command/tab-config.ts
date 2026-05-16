@@ -10,6 +10,7 @@ import type { ComponentType } from "react";
 import {
   Cpu,
   Monitor,
+  Plug,
   Sparkles,
   TerminalSquare,
   Wrench,
@@ -44,5 +45,6 @@ export function buildCommandTabConfig(
     ros: { label: "ROS", icon: Cpu },
     system: { label: "System", icon: Wrench },
     scripts: { label: t("scripts"), icon: TerminalSquare },
+    plugins: { label: "Plugins", icon: Plug },
   };
 }

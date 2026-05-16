@@ -10,7 +10,7 @@ import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
 import { FEATURE_CATALOG } from "@/lib/agent/feature-catalog";
 
 export type StaticTab = "overview" | "features" | "system" | "scripts";
-export type DynamicTab = "smart-modes" | "ros";
+export type DynamicTab = "smart-modes" | "ros" | "plugins";
 export type CommandSubTab = StaticTab | DynamicTab;
 
 export function useVisibleTabs(): CommandSubTab[] {
@@ -63,6 +63,15 @@ export function useVisibleTabs(): CommandSubTab[] {
     tabs.push("system");
     if (!isLite && !isGroundStation) {
       tabs.push("scripts");
+    }
+    // Plugins surface lives on the Command page so install +
+    // enable/disable is one click from the active-drone view.
+    // Lite agents have no plugin host; ground stations do not host
+    // drone-side plugins. Always present otherwise so the install
+    // affordance is discoverable even on a fresh drone with zero
+    // plugins installed.
+    if (!isLite && !isGroundStation) {
+      tabs.push("plugins");
     }
     return tabs;
   }, [loaded, tier, enabledFeatures, cameras, npuAvailable, ros2State, runtimeMode, profile]);

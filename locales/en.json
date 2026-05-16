@@ -6,7 +6,7 @@
     "command": "Command",
     "hardware": "Hardware",
     "configure": "Configure",
-    "history": "Flight Logs",
+    "history": "Logs",
     "community": "Community",
     "settings": "Settings"
   },
@@ -821,6 +821,9 @@
     "emptyStateBody": "Plugins extend ADOS with vendor cameras, gimbals, custom telemetry, vision algorithms, and more. Each runs only on the drone you install it to.",
     "loading": "Loading...",
     "droneNotFound": "Drone \"{id}\" not found.",
+    "notConnectedTitle": "Connect to a drone to manage its plugins.",
+    "notConnectedCloud": "Cloud relay is awaiting a heartbeat from the agent.",
+    "notConnectedLocal": "Open a paired node from the sidebar to begin.",
     "enable": "Enable",
     "disable": "Disable",
     "configure": "Configure",

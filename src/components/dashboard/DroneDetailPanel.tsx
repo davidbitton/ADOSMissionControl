@@ -17,7 +17,6 @@ import { DroneConfigureTab } from "@/components/drone-detail/DroneConfigureTab";
 import { CalibrationPanel } from "@/components/fc/calibration/CalibrationPanel";
 import { ParametersPanel } from "@/components/fc/parameters/ParametersPanel";
 import { DroneRadioPanel } from "@/components/dashboard/DroneRadioPanel";
-import { DronePluginsTab } from "@/components/dashboard/drone-plugins/DronePluginsTab";
 import {
   DroneDetailTabHeaders,
   DroneDetailTabBody,
@@ -263,9 +262,6 @@ export function DroneDetailPanel({ droneId, onClose }: DroneDetailPanelProps) {
               droneName={displayName}
               isConnected={isConnected}
             />
-          )}
-          {visibleTab === "plugins" && (
-            <DronePluginsTab agentId={droneId} />
           )}
           {visibleTab === RADIO_TAB_ID && radioPresent && (
             <DroneRadioPanel droneId={droneId} />

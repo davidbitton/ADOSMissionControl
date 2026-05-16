@@ -17,7 +17,6 @@ export const STATIC_TAB_IDS = [
   "calibrate",
   "parameters",
   "configure",
-  "plugins",
 ] as const;
 
 export const RADIO_TAB_ID = "radio" as const;
