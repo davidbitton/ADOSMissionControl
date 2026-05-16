@@ -796,6 +796,12 @@ fullName: v.optional(v.string()),
     // GCS can reflect the same theme on its own surfaces and the
     // welcome flow can detect drift.
     uiTheme: v.optional(v.string()),
+    // Epoch milliseconds of the last time the agent's plugin update
+    // checker ran a registry sweep against the installed plugins.
+    // Surfaced in the per-plugin update settings drawer so an operator
+    // can confirm the auto-update loop is alive. Older agents that
+    // predate the loop omit this field; the GCS renders "Never checked".
+    last_plugin_update_check_at: v.optional(v.number()),
     updatedAt: v.number(),
   })
     .index("by_deviceId", ["deviceId"]),

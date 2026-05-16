@@ -12,6 +12,11 @@ import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useAgentSystemStore } from "@/stores/agent-system-store";
 import { useAgentPeripheralsStore } from "@/stores/agent-peripherals-store";
 import { useAgentScriptsStore } from "@/stores/agent-scripts-store";
+import {
+  usePluginUpdateStore,
+  type PluginUpdateReason,
+} from "@/stores/plugin-update-store";
+import { useToast } from "@/components/ui/toast";
 import type { AgentStatus } from "@/lib/agent/types";
 
 const MQTT_WS_URL_DEFAULT = "wss://mqtt.altnautica.com/mqtt";
@@ -20,6 +25,9 @@ export function MqttBridge({ mqttBrokerUrl }: { mqttBrokerUrl?: string | null })
   const cloudDeviceId = useAgentConnectionStore((s) => s.cloudDeviceId);
   const setCloudStatus = useAgentConnectionStore((s) => s.setCloudStatus);
   const setMqttConnected = useAgentConnectionStore((s) => s.setMqttConnected);
+  const { toast } = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
   const clientRef = useRef<unknown>(null);
 
   useEffect(() => {
@@ -73,6 +81,10 @@ export function MqttBridge({ mqttBrokerUrl }: { mqttBrokerUrl?: string | null })
           };
           c.subscribe(`ados/${cloudDeviceId}/status`, onSubErr);
           c.subscribe(`ados/${cloudDeviceId}/telemetry`, onSubErr);
+          c.subscribe(
+            `ados/${cloudDeviceId}/plugin/update_available`,
+            onSubErr,
+          );
         });
 
         c.on("close", () => {

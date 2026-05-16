@@ -136,6 +136,8 @@ export const pushStatus = internalMutation({
     videoRecording: v.optional(v.boolean()),
     // Operator-selected UI theme on the agent.
     uiTheme: v.optional(v.string()),
+    // Epoch ms of the last plugin-update registry sweep on the agent.
+    last_plugin_update_check_at: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -160,6 +162,7 @@ export const pushStatus = internalMutation({
       videoLocalDecoderFps: args.videoLocalDecoderFps,
       videoRecording: args.videoRecording,
       uiTheme: args.uiTheme,
+      last_plugin_update_check_at: args.last_plugin_update_check_at,
     };
 
     if (existing) {
