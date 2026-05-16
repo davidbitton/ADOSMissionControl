@@ -167,6 +167,7 @@ export function subscribeMeshEvents(
   return subscribeWebSocket<MeshEvent>({
     ctx,
     path: "/api/v1/ground-station/ws/mesh",
+    scope: "gs.mesh_events",
     onEvent,
     onState,
   });

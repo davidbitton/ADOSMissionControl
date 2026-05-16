@@ -88,6 +88,7 @@ export function subscribePicEvents(
   return subscribeWebSocket<PicEvent>({
     ctx,
     path: "/api/v1/ground-station/pic/events",
+    scope: "gs.pic_events",
     onEvent,
   });
 }

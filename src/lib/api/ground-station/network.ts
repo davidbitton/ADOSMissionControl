@@ -114,7 +114,8 @@ export function setShareUplink(ctx: RequestContext, enabled: boolean): Promise<S
 
 /**
  * Subscribe to uplink events via WebSocket.
- * Exponential-backoff reconnect, API key via query param, close on unsubscribe.
+ * Exponential-backoff reconnect; pairing key is exchanged for a
+ * one-shot ticket and presented through the WebSocket subprotocol.
  */
 export function subscribeUplinkEvents(
   ctx: RequestContext,
@@ -123,6 +124,7 @@ export function subscribeUplinkEvents(
   return subscribeWebSocket<UplinkEvent>({
     ctx,
     path: "/api/v1/ground-station/ws/uplink",
+    scope: "gs.uplink_events",
     onEvent,
   });
 }
