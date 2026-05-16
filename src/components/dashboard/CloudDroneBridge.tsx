@@ -110,6 +110,16 @@ export function CloudDroneBridge() {
           ? ((drone as { navigationGpsDenied?: boolean })
               .navigationGpsDenied as boolean | undefined)
           : undefined;
+      // Active estimator mode (free-form string) for the mode-aware
+      // pill. Falls back to undefined when the agent's heartbeat
+      // doesn't carry the field yet.
+      const navigationMode =
+        typeof (drone as { navigationMode?: unknown }).navigationMode ===
+        "string"
+          ? ((drone as { navigationMode?: string }).navigationMode as
+              | string
+              | undefined)
+          : undefined;
 
       const fleetDrone: FleetDrone = {
         id: fleetId,
@@ -132,6 +142,7 @@ export function CloudDroneBridge() {
         videoEncoderHwAccel,
         manualMavlinkWsUrl,
         navigationGpsDenied,
+        navigationMode,
       };
 
       if (trackedIds.current.has(fleetId)) {

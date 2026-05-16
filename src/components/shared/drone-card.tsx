@@ -8,6 +8,7 @@ import { Cloud } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { useDroneMetadataStore } from "@/stores/drone-metadata-store";
+import { navigationModeBadge } from "@/lib/agent/navigation-mode-label";
 import type { FleetDrone, DroneStatus } from "@/lib/types";
 
 interface DroneCardProps {
@@ -95,13 +96,39 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
               </Badge>
             </span>
           )}
-          {drone.navigationGpsDenied === true && (
-            <span title="GPS-denied navigation active (optical flow or VIO)">
-              <Badge variant="info" className="text-[10px]">
-                VIO
-              </Badge>
-            </span>
-          )}
+          {(() => {
+            // Mode-aware pill: shows nothing for off/unknown, "OF" for
+            // optical flow, "OF*" for the degraded (rangefinder-free)
+            // path, "VIO" for either VIO engine, and "Hybrid" for the
+            // combined estimator. Falls back to a generic "GPS-denied"
+            // pill when only the boolean is available (older agents).
+            const badge = navigationModeBadge(drone.navigationMode);
+            if (badge) {
+              const variant: "success" | "warning" | "neutral" =
+                badge.tone === "ok"
+                  ? "success"
+                  : badge.tone === "warn"
+                    ? "warning"
+                    : "neutral";
+              return (
+                <span title={badge.tooltip}>
+                  <Badge variant={variant} className="text-[10px]">
+                    {badge.short}
+                  </Badge>
+                </span>
+              );
+            }
+            if (drone.navigationGpsDenied === true) {
+              return (
+                <span title="GPS-denied navigation active (optical flow or VIO)">
+                  <Badge variant="info" className="text-[10px]">
+                    GPS-denied
+                  </Badge>
+                </span>
+              );
+            }
+            return null;
+          })()}
           {drone.manualMavlinkWsUrl && (
             <span
               title={`Direct LAN MAVLink available — ${drone.manualMavlinkWsUrl}\nClick to copy to clipboard.`}
