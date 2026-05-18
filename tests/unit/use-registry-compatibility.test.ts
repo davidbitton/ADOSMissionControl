@@ -155,3 +155,92 @@ describe("useRegistryCompatibility — SoC matching", () => {
     expect(result.current.compatible).toBe(true);
   });
 });
+
+// ── disable matrix on the card ──────────────────────────────
+//
+// These tests reason about the gating logic that lives inline in
+// RegistryPluginCard.tsx. The contract is: only "no_agent" and
+// "version" are hard blocks; board mismatch and missing
+// latestVersionRow are soft warnings the user can override.
+describe("RegistryPluginCard disable matrix (semantic)", () => {
+  function classify(opts: {
+    installed?: boolean;
+    isLoading?: boolean;
+    latestVersionRow: object | null;
+    compat: { compatible: boolean; reason?: "no_agent" | "version" | "board" };
+  }): { disabled: boolean; warning: boolean } {
+    const compatHardBlock =
+      !opts.compat.compatible &&
+      (opts.compat.reason === "no_agent" ||
+        opts.compat.reason === "version");
+    const compatSoftWarning =
+      !opts.latestVersionRow ||
+      (!opts.compat.compatible && opts.compat.reason === "board");
+    const disabled = Boolean(
+      opts.installed || opts.isLoading || compatHardBlock,
+    );
+    return { disabled, warning: compatSoftWarning && !disabled };
+  }
+
+  it("hard-blocks when the agent is disconnected", () => {
+    const out = classify({
+      latestVersionRow: null,
+      compat: { compatible: false, reason: "no_agent" },
+    });
+    expect(out.disabled).toBe(true);
+    expect(out.warning).toBe(false);
+  });
+
+  it("hard-blocks on version mismatch", () => {
+    const out = classify({
+      latestVersionRow: { version: "1.0.0" },
+      compat: { compatible: false, reason: "version" },
+    });
+    expect(out.disabled).toBe(true);
+  });
+
+  it("soft-warns + keeps clickable when latestVersionRow is missing but compat passes", () => {
+    const out = classify({
+      latestVersionRow: null,
+      compat: { compatible: true },
+    });
+    expect(out.disabled).toBe(false);
+    expect(out.warning).toBe(true);
+  });
+
+  it("soft-warns + keeps clickable on board mismatch", () => {
+    const out = classify({
+      latestVersionRow: { version: "1.0.0" },
+      compat: { compatible: false, reason: "board" },
+    });
+    expect(out.disabled).toBe(false);
+    expect(out.warning).toBe(true);
+  });
+
+  it("disables when already installed", () => {
+    const out = classify({
+      installed: true,
+      latestVersionRow: { version: "1.0.0" },
+      compat: { compatible: true },
+    });
+    expect(out.disabled).toBe(true);
+  });
+
+  it("disables during an in-flight install", () => {
+    const out = classify({
+      isLoading: true,
+      latestVersionRow: { version: "1.0.0" },
+      compat: { compatible: true },
+    });
+    expect(out.disabled).toBe(true);
+  });
+
+  it("happy path: all gates pass, no warning, no disable", () => {
+    const out = classify({
+      latestVersionRow: { version: "1.0.0" },
+      compat: { compatible: true },
+    });
+    expect(out.disabled).toBe(false);
+    expect(out.warning).toBe(false);
+  });
+});

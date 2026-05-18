@@ -103,32 +103,57 @@ export function RegistryPluginCard({
   const errMessage =
     state && typeof state === "object" && "error" in state ? state.error : null;
 
-  const disabled =
-    installed || !compat.compatible || isLoading || !latestVersionRow;
-  // Disabled-state explanation. The previous version stayed silent
-  // when latestVersionRow was still loading (detail subscription not
-  // resolved), which left operators staring at a disabled button with
-  // no idea why. Now every disabled branch surfaces a hint, even the
-  // transient "still loading" one, so the failure mode is legible.
+  // Hard blocks: the install genuinely cannot proceed.
+  //   * no_agent: no drone to install into
+  //   * version: agent version is out of range, the agent will reject
+  //   * isLoading: install in flight, debounce
+  //   * installed: already on the drone
+  // Soft warnings: the install MIGHT not work but the agent re-checks
+  // every constraint at archive time and rejects cleanly. Keep the
+  // button clickable so the operator can try; surface the warning so
+  // they know what to expect.
+  //   * !latestVersionRow: registry detail subscription hasn't resolved
+  //     (or version row missing from the registry); the manifest still
+  //     comes from the downloaded archive itself.
+  //   * board mismatch: supported_boards lists are aspirational; the
+  //     agent revalidates on install.
+  const compatHardBlock =
+    !compat.compatible &&
+    (compat.reason === "no_agent" || compat.reason === "version");
+  const compatSoftWarning =
+    !latestVersionRow ||
+    (!compat.compatible && compat.reason === "board");
+
+  const disabled = installed || isLoading || compatHardBlock;
+
   const tooltip = (() => {
     if (installed) return undefined;
+    if (compat.reason === "no_agent") {
+      return compat.detail ?? t("card.notCompatible.noAgent");
+    }
+    if (compat.reason === "version") {
+      return t("card.notCompatible.version", {
+        version: compat.detail ?? "?",
+      });
+    }
     if (!latestVersionRow) {
       return t("card.notCompatible.loadingDetail");
     }
-    if (!compat.compatible) {
-      if (compat.reason === "no_agent") {
-        return compat.detail ?? t("card.notCompatible.noAgent");
-      }
-      if (compat.reason === "version") {
-        return t("card.notCompatible.version", {
-          version: compat.detail ?? "?",
-        });
-      }
-      if (compat.reason === "board") {
-        return t("card.notCompatible.board");
-      }
+    if (compat.reason === "board") {
+      return t("card.notCompatible.board");
     }
     return undefined;
+  })();
+
+  const warningText = (() => {
+    if (!compatSoftWarning) return null;
+    if (!latestVersionRow) {
+      return t("card.notCompatible.loadingDetail");
+    }
+    if (compat.reason === "board") {
+      return t("card.notCompatible.board");
+    }
+    return null;
   })();
 
   const tierKey =
@@ -199,10 +224,19 @@ export function RegistryPluginCard({
         </div>
       )}
 
+      {warningText && !errMessage && (
+        <p
+          className="rounded border border-status-warning/40 bg-status-warning/10 px-2 py-1 text-[11px] text-status-warning"
+          role="status"
+        >
+          {warningText}
+        </p>
+      )}
+
       <div className="flex items-center justify-end gap-2">
         <Button
           size="sm"
-          variant={installed || !compat.compatible ? "secondary" : "primary"}
+          variant={installed || compatHardBlock ? "secondary" : "primary"}
           disabled={disabled}
           onClick={onInstall}
           title={tooltip}
