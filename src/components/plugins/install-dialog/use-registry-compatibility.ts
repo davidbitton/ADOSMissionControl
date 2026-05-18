@@ -87,6 +87,11 @@ export function useRegistryCompatibility(
   const agentVersion = useAgentSystemStore((s) => s.status?.version);
   const boardModel = useAgentSystemStore((s) => s.status?.board.model);
   const boardName = useAgentSystemStore((s) => s.status?.board.name);
+  // SoC is the third identifier a plugin author can target. A
+  // manifest that declares `supported_boards: ["rk3582"]` should
+  // match every board running that chip, regardless of the
+  // marketing-name or compute-module-name slug.
+  const boardSoc = useAgentSystemStore((s) => s.status?.board.soc);
 
   // No connected drone yet. The card stays interactable from a
   // browsing perspective, but the Install button is gated.
@@ -129,14 +134,17 @@ export function useRegistryCompatibility(
   }
 
   // (2) Board gate. `supported_boards` is optional; when omitted the
-  // plugin claims universal board support. When set, we check both
-  // `board.model` and `board.name` since registry entries may be
-  // keyed either way (`rock-5c-lite` vs `Radxa ROCK 5C Lite`).
+  // plugin claims universal board support. When set, we check
+  // `board.model`, `board.name`, and `board.soc` because registry
+  // entries declare any of the three (model `"rock-5c-lite"`, name
+  // `"Radxa ROCK 5C Lite"`, SoC `"rk3582"`). Matching on SoC also
+  // means a SoC-portable plugin works on every board sharing that
+  // chip without listing each board model explicitly.
   if (version.supported_boards && version.supported_boards.length > 0) {
     const supported = new Set(
       version.supported_boards.map((b) => b.toLowerCase()),
     );
-    const candidates = [boardModel, boardName]
+    const candidates = [boardModel, boardName, boardSoc]
       .filter((s): s is string => !!s)
       .map((s) => s.toLowerCase());
     const matched = candidates.some((c) => supported.has(c));

@@ -6,7 +6,7 @@
  * auto-update poller.
  */
 
-import { query } from "./_generated/server";
+import { query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const listPlugins = query({
@@ -141,6 +141,43 @@ export const getRevokedList = query({
       signer_keys,
       plugin_versions,
       generated_at: Date.now(),
+    };
+  },
+});
+
+// ── Ops: set plugin status ─────────────────────────────────
+//
+// Internal mutation invoked via `npx convex run` with the admin
+// deploy key. Mirrors the same function in the website's
+// `convex/pluginRegistry.ts` per the dual-convex sync convention.
+// Both apps share one Convex deployment; the function lives in both
+// directories so the GCS deploy is self-consistent.
+export const setPluginStatus = internalMutation({
+  args: {
+    pluginId: v.string(),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("published"),
+      v.literal("deprecated"),
+      v.literal("removed"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const plugin = await ctx.db
+      .query("registry_plugins")
+      .withIndex("by_plugin_id", (q) => q.eq("plugin_id", args.pluginId))
+      .first();
+    if (!plugin) {
+      throw new Error(`plugin ${args.pluginId} not found`);
+    }
+    await ctx.db.patch(plugin._id, {
+      status: args.status,
+      updated_at: Date.now(),
+    });
+    return {
+      plugin_id: args.pluginId,
+      previous_status: plugin.status,
+      status: args.status,
     };
   },
 });
