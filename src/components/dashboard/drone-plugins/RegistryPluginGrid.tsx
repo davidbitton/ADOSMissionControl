@@ -5,10 +5,12 @@
  * @description Inline registry catalog rendered on the per-drone Plugins
  * tab below the installed list. Surfaces every published first-party
  * plugin via Convex `pluginRegistry.listPlugins`, applies client-side
- * search + category filtering, and on Install click downloads the signed
- * archive, parses the manifest, and opens `<PluginInstallDialog>`
- * directly at the `summary` stage. Replaces the older modal "Browse the
- * registry" stage which is now removed.
+ * search + category filtering, and on Install click reads the version
+ * row's manifest YAML, parses it for the dialog preview, and opens
+ * `<PluginInstallDialog>` directly at the `review` stage. The dialog
+ * then hands the URL + SHA256 pin to the agent's
+ * `POST /api/plugins/install_from_url` endpoint so the archive is never
+ * pulled through the browser.
  *
  * Already-installed plugins (read from `cmdPlugins:listForDevice`)
  * render with an Installed pill and a disabled Install button. The
@@ -18,8 +20,8 @@
  * @license GPL-3.0-only
  */
 
-import { useCallback, useMemo, useState } from "react";
-import { useQuery, useAction } from "convex/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "convex/react";
 import { makeFunctionReference } from "convex/server";
 import { useTranslations } from "next-intl";
 import { Package, Search } from "lucide-react";
@@ -34,9 +36,9 @@ import {
   PluginInstallDialog,
   type InstallTargetDrone,
   type InstallManifestSummary,
+  type InstallSource,
 } from "@/components/plugins/PluginInstallDialog";
 import {
-  extractManifestYaml,
   parseManifestYaml,
   toInstallSummary,
 } from "@/components/plugins/transports/manifest-parse";
@@ -63,18 +65,22 @@ interface ListPluginsResult {
   total: number;
 }
 
-/** Action return shape — see `convex/pluginRegistryDownload.ts`. */
-interface DownloadArchiveResult {
-  bytes_b64?: string;
-  content_type?: string;
-  url?: string;
+/** Subset of the version row the install path needs. The full row
+ * carries signing + analysis metadata the registry uses to render
+ * trust signals; we just need the manifest YAML, the canonical
+ * download URL, and the SHA-256 pin so the agent can verify the
+ * archive bytes after pulling them. */
+interface RegistryVersionLite {
+  manifest_yaml: string;
+  download_url: string;
+  archive_sha256: string;
 }
 
-const downloadArchiveRef = makeFunctionReference<
-  "action",
-  { plugin_id: string; version: string },
-  DownloadArchiveResult
->("pluginRegistryDownload:downloadArchive");
+const getVersionRef = makeFunctionReference<
+  "query",
+  { pluginId: string; version: string },
+  RegistryVersionLite | null
+>("pluginRegistry:getVersion");
 
 /** Per-device install row shape (subset). Only needs `pluginId` so the
  * grid can mark installed plugins on their card. */
@@ -93,7 +99,7 @@ type CardState = "loading" | { error: string } | undefined;
 interface PendingInstall {
   manifest: InstallManifestSummary;
   manifestHash: string;
-  file: File;
+  source: Extract<InstallSource, { kind: "registry" }>;
 }
 
 export interface RegistryPluginGridProps {
@@ -124,12 +130,24 @@ export function RegistryPluginGrid({ drone }: RegistryPluginGridProps) {
     return new Set(installs.map((row) => row.pluginId));
   }, [installs]);
 
-  const downloadArchive = useAction(downloadArchiveRef);
-
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [cardState, setCardState] = useState<Record<string, CardState>>({});
   const [pending, setPending] = useState<PendingInstall | null>(null);
+  const [pendingFetch, setPendingFetch] = useState<{
+    pluginId: string;
+    version: string;
+  } | null>(null);
+
+  // Drive the version lookup reactively so the install handler can
+  // wait for the result without an action hop. Convex deduplicates
+  // overlapping subscriptions across cards that share an id.
+  const versionRow = useQuery(
+    getVersionRef,
+    pendingFetch && convexAvailable
+      ? { pluginId: pendingFetch.pluginId, version: pendingFetch.version }
+      : "skip",
+  ) as RegistryVersionLite | null | undefined;
 
   const installTarget = useMemo<InstallTargetDrone>(
     () => ({
@@ -153,45 +171,23 @@ export function RegistryPluginGrid({ drone }: RegistryPluginGridProps) {
     });
   }, [catalog, search, category]);
 
-  const handleInstall = useCallback(
-    async (plugin: RegistryPluginRow) => {
-      const key = plugin.plugin_id;
-      setCardState((prev) => ({ ...prev, [key]: "loading" }));
-
-      // Stage labels are interleaved with the actual work so the
-      // operator can spot which step failed if the chain breaks. The
-      // catch arm annotates the thrown error with the most recent
-      // stage so the surfaced banner reads like "Downloading archive…
-      // <error>" instead of a bare network exception.
-      let stage = "download.start";
+  // Once the version row resolves, parse its embedded manifest yaml
+  // and open the dialog with a registry-source descriptor.
+  useEffect(() => {
+    if (!pendingFetch || versionRow === undefined) return;
+    const key = pendingFetch.pluginId;
+    const targetVersion = pendingFetch.version;
+    setPendingFetch(null);
+    if (!versionRow) {
+      setCardState((prev) => ({
+        ...prev,
+        [key]: { error: `[registry.lookup] version row missing` },
+      }));
+      return;
+    }
+    (async () => {
       try {
-        stage = "download.fetch";
-        const dl = await downloadArchive({
-          plugin_id: plugin.plugin_id,
-          version: plugin.latest_version,
-        });
-
-        stage = "download.decode";
-        let bytes: ArrayBuffer;
-        if (dl.bytes_b64) {
-          bytes = base64ToArrayBuffer(dl.bytes_b64);
-        } else if (dl.url) {
-          const resp = await fetch(dl.url);
-          if (!resp.ok) {
-            throw new Error(`Archive fetch failed: HTTP ${resp.status}`);
-          }
-          bytes = await resp.arrayBuffer();
-        } else {
-          throw new Error("Archive payload missing from action response");
-        }
-
-        stage = "manifest.parse";
-        const filename = `${plugin.plugin_id}-${plugin.latest_version}.adosplug`;
-        const file = new File([bytes], filename, {
-          type: dl.content_type ?? "application/zip",
-        });
-
-        const yaml = await extractManifestYaml(file);
+        const yaml = versionRow.manifest_yaml;
         const parsed = parseManifestYaml(yaml);
         const hashBytes = await crypto.subtle.digest(
           "SHA-256",
@@ -203,19 +199,33 @@ export function RegistryPluginGrid({ drone }: RegistryPluginGridProps) {
         const summary = toInstallSummary(parsed, manifestHash);
 
         setCardState((prev) => ({ ...prev, [key]: undefined }));
-        setPending({ manifest: summary, manifestHash, file });
+        setPending({
+          manifest: summary,
+          manifestHash,
+          source: {
+            kind: "registry",
+            url: versionRow.download_url,
+            expectedSha256: versionRow.archive_sha256,
+            pluginId: key,
+            version: targetVersion,
+          },
+        });
       } catch (err) {
         const raw = err instanceof Error ? err.message : String(err);
-        const message = `[${stage}] ${raw}`;
-        // Log the full error so the operator can copy-paste it from
-        // devtools. Keep the banner concise; the console keeps the
-        // stack and any nested context.
-        console.error("[plugin install]", plugin.plugin_id, stage, err);
-        setCardState((prev) => ({ ...prev, [key]: { error: message } }));
+        console.error("[plugin install]", key, "manifest.parse", err);
+        setCardState((prev) => ({
+          ...prev,
+          [key]: { error: `[manifest.parse] ${raw}` },
+        }));
       }
-    },
-    [downloadArchive],
-  );
+    })();
+  }, [pendingFetch, versionRow]);
+
+  const handleInstall = useCallback((plugin: RegistryPluginRow) => {
+    const key = plugin.plugin_id;
+    setCardState((prev) => ({ ...prev, [key]: "loading" }));
+    setPendingFetch({ pluginId: key, version: plugin.latest_version });
+  }, []);
 
   if (!convexAvailable || isDemoMode()) {
     return (
@@ -237,19 +247,19 @@ export function RegistryPluginGrid({ drone }: RegistryPluginGridProps) {
         t={t}
       />
 
-      {catalog === undefined && <SkeletonGrid />}
+      {catalog === undefined && <SkeletonList />}
 
       {catalog !== undefined && filtered.length === 0 && <EmptyState t={t} />}
 
       {catalog !== undefined && filtered.length > 0 && (
-        <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <ul className="flex flex-col gap-3">
           {filtered.map((plugin) => (
             <RegistryPluginCard
               key={plugin._id}
               plugin={plugin}
               installed={installedIds.has(plugin.plugin_id)}
               state={cardState[plugin.plugin_id]}
-              onInstall={() => void handleInstall(plugin)}
+              onInstall={() => handleInstall(plugin)}
             />
           ))}
         </ul>
@@ -259,10 +269,9 @@ export function RegistryPluginGrid({ drone }: RegistryPluginGridProps) {
         open={pending !== null}
         onClose={() => setPending(null)}
         targetDevice={installTarget}
-        initialStage="summary"
         initialManifest={pending?.manifest}
         initialManifestHash={pending?.manifestHash}
-        initialFile={pending?.file}
+        initialSource={pending?.source}
       />
     </section>
   );
@@ -373,9 +382,9 @@ function ErrorMessage({ text }: { text: string }) {
   );
 }
 
-function SkeletonGrid() {
+function SkeletonList() {
   return (
-    <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2" aria-hidden>
+    <ul className="flex flex-col gap-3" aria-hidden>
       {[0, 1, 2, 3].map((i) => (
         <li
           key={i}
@@ -384,13 +393,4 @@ function SkeletonGrid() {
       ))}
     </ul>
   );
-}
-
-function base64ToArrayBuffer(b64: string): ArrayBuffer {
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) {
-    out[i] = bin.charCodeAt(i);
-  }
-  return out.buffer;
 }

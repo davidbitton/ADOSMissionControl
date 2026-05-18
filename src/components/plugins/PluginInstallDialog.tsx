@@ -2,148 +2,100 @@
 
 /**
  * @module PluginInstallDialog
- * @description Per-drone plugin install dialog. Picks between LAN-direct
- * (primary) and cloud-relay (fallback) transports, parses the manifest
- * client-side, runs the 2-stage permission UX, kicks off the install,
- * and hands a `InstallKickoffResult` to the parent so a progress toast
- * can subscribe to either the agent WebSocket or the Convex
- * install-job row.
+ * @description Per-drone plugin install dialog. Composes the local-file
+ * pick screen, the single-page review surface, and the install
+ * kickoff. Two install sources flow through the same orchestrator:
  *
- * Transport policy lives in `transports/`:
+ *   - `kind: "file"` — operator drag-dropped a `.adosplug` archive. The
+ *     dialog parses it client-side and the cloud-relay path uploads
+ *     it via Convex storage. LAN-direct uses the multipart
+ *     `/api/plugins/install` endpoint.
+ *   - `kind: "registry"` — operator clicked Install on a registry
+ *     card. The parent grid pre-resolves the manifest and hands a URL
+ *     + SHA-256 pin to this dialog. Install kickoff calls the agent's
+ *     `POST /api/plugins/install_from_url` endpoint over the LAN; no
+ *     Convex hop is needed, so the operator does not have to be
+ *     signed in to the cloud.
+ *
+ * Transport policy:
  *   - `resolveLanTarget()` returns the LAN URL + pairing key for the
- *     target drone, or null when HTTPS / unpaired / unreachable. The
- *     dialog falls back to cloud automatically when null.
- *   - `installLanDirect()` posts to `POST /api/plugins/install` and
- *     surfaces a `LanDirectError` whose `cause` field drives the
- *     failover policy.
- *   - `installCloudRelay()` walks the Convex
- *     `generateUploadUrl -> verifyArchive -> createJob` chain. The
- *     verify action server-checks SHA-256 and the manifest hash
- *     before inserting the archive row.
- *   - `mockPluginInstall()` short-circuits both paths in demo mode.
+ *     target drone, or null when HTTPS / unpaired / unreachable.
+ *   - For the file path, `installLanDirect()` posts multipart to
+ *     `/api/plugins/install`; `installCloudRelay()` walks the
+ *     `generateUploadUrl → verifyArchive → createJob` chain on
+ *     failover.
+ *   - For the registry path, `installLanDirectFromUrl()` posts JSON to
+ *     `/api/plugins/install_from_url`. Cloud-relay-from-URL falls back
+ *     to a clear "LAN unavailable" error since the URL install does
+ *     not need cloud storage.
  *
  * @license GPL-3.0-only
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAction, useMutation } from "convex/react";
 import { makeFunctionReference } from "convex/server";
+import { useTranslations } from "next-intl";
 
 import { Modal } from "@/components/ui/modal";
-import { isDemoMode } from "@/lib/utils";
-import type { PluginRiskLevel, PluginHalf } from "@/lib/plugins/types";
 import { useConvexAvailable } from "@/app/ConvexClientProvider";
 import { communityApi } from "@/lib/community-api";
+import { useAgentSystemStore } from "@/stores/agent-system-store";
 
-import type { TrustSignal } from "./TrustBadge";
 import {
   extractManifestYaml,
   parseManifestYaml,
   toInstallSummary,
 } from "./transports/manifest-parse";
 import { resolveLanTarget } from "./transports/resolve-lan-url";
-import {
-  installLanDirect,
-  shouldFailover,
-  LanDirectError,
-} from "./transports/lan-direct";
-import {
-  installCloudRelay,
-  type CreateJobMutation,
-  type GenerateUploadUrlAction,
-  type VerifyArchiveAction,
+import type {
+  CreateJobMutation,
+  GenerateUploadUrlAction,
+  VerifyArchiveAction,
 } from "./transports/cloud-relay";
 import type {
   InstallKickoffResult,
   InstallTransport,
 } from "./transports/types";
-import {
-  ErrorStage,
-  PermissionsStage,
-  PickStage,
-  SummaryStage,
-  TransportChrome,
-} from "./install-dialog/stages";
+import { ErrorStage, PickStage, TransportChrome } from "./install-dialog/stages";
+import { ReviewStage } from "./install-dialog/sections/ReviewStage";
+import { checkCompatibility } from "./install-dialog/check-compatibility";
+import { useInstallHandler } from "./install-dialog/use-install-handler";
+import type {
+  InstallManifestSummary,
+  InstallSource,
+  InstallTargetDrone,
+} from "./install-dialog/types";
 
-/** Manifest summary the dialog needs to render the pre-install screen. */
-export interface InstallManifestSummary {
-  pluginId: string;
-  version: string;
-  name: string;
-  description?: string;
-  author?: string;
-  license?: string;
-  risk: PluginRiskLevel;
-  halves: ReadonlyArray<PluginHalf>;
-  signerId?: string;
-  trustSignals: ReadonlyArray<TrustSignal>;
-  permissions: ReadonlyArray<{
-    id: string;
-    required: boolean;
-    description?: string;
-  }>;
-  /** Optional vendor-attribution entries the agent-half manifest
-   * declares. Used to detect NPU vendor SDKs (rknn, tensorrt, snpe)
-   * when deriving the NPU capability chip. Absent for first-party
-   * plugins that don't bundle vendor binaries. */
-  vendorAttribution?: ReadonlyArray<{ name?: string; license?: string }>;
-}
-
-/** Minimal shape the dialog needs from its target. Accepts both
- * `PairedDrone` from the pairing store and `FleetDrone` (which exposes
- * the cloud device id through `cloudDeviceId`) when the caller maps
- * one into the other. Keeping the contract structural avoids coupling
- * the dialog to a specific store type during cross-domain integration. */
-export interface InstallTargetDrone {
-  /** Convex row id when the drone is paired through the cloud store,
-   * or a stable client-side id when it isn't. */
-  _id: string;
-  /** Wire-level device id used by the agent and the cloud relay. */
-  deviceId: string;
-  /** Display name shown in the modal chrome. */
-  name: string;
-}
+// Re-export the public types so existing callers can keep importing
+// them from this orchestrator file; the canonical definitions live in
+// `./install-dialog/types.ts` to keep this file under the LOC ceiling.
+export type {
+  InstallManifestSummary,
+  InstallSource,
+  InstallTargetDrone,
+} from "./install-dialog/types";
 
 interface PluginInstallDialogProps {
   open: boolean;
   onClose: () => void;
-  /** Drone the plugin is being installed on. The dialog scopes the
-   * entire flow to this drone: transport picks happen against its LAN
-   * URL, the cloud job is queued for its `_id`, and the toast routes
-   * the operator back to its detail panel. */
+  /** Drone the plugin is being installed on. */
   targetDevice: InstallTargetDrone;
-  /** Open the dialog with a pre-populated manifest + file, skipping
-   * the file-pick stage. Used by the inline registry cards on the
-   * per-drone Plugins tab so the operator lands directly on the
-   * summary stage after the parent has already downloaded the
-   * `.adosplug` and parsed its manifest. When omitted (or set to
-   * `"pick"`), the dialog opens on the local-file pick stage. */
-  initialStage?: "pick" | "summary";
+  /** Pre-populated manifest + source from a registry card or a
+   * stored upload. When omitted, the dialog opens on the local-file
+   * pick stage. */
   initialManifest?: InstallManifestSummary;
   initialManifestHash?: string;
-  initialFile?: File;
-  /** Fired after the install is kicked off and the modal is about to
-   * close. The parent uses the result to mount a progress toast that
-   * subscribes to either the LAN WebSocket or the Convex install-job
-   * row by id. */
+  /** Source discriminator that drives transport selection. Required
+   * alongside `initialManifest`. */
+  initialSource?: InstallSource;
+  /** Fired after the install is kicked off so the parent can mount a
+   * progress toast. */
   onKickedOff?: (result: InstallKickoffResult) => void;
 }
 
-type Stage =
-  | "pick"
-  | "summary"
-  | "permissions"
-  | "installing"
-  | "error";
+type Stage = "pick" | "loading" | "review" | "installing" | "error";
 
-/** Hand-rolled reference for the Node-runtime verify action.
- *
- * The action ships in `convex/cmdPluginArchivesVerify.ts` and the
- * generated `api.d.ts` picks it up after the next `npx convex dev`
- * run; before that the typed barrel cannot see it. The dialog
- * resolves the handle by path so this file works against fresh
- * checkouts where the generated surface has not been refreshed.
- */
 const verifyArchiveRef = makeFunctionReference<
   "action",
   Parameters<VerifyArchiveAction>[0],
@@ -154,16 +106,13 @@ export function PluginInstallDialog({
   open,
   onClose,
   targetDevice,
-  initialStage,
   initialManifest,
   initialManifestHash,
-  initialFile,
+  initialSource,
   onKickedOff,
 }: PluginInstallDialogProps) {
+  const t = useTranslations("pluginInstall.dialog");
   const convexAvailable = useConvexAvailable();
-  // Hooks bind regardless of convex availability so the call order
-  // stays stable; the install handler checks `convexAvailable` before
-  // exercising the cloud path.
   const generateUploadUrl = useAction(
     communityApi.pluginArchives.generateUploadUrl,
   ) as unknown as GenerateUploadUrlAction;
@@ -174,23 +123,23 @@ export function PluginInstallDialog({
     communityApi.pluginInstallJobs.createJob,
   ) as unknown as CreateJobMutation;
 
-  // When the dialog opens with a pre-populated manifest (registry
-  // path) it seeds straight into the summary stage. Otherwise the
-  // operator starts on the local-file pick stage.
-  const seedFromInitial =
-    initialStage === "summary" && initialManifest !== undefined;
-  const [stage, setStage] = useState<Stage>(
-    seedFromInitial ? "summary" : "pick",
-  );
+  // Host board info — drives the compatibility check.
+  const boardModel = useAgentSystemStore((s) => s.status?.board.model);
+  const boardName = useAgentSystemStore((s) => s.status?.board.name);
+  const boardSoc = useAgentSystemStore((s) => s.status?.board.soc);
+  const ramTotalMb = useAgentSystemStore((s) => s.status?.board.ram_mb);
+
+  const seedFromInitial = initialManifest !== undefined && initialSource !== undefined;
+  const [stage, setStage] = useState<Stage>(seedFromInitial ? "review" : "pick");
   const [error, setError] = useState<string | null>(null);
   const [manifest, setManifest] = useState<InstallManifestSummary | null>(
     seedFromInitial ? initialManifest : null,
   );
-  const [manifestHash, setManifestHash] = useState<string>(
-    seedFromInitial ? (initialManifestHash ?? "") : "",
+  const [source, setSource] = useState<InstallSource | null>(
+    seedFromInitial ? initialSource ?? null : null,
   );
-  const [pendingFile, setPendingFile] = useState<File | null>(
-    seedFromInitial ? (initialFile ?? null) : null,
+  const [manifestHash, setManifestHash] = useState<string>(
+    seedFromInitial ? initialManifestHash ?? "" : "",
   );
   const [granted, setGranted] = useState<Set<string>>(() => {
     if (seedFromInitial && initialManifest) {
@@ -201,32 +150,38 @@ export function PluginInstallDialog({
     return new Set();
   });
   const [dragActive, setDragActive] = useState(false);
-  const [forceCloud, setForceCloud] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Transport is computed at pick time so the dialog chrome can render
-  // a stable badge through summary + permissions. It refreshes when
-  // the operator toggles force-cloud.
   const lanTarget = useMemo(
     () => (open ? resolveLanTarget(targetDevice.deviceId) : null),
     [open, targetDevice.deviceId],
   );
-  const transport: InstallTransport =
-    forceCloud || !lanTarget ? "cloud" : "lan";
+  const transport: InstallTransport = lanTarget ? "lan" : "cloud";
 
   const reset = useCallback(() => {
     setStage("pick");
     setError(null);
     setManifest(null);
+    setSource(null);
     setManifestHash("");
-    setPendingFile(null);
     setGranted(new Set());
     setDragActive(false);
-    setForceCloud(false);
-    setShowAdvanced(false);
   }, []);
 
+  // True from the moment the install kickoff fires until the agent
+  // either resolves or rejects it. Tracked on a ref so the close guard
+  // sees the live value regardless of React batching, and so the hook
+  // can clear it inside the success branch before delegating back to
+  // `handleClose` (closing the modal once the kickoff is handed off).
+  const installInflightRef = useRef(false);
+
   const handleClose = useCallback(() => {
+    if (installInflightRef.current) {
+      // The install kickoff is already on its way to the agent. Closing
+      // the dialog mid-flight would drop the operator's only handle on
+      // the in-flight job and reset state below it. Refuse silently;
+      // the spinner copy tells the operator why the X is inert.
+      return;
+    }
     reset();
     onClose();
   }, [reset, onClose]);
@@ -236,15 +191,11 @@ export function PluginInstallDialog({
       reset();
       return;
     }
-    // Re-seed from initial props each time the dialog opens, so the
-    // registry-card path (which mounts a single shared dialog instance
-    // and toggles `open` per click) lands on the summary stage for
-    // every distinct plugin the operator picks.
-    if (initialStage === "summary" && initialManifest) {
-      setStage("summary");
+    if (initialManifest && initialSource) {
+      setStage("review");
       setManifest(initialManifest);
+      setSource(initialSource);
       setManifestHash(initialManifestHash ?? "");
-      setPendingFile(initialFile ?? null);
       setGranted(
         new Set(
           initialManifest.permissions
@@ -253,23 +204,13 @@ export function PluginInstallDialog({
         ),
       );
     }
-  }, [
-    open,
-    reset,
-    initialStage,
-    initialManifest,
-    initialManifestHash,
-    initialFile,
-  ]);
+  }, [open, reset, initialManifest, initialSource, initialManifestHash]);
 
   const parseFile = useCallback(async (file: File) => {
     setError(null);
     try {
       const text = await extractManifestYaml(file);
       const parsed = parseManifestYaml(text);
-      // The client-side manifest hash here is a content hash of the
-      // raw YAML; the agent's authoritative parse computes the same
-      // value so dedup on Convex stays consistent.
       const hashBytes = await crypto.subtle.digest(
         "SHA-256",
         new TextEncoder().encode(text),
@@ -279,16 +220,14 @@ export function PluginInstallDialog({
         .join("");
       const summary = toInstallSummary(parsed, hash);
       setManifest(summary);
+      setSource({ kind: "file", file, manifestHash: hash });
       setManifestHash(hash);
-      setPendingFile(file);
-      // Required permissions on by default; optional off until the
-      // operator opts in.
       setGranted(
         new Set(
           summary.permissions.filter((p) => p.required).map((p) => p.id),
         ),
       );
-      setStage("summary");
+      setStage("review");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setStage("error");
@@ -323,116 +262,79 @@ export function PluginInstallDialog({
     });
   }, []);
 
-  const handleApprove = useCallback(async () => {
-    if (!manifest || !pendingFile) return;
-    setStage("installing");
-    setError(null);
-    try {
-      const jobId = newJobId();
-      const ctx = {
-        file: pendingFile,
-        manifest,
-        grantedPermissions: [...granted] as ReadonlyArray<string>,
-        deviceId: targetDevice.deviceId,
-        deviceName: targetDevice.name,
+  // Compute the compatibility result reactively so the review surface
+  // can disable the install button when the host is incompatible.
+  const compatibility = useMemo(() => {
+    if (!manifest) {
+      return {
+        boardCompatible: true,
+        ramOk: true,
+        cpuOk: true,
       };
-
-      // Demo-mode short-circuit. Avoid any real wire traffic.
-      if (isDemoMode()) {
-        const { mockPluginInstall } = await import(
-          "@/mock/mock-plugin-install"
-        );
-        const result = await mockPluginInstall(transport, ctx);
-        onKickedOff?.({ ...result, jobId });
-        handleClose();
-        return;
-      }
-
-      let result: InstallKickoffResult;
-      if (transport === "lan" && lanTarget) {
-        try {
-          result = await installLanDirect({
-            ...ctx,
-            agentUrl: lanTarget.url,
-            pairingKey: lanTarget.apiKey,
-            jobId,
-          });
-        } catch (err) {
-          if (err instanceof LanDirectError && shouldFailover(err)) {
-            // Cloud fallback. Show the notice on the result so the
-            // progress toast can render it as a one-liner.
-            if (!convexAvailable) {
-              throw new Error(
-                `${err.message}. Cloud relay unavailable, please retry on the LAN.`,
-              );
-            }
-            result = await installCloudRelay({
-              ...ctx,
-              generateUploadUrl,
-              verifyArchive,
-              createJob,
-              manifestHash,
-            });
-            result.notice = "LAN upload failed, falling back to cloud relay";
-          } else {
-            throw err;
-          }
-        }
-      } else {
-        if (!convexAvailable) {
-          throw new Error(
-            "Cloud relay requires the Convex backend. Connect to the agent on the LAN to install a plugin.",
-          );
-        }
-        result = await installCloudRelay({
-          ...ctx,
-          generateUploadUrl,
-          verifyArchive,
-          createJob,
-          manifestHash,
-        });
-      }
-      onKickedOff?.(result);
-      handleClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      setStage("error");
     }
-  }, [
+    return checkCompatibility(manifest, {
+      boardModel,
+      boardName,
+      boardSoc,
+      ramTotalMb,
+    });
+  }, [manifest, boardModel, boardName, boardSoc, ramTotalMb]);
+
+  const boardLabel = boardModel ?? boardName ?? boardSoc ?? "unknown";
+
+  // First-party hint until signing ships everywhere. The registry
+  // tier comes through on the card; the dialog doesn't have that
+  // signal directly, so we derive the same hint from a stable signer
+  // prefix.
+  const firstParty = !!manifest?.signerId?.startsWith("altnautica-");
+
+  const handleApprove = useInstallHandler({
     manifest,
-    pendingFile,
+    source,
     granted,
     transport,
     lanTarget,
-    targetDevice.deviceId,
-    targetDevice.name,
+    targetDevice,
     convexAvailable,
     generateUploadUrl,
     verifyArchive,
     createJob,
     manifestHash,
     onKickedOff,
-    handleClose,
-  ]);
+    onClose: handleClose,
+    setStage,
+    setError,
+    installInflightRef,
+  });
 
   const title =
     stage === "pick"
-      ? `Install plugin on ${targetDevice.name}`
-      : stage === "summary"
-        ? "Review plugin"
-        : stage === "permissions"
-          ? "Approve permissions"
+      ? t("title.pick", { drone: targetDevice.name })
+      : stage === "loading"
+        ? t("title.loading")
+        : stage === "review"
+          ? t("title.review")
           : stage === "installing"
-            ? "Installing"
-            : "Install failed";
+            ? t("title.installing")
+            : t("title.error");
 
   return (
-    <Modal open={open} onClose={handleClose} title={title} className="max-w-xl">
-      <TransportChrome
-        targetName={targetDevice.name}
-        transport={transport}
-        lanAvailable={!!lanTarget}
-      />
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title={title}
+      className="max-w-2xl"
+      disableBackdropClose
+      closeBlocked={stage === "installing"}
+      noBodyPadding={stage === "review"}
+    >
+      {stage !== "review" && (
+        <TransportChrome
+          targetName={targetDevice.name}
+          transport={transport}
+          lanAvailable={!!lanTarget}
+        />
+      )}
 
       {stage === "pick" && (
         <PickStage
@@ -443,34 +345,41 @@ export function PluginInstallDialog({
         />
       )}
 
-      {stage === "summary" && manifest && (
-        <SummaryStage
-          manifest={manifest}
-          forceCloud={forceCloud}
-          setForceCloud={setForceCloud}
-          showAdvanced={showAdvanced}
-          setShowAdvanced={setShowAdvanced}
-          lanAvailable={!!lanTarget}
-          onCancel={handleClose}
-          onNext={() => setStage("permissions")}
-        />
+      {stage === "loading" && (
+        <p className="px-4 py-6 text-center text-sm text-text-secondary">
+          {t("loading")}
+        </p>
       )}
 
-      {stage === "permissions" && manifest && (
-        <PermissionsStage
+      {stage === "review" && manifest && (
+        <ReviewStage
           manifest={manifest}
+          targetName={targetDevice.name}
+          boardLabel={boardLabel}
+          compatibility={compatibility}
+          firstParty={firstParty}
           granted={granted}
-          onToggle={togglePermission}
-          onBack={() => setStage("summary")}
-          onApprove={handleApprove}
+          onTogglePermission={togglePermission}
+          onCancel={handleClose}
+          onInstall={handleApprove}
         />
       )}
 
       {stage === "installing" && (
-        <p className="py-6 text-center text-sm text-text-secondary">
-          Installing on {targetDevice.name} via{" "}
-          {transport === "lan" ? "LAN direct" : "cloud relay"}... do not close.
-        </p>
+        <div className="px-4 py-6 text-center">
+          <p className="text-sm text-text-secondary">
+            {t("installingVia", {
+              drone: targetDevice.name,
+              transport:
+                transport === "lan"
+                  ? t("transport.lan")
+                  : t("transport.cloud"),
+            })}
+          </p>
+          <p className="mt-2 text-xs text-text-tertiary">
+            {t("closingDisabled")}
+          </p>
+        </div>
       )}
 
       {stage === "error" && (
@@ -482,13 +391,4 @@ export function PluginInstallDialog({
       )}
     </Modal>
   );
-}
-
-function newJobId(): string {
-  // RFC 4122-ish randomness without pulling in a uuid dep.
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
 }

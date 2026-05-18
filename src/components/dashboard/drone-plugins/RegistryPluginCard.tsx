@@ -3,17 +3,17 @@
 /**
  * @module RegistryPluginCard
  * @description Inline card rendered on the per-drone Plugins tab for one
- * registry plugin. Surfaces the catalog name, description, license + tier
- * badges, and an Install button that's compatibility-gated against the
- * connected drone. Click Install — the parent grid downloads the signed
- * archive, parses the manifest, and opens the existing
- * `PluginInstallDialog` directly at the `summary` stage so the operator
- * lands in the review → permissions → install flow without the modal
- * detour.
+ * registry plugin. Surfaces the catalog name, description, category,
+ * author, license, tier, and an Install button that's
+ * compatibility-gated against the connected drone. Click Install — the
+ * parent grid resolves the version row's manifest, parses it, and opens
+ * `PluginInstallDialog` on its single-page review surface. From there
+ * the operator approves permissions and the dialog hands the URL + SHA
+ * pin to the agent's install-from-URL endpoint.
  *
- * Lifted from the modal's now-removed `RegistryStage` so the visual
- * language stays identical with the public marketing page and the old
- * modal browse path.
+ * Risk classification is intentionally NOT rendered on the card — risk
+ * is tied to the actual manifest and surfaces inside the review modal
+ * where the operator can also see which permissions drive the rating.
  *
  * @license GPL-3.0-only
  */
@@ -21,13 +21,20 @@
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { useTranslations } from "next-intl";
-import { Package } from "lucide-react";
+import {
+  Cpu,
+  Eye,
+  Layout,
+  Package,
+  PenTool,
+  Radio,
+  Sparkles,
+} from "lucide-react";
 
 import { api } from "../../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-import { RiskBadge } from "../../plugins/RiskBadge";
 import { useRegistryCompatibility } from "../../plugins/install-dialog/use-registry-compatibility";
 
 type RegistryCategory = "drivers" | "ui" | "ai" | "telemetry" | "tools";
@@ -58,6 +65,43 @@ export interface RegistryPluginCardProps {
   state: CardState;
   onInstall: () => void;
 }
+
+/** Lucide icon + tailwind classes paired with each registry category.
+ * The category pill picks the right combo at render time so the colour
+ * language matches the catalog filter chips. */
+const CATEGORY_STYLE: Record<
+  RegistryCategory,
+  {
+    icon: typeof Package;
+    classes: string;
+  }
+> = {
+  drivers: {
+    icon: Cpu,
+    classes:
+      "border-accent-primary/40 bg-accent-primary/10 text-accent-primary",
+  },
+  ui: {
+    icon: Layout,
+    classes:
+      "border-text-secondary/40 bg-bg-tertiary text-text-primary",
+  },
+  ai: {
+    icon: Sparkles,
+    classes:
+      "border-status-warning/40 bg-status-warning/10 text-status-warning",
+  },
+  telemetry: {
+    icon: Radio,
+    classes:
+      "border-status-success/40 bg-status-success/10 text-status-success",
+  },
+  tools: {
+    icon: PenTool,
+    classes:
+      "border-text-secondary/40 bg-surface-secondary text-text-secondary",
+  },
+};
 
 export function RegistryPluginCard({
   plugin,
@@ -112,11 +156,6 @@ export function RegistryPluginCard({
   // every constraint at archive time and rejects cleanly. Keep the
   // button clickable so the operator can try; surface the warning so
   // they know what to expect.
-  //   * !latestVersionRow: registry detail subscription hasn't resolved
-  //     (or version row missing from the registry); the manifest still
-  //     comes from the downloaded archive itself.
-  //   * board mismatch: supported_boards lists are aspirational; the
-  //     agent revalidates on install.
   const compatHardBlock =
     !compat.compatible &&
     (compat.reason === "no_agent" || compat.reason === "version");
@@ -159,48 +198,92 @@ export function RegistryPluginCard({
   const tierKey =
     plugin.tier ?? (plugin.verified_publisher ? "verified" : "community");
 
+  const categoryStyle = CATEGORY_STYLE[plugin.category];
+  const CategoryIcon = categoryStyle.icon;
+
   return (
     <li className="flex flex-col gap-2 rounded-md border border-border-default bg-bg-secondary p-3">
-      <div className="flex items-start gap-2">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-bg-tertiary text-base font-semibold text-text-secondary">
+      <div className="flex items-start gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-bg-tertiary text-base font-semibold text-text-secondary">
           {plugin.icon_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={plugin.icon_url} alt="" className="h-10 w-10 rounded-md" />
+            <img src={plugin.icon_url} alt="" className="h-12 w-12 rounded-md" />
           ) : (
-            <Package className="h-5 w-5 text-text-tertiary" aria-hidden />
+            <span className="text-lg font-semibold uppercase text-text-secondary">
+              {plugin.name.slice(0, 1)}
+            </span>
           )}
         </div>
-        <div className="min-w-0 flex-1 space-y-1">
+        <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <h4 className="truncate text-sm font-medium text-text-primary">
               {plugin.name}
             </h4>
-            <RiskBadge level="low" size="sm" />
+            <span className="text-xs text-text-tertiary">
+              v{plugin.latest_version}
+            </span>
             {installed && (
               <Badge variant="success" size="sm">
                 {t("card.installedPill")}
               </Badge>
             )}
           </div>
-          <p className="line-clamp-2 text-xs text-text-tertiary">
-            {plugin.description}
-          </p>
-          <div className="flex flex-wrap items-center gap-1 text-xs text-text-tertiary">
-            <span className="truncate">{plugin.author_id}</span>
-            <span aria-hidden>·</span>
-            <span>v{plugin.latest_version}</span>
-          </div>
           <div className="flex flex-wrap gap-1">
+            <span
+              className={
+                "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[11px] font-medium " +
+                categoryStyle.classes
+              }
+            >
+              <CategoryIcon className="h-3 w-3" aria-hidden />
+              {t(`category.${plugin.category}`)}
+            </span>
             <Badge variant="info" size="sm">
               {plugin.license}
             </Badge>
-            <Badge
-              variant={tierKey === "first_party" ? "success" : "info"}
-              size="sm"
-            >
-              {t(`card.tierBadge.${tierKey}`)}
-            </Badge>
+            {tierKey === "first_party" && (
+              <Badge variant="success" size="sm">
+                {t("card.tierBadge.first_party")}
+              </Badge>
+            )}
+            {tierKey === "verified" && (
+              <Badge variant="info" size="sm">
+                {t("card.tierBadge.verified")}
+              </Badge>
+            )}
           </div>
+          <p className="line-clamp-2 text-xs text-text-secondary">
+            {plugin.description}
+          </p>
+          <p className="truncate text-[11px] text-text-tertiary">
+            {t("card.byAuthor", { author: plugin.author_id })}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <Button
+            size="sm"
+            variant={installed || compatHardBlock ? "secondary" : "primary"}
+            disabled={disabled}
+            onClick={onInstall}
+            title={tooltip}
+          >
+            {installed
+              ? t("card.installed")
+              : isLoading
+                ? t("card.installing")
+                : t("card.install")}
+          </Button>
+          {!installed && !isLoading && !compatHardBlock && (
+            <button
+              type="button"
+              onClick={onInstall}
+              className="inline-flex items-center gap-1 text-[11px] text-accent-primary hover:underline"
+              aria-label={t("card.viewDetails")}
+            >
+              <Eye className="h-3 w-3" aria-hidden />
+              {t("card.viewDetails")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -232,22 +315,6 @@ export function RegistryPluginCard({
           {warningText}
         </p>
       )}
-
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          size="sm"
-          variant={installed || compatHardBlock ? "secondary" : "primary"}
-          disabled={disabled}
-          onClick={onInstall}
-          title={tooltip}
-        >
-          {installed
-            ? t("card.installed")
-            : isLoading
-              ? t("card.installing")
-              : t("card.install")}
-        </Button>
-      </div>
     </li>
   );
 }

@@ -353,7 +353,10 @@ permissions:
     expect(summary.trustSignals).toContain("verified-publisher");
   });
 
-  it("flags unsigned archives", () => {
+  it("omits the unsigned trust signal until the signing pipeline ships", () => {
+    // The dialog suppresses the "unsigned" badge until every published
+    // archive carries a verifiable signature. Once that lands, this
+    // assertion flips back to `toContain("unsigned")`.
     const summary = toInstallSummary(
       {
         pluginId: "com.example.basic",
@@ -365,6 +368,6 @@ permissions:
       },
       "deadbeef",
     );
-    expect(summary.trustSignals).toContain("unsigned");
+    expect(summary.trustSignals).not.toContain("unsigned");
   });
 });

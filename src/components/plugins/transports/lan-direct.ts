@@ -130,7 +130,7 @@ export async function installLanDirect(
       response.status >= 500 ? "server-5xx" : "server-4xx";
     throw new LanDirectError(
       cause,
-      `Agent returned ${response.status}${text ? `: ${text}` : ""}`,
+      buildAgentErrorMessage(response.status, text),
       response.status,
     );
   }
@@ -152,4 +152,37 @@ export async function installLanDirect(
  * permission set — cloud won't fix that). */
 export function shouldFailover(err: LanDirectError): boolean {
   return err.cause !== "server-4xx" && err.cause !== "auth-missing";
+}
+
+/**
+ * Build a clear error message from the agent's response body. The
+ * supervisor returns a structured envelope `{ok: false, kind, detail}`
+ * on every non-2xx; surface `kind` and `detail` when present so the
+ * operator sees something readable instead of a raw JSON blob. Falls
+ * back to the original `<status>: <text>` shape when the body isn't
+ * the structured envelope.
+ */
+export function buildAgentErrorMessage(status: number, text: string): string {
+  if (text) {
+    try {
+      const parsed = JSON.parse(text) as unknown;
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        "kind" in parsed &&
+        "detail" in parsed
+      ) {
+        const kind = String((parsed as { kind: unknown }).kind ?? "");
+        const detail = String((parsed as { detail: unknown }).detail ?? "");
+        if (kind || detail) {
+          return `Agent rejected install (${kind || "error"}): ${
+            detail || `HTTP ${status}`
+          }`;
+        }
+      }
+    } catch {
+      // Body wasn't JSON — fall through to raw-text shape.
+    }
+  }
+  return `Agent returned ${status}${text ? `: ${text}` : ""}`;
 }
