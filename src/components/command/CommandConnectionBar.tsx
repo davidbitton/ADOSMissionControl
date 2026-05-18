@@ -16,7 +16,6 @@ import {
   LayoutGrid,
   Plug,
   Unplug,
-  Zap,
 } from "lucide-react";
 import type { useTranslations } from "next-intl";
 import type { AgentStatus } from "@/lib/agent/types";
@@ -36,7 +35,6 @@ export interface CommandConnectionBarProps {
   cloudDeviceId: string | null;
   headerState: HeaderState;
   freshnessLabel: string;
-  activeFeatureName: string | null;
   connectionError: string | null;
   urlInput: string;
   onUrlInputChange: (value: string) => void;
@@ -61,7 +59,6 @@ export function CommandConnectionBar(props: CommandConnectionBarProps) {
     cloudDeviceId,
     headerState,
     freshnessLabel,
-    activeFeatureName,
     connectionError,
     urlInput,
     onUrlInputChange,
@@ -119,12 +116,6 @@ export function CommandConnectionBar(props: CommandConnectionBarProps) {
               {t("cloud")}
             </span>
           )}
-          {activeFeatureName && (
-            <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 bg-status-success/15 text-status-success rounded font-medium">
-              <Zap size={10} />
-              {activeFeatureName}
-            </span>
-          )}
         </div>
       ) : status ? (
         <>
@@ -155,12 +146,6 @@ export function CommandConnectionBar(props: CommandConnectionBarProps) {
               <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 bg-accent-primary/15 text-accent-primary rounded font-medium">
                 <Cloud size={10} />
                 {t("cloudBadge")}
-              </span>
-            )}
-            {activeFeatureName && headerState === "live" && (
-              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 bg-status-success/15 text-status-success rounded font-medium">
-                <Zap size={10} />
-                {activeFeatureName}
               </span>
             )}
             {headerState === "stale" && (

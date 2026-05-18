@@ -22,7 +22,6 @@ import type {
   ScriptRunResult,
   SetupActionResult,
   SetupStatus,
-  SuiteInfo,
   SystemResources,
   TelemetrySnapshot,
   VideoStatus,
@@ -194,24 +193,6 @@ export class AgentClient {
 
   runScript(id: string): Promise<ScriptRunResult> {
     return extras.runScript(this.ctx, id);
-  }
-
-  // ── Suites ─────────────────────────────────────────────────────
-
-  getSuites(): Promise<SuiteInfo[]> {
-    return extras.getSuites(this.ctx);
-  }
-
-  installSuite(id: string): Promise<CommandResult> {
-    return extras.installSuite(this.ctx, id);
-  }
-
-  uninstallSuite(id: string): Promise<CommandResult> {
-    return extras.uninstallSuite(this.ctx, id);
-  }
-
-  activateSuite(id: string): Promise<CommandResult> {
-    return extras.activateSuite(this.ctx, id);
   }
 
   // ── Fleet ──────────────────────────────────────────────────────

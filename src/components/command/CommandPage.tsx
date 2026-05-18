@@ -20,7 +20,6 @@ import { usePairingStore } from "@/stores/pairing-store";
 import { useFreshness } from "@/lib/agent/freshness";
 import { useVisibleTabs, type CommandSubTab } from "@/hooks/use-visible-tabs";
 import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
-import { FEATURE_CATALOG } from "@/lib/agent/feature-catalog";
 import dynamic from "next/dynamic";
 import { FleetSidebar } from "./FleetSidebar";
 import { PairingDialog } from "./PairingDialog";
@@ -46,8 +45,6 @@ function TabSuspenseFallback() {
 const AgentOverviewTab = dynamic(() => import("./AgentOverviewTab").then(m => ({ default: m.AgentOverviewTab })), { ssr: false });
 const ScriptsTab = dynamic(() => import("./ScriptsTab").then(m => ({ default: m.ScriptsTab })), { ssr: false });
 const PluginsTab = dynamic(() => import("./PluginsTab").then(m => ({ default: m.PluginsTab })), { ssr: false });
-const FeaturesTab = dynamic(() => import("./FeaturesTab").then(m => ({ default: m.FeaturesTab })), { ssr: false });
-const SmartModesTab = dynamic(() => import("./SmartModesTab").then(m => ({ default: m.SmartModesTab })), { ssr: false });
 const SystemTab = dynamic(() => import("./SystemTab").then(m => ({ default: m.SystemTab })), { ssr: false });
 const RosTab = dynamic(() => import("./ros/RosTab").then(m => ({ default: m.RosTab })), { ssr: false });
 const CloudStatusBridge = dynamic(() => import("./CloudStatusBridge").then(m => ({ default: m.CloudStatusBridge })), { ssr: false });
@@ -59,8 +56,6 @@ export function CommandPage() {
   const t = useTranslations("command");
 
   const visibleTabs = useVisibleTabs();
-  const activeFeatureId = useAgentCapabilitiesStore((s) => s.features.active);
-  const activeFeatureName = activeFeatureId ? FEATURE_CATALOG[activeFeatureId]?.name ?? null : null;
   const selectedProfile = useAgentCapabilitiesStore((s) => s.profile);
   const capsLoaded = useAgentCapabilitiesStore((s) => s.loaded);
 
@@ -264,7 +259,6 @@ export function CommandPage() {
           cloudDeviceId={cloudDeviceId}
           headerState={headerState}
           freshnessLabel={freshness.label}
-          activeFeatureName={activeFeatureName}
           connectionError={connectionError}
           urlInput={urlInput}
           onUrlInputChange={setUrlInput}
@@ -353,20 +347,6 @@ export function CommandPage() {
                   </Suspense>
                 </TabErrorBoundary>
               </div>
-              {renderedActiveTab === "features" && (
-                <TabErrorBoundary>
-                  <Suspense fallback={<TabSuspenseFallback />}>
-                    <FeaturesTab />
-                  </Suspense>
-                </TabErrorBoundary>
-              )}
-              {renderedActiveTab === "smart-modes" && (
-                <TabErrorBoundary>
-                  <Suspense fallback={<TabSuspenseFallback />}>
-                    <SmartModesTab />
-                  </Suspense>
-                </TabErrorBoundary>
-              )}
               {renderedActiveTab === "ros" && (
                 <TabErrorBoundary>
                   <Suspense fallback={<TabSuspenseFallback />}>

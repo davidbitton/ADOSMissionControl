@@ -371,10 +371,6 @@ export function inferCapabilities(
       cache_max_mb: 500,
       registry_url: "",
     },
-    features: {
-      enabled: [],
-      active: null,
-    },
     display,
     displayType,
     videoLocalTap,

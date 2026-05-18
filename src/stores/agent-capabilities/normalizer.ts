@@ -21,14 +21,10 @@ import type {
   ComputeCapability,
   VisionState,
   ModelCacheInfo,
-  FeatureState,
   InstalledModel,
   NavigationCapability,
 } from "@/lib/agent/feature-types";
-import {
-  AgentCapabilitiesRawSchema,
-  type AgentCapabilitiesRaw,
-} from "@/lib/agent/schemas";
+import { AgentCapabilitiesRawSchema } from "@/lib/agent/schemas";
 import type {
   RadioState,
   RadioLinkState,
@@ -63,11 +59,6 @@ export const DEFAULT_MODELS: ModelCacheInfo = {
   cache_used_mb: 0,
   cache_max_mb: 500,
   registry_url: "",
-};
-
-export const DEFAULT_FEATURES: FeatureState = {
-  enabled: [],
-  active: null,
 };
 
 // Recognized literal values for the radio link state and the power
@@ -146,22 +137,6 @@ export function normalizeRadio(raw: unknown): RadioState | null {
   };
 }
 
-/** Flatten the features payload (array OR { enabled, active }) into FeatureState. */
-export function normalizeFeatures(
-  raw: AgentCapabilitiesRaw["features"] | undefined,
-): FeatureState {
-  if (!raw) return { enabled: [], active: null };
-  // Agent sends array of feature objects with { id, enabled, active, ... }
-  if (Array.isArray(raw)) {
-    return {
-      enabled: raw.filter((f) => f.enabled).map((f) => f.id),
-      active: raw.find((f) => f.active)?.id ?? null,
-    };
-  }
-  // Already in GCS format (from mock or inference)
-  return raw;
-}
-
 /**
  * Map a raw agent capabilities payload onto the GCS AgentCapabilities shape.
  * Failure (schema mismatch, non-object input) falls back to defaults so the
@@ -179,7 +154,6 @@ export function normalizeCapabilities(raw: unknown): AgentCapabilities {
       compute: DEFAULT_COMPUTE,
       vision: DEFAULT_VISION,
       models: DEFAULT_MODELS,
-      features: DEFAULT_FEATURES,
     };
   }
   const data = parsed.data;
@@ -323,7 +297,6 @@ export function normalizeCapabilities(raw: unknown): AgentCapabilities {
     compute,
     vision,
     models,
-    features: normalizeFeatures(data.features),
     display,
     displayType,
     videoLocalTap,

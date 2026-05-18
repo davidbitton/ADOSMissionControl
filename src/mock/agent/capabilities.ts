@@ -166,10 +166,6 @@ export function getMockCapabilities(
       cache_max_mb: 500,
       registry_url: "https://raw.githubusercontent.com/altnautica/ADOSMissionControl/main/public/models/registry.json",
     },
-    features: {
-      enabled: ["follow-me", "obstacle-avoidance"],
-      active: "follow-me",
-    },
     navigation: mockNavigationFor(mode),
   };
 }

@@ -1,6 +1,6 @@
 /**
  * @module AgentScriptsStore
- * @description Zustand store for ADOS Drone Agent scripts, suites, and fleet network.
+ * @description Zustand store for ADOS Drone Agent scripts and fleet network.
  * @license GPL-3.0-only
  */
 
@@ -8,7 +8,6 @@ import { create } from "zustand";
 import type {
   ScriptInfo,
   ScriptRunResult,
-  SuiteInfo,
   MeshNetEnrollment,
   NetworkPeer,
 } from "@/lib/agent/types";
@@ -32,7 +31,6 @@ interface AgentScriptsState {
   scripts: ScriptInfo[];
   scriptOutput: ScriptRunResult | null;
   runningScript: string | null;
-  suites: SuiteInfo[];
   enrollment: MeshNetEnrollment | null;
   peers: NetworkPeer[];
 }
@@ -42,10 +40,6 @@ interface AgentScriptsActions {
   saveScript: (name: string, content: string, suite?: string) => Promise<ScriptInfo | null>;
   deleteScript: (id: string) => Promise<void>;
   runScript: (id: string) => Promise<void>;
-  fetchSuites: () => Promise<void>;
-  installSuite: (id: string) => Promise<void>;
-  uninstallSuite: (id: string) => Promise<void>;
-  activateSuite: (id: string) => Promise<void>;
   fetchEnrollment: () => Promise<void>;
   fetchPeers: () => Promise<void>;
   clear: () => void;
@@ -60,7 +54,6 @@ export const useAgentScriptsStore = create<AgentScriptsStore>((set, get) => ({
   scripts: getBuiltInSamples(),
   scriptOutput: null,
   runningScript: null,
-  suites: [],
   enrollment: null,
   peers: [],
 
@@ -130,60 +123,6 @@ export const useAgentScriptsStore = create<AgentScriptsStore>((set, get) => ({
     }
   },
 
-  // ── Suites ──────────────────────────────────────────────
-
-  async fetchSuites() {
-    const { client, cloudMode } = useAgentConnectionStore.getState();
-    if (cloudMode) {
-      useAgentConnectionStore.getState().sendCloudCommand("get_suites");
-      return;
-    }
-    if (!client) return;
-    try {
-      const suites = await client.getSuites();
-      set({ suites });
-    } catch { /* silent */ }
-  },
-
-  async installSuite(id: string) {
-    const { client, cloudMode } = useAgentConnectionStore.getState();
-    if (cloudMode) {
-      useAgentConnectionStore.getState().sendCloudCommand("install_suite", { id });
-      return;
-    }
-    if (!client) return;
-    try {
-      await client.installSuite(id);
-      await get().fetchSuites();
-    } catch { /* silent */ }
-  },
-
-  async uninstallSuite(id: string) {
-    const { client, cloudMode } = useAgentConnectionStore.getState();
-    if (cloudMode) {
-      useAgentConnectionStore.getState().sendCloudCommand("uninstall_suite", { id });
-      return;
-    }
-    if (!client) return;
-    try {
-      await client.uninstallSuite(id);
-      await get().fetchSuites();
-    } catch { /* silent */ }
-  },
-
-  async activateSuite(id: string) {
-    const { client, cloudMode } = useAgentConnectionStore.getState();
-    if (cloudMode) {
-      useAgentConnectionStore.getState().sendCloudCommand("activate_suite", { id });
-      return;
-    }
-    if (!client) return;
-    try {
-      await client.activateSuite(id);
-      await get().fetchSuites();
-    } catch { /* silent */ }
-  },
-
   // ── Fleet ───────────────────────────────────────────────
 
   async fetchEnrollment() {
@@ -217,7 +156,6 @@ export const useAgentScriptsStore = create<AgentScriptsStore>((set, get) => ({
       scripts: [],
       scriptOutput: null,
       runningScript: null,
-      suites: [],
       enrollment: null,
       peers: [],
     });

@@ -232,9 +232,6 @@ export function MqttBridge({
               if (data.scripts && Array.isArray(data.scripts)) {
                 useAgentScriptsStore.setState({ scripts: data.scripts });
               }
-              if (data.suites && Array.isArray(data.suites)) {
-                useAgentScriptsStore.setState({ suites: data.suites });
-              }
               if (data.peers && Array.isArray(data.peers)) {
                 useAgentScriptsStore.setState({ peers: data.peers });
               }

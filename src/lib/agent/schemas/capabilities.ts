@@ -78,26 +78,6 @@ const ModelCacheInfoSchema = z
   })
   .passthrough();
 
-const FeatureRecordSchema = z
-  .object({
-    id: z.string(),
-    enabled: z.boolean().optional(),
-    active: z.boolean().optional(),
-  })
-  .passthrough();
-
-const FeatureStateLegacySchema = z
-  .object({
-    enabled: z.array(z.string()),
-    active: NullableString,
-  })
-  .passthrough();
-
-export const FeaturesPayloadSchema = z.union([
-  z.array(FeatureRecordSchema),
-  FeatureStateLegacySchema,
-]);
-
 const RosSnapshotSchema = z
   .object({
     supported: z.boolean().optional(),
@@ -114,7 +94,6 @@ export const AgentCapabilitiesRawSchema = z
     models: z
       .union([z.array(z.unknown()), ModelCacheInfoSchema])
       .optional(),
-    features: FeaturesPayloadSchema.optional(),
     ros: RosSnapshotSchema.optional(),
     navigation: NavigationCapabilitySchema.optional(),
   })

@@ -9,7 +9,6 @@
 export { MockAgentClient } from "./agent/client";
 export { MOCK_PERIPHERALS } from "./agent/peripherals";
 export { MOCK_SCRIPTS } from "./agent/scripts";
-export { MOCK_SUITES } from "./agent/suites";
 export {
   MOCK_ENROLLMENT,
   MOCK_MODULES,

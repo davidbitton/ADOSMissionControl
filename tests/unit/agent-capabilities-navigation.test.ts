@@ -21,7 +21,6 @@ function baseCaps() {
     compute: state.compute,
     vision: state.vision,
     models: state.models,
-    features: state.features,
   };
 }
 

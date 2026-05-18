@@ -18,7 +18,6 @@ import type {
   PeripheralInfo,
   ScriptInfo,
   ScriptRunResult,
-  SuiteInfo,
   VideoStatus,
 } from "../types";
 import {
@@ -97,45 +96,6 @@ export function runScript(
   return agentRequest<ScriptRunResult>(
     ctx,
     `/api/scripts/${encodeURIComponent(id)}/run`,
-    { method: "POST" },
-  );
-}
-
-// ── Suites ────────────────────────────────────────────────────
-
-export function getSuites(ctx: RequestContext): Promise<SuiteInfo[]> {
-  return agentRequest<SuiteInfo[]>(ctx, "/api/suites");
-}
-
-export function installSuite(
-  ctx: RequestContext,
-  id: string,
-): Promise<CommandResult> {
-  return agentRequest<CommandResult>(
-    ctx,
-    `/api/suites/${encodeURIComponent(id)}/install`,
-    { method: "POST" },
-  );
-}
-
-export function uninstallSuite(
-  ctx: RequestContext,
-  id: string,
-): Promise<CommandResult> {
-  return agentRequest<CommandResult>(
-    ctx,
-    `/api/suites/${encodeURIComponent(id)}/uninstall`,
-    { method: "POST" },
-  );
-}
-
-export function activateSuite(
-  ctx: RequestContext,
-  id: string,
-): Promise<CommandResult> {
-  return agentRequest<CommandResult>(
-    ctx,
-    `/api/suites/${encodeURIComponent(id)}/activate`,
     { method: "POST" },
   );
 }

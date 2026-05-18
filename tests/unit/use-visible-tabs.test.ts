@@ -1,7 +1,8 @@
 /**
  * Verifies the Command sub-tab visibility hook. Drones running the
- * lightweight backend should not be offered scripting, smart modes,
- * or ROS surfaces because the binary does not ship those subsystems.
+ * lightweight backend should not be offered scripting or ROS surfaces
+ * because the binary does not ship those subsystems. Ground stations
+ * drop tabs that only make sense on a flying node.
  *
  * @license GPL-3.0-only
  */
@@ -15,8 +16,6 @@ import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
 const initialState = useAgentCapabilitiesStore.getState();
 
 beforeEach(() => {
-  // Reset the store to a known baseline before each scenario so
-  // selector subscriptions do not bleed across tests.
   useAgentCapabilitiesStore.setState(
     {
       ...initialState,
@@ -25,7 +24,6 @@ beforeEach(() => {
       compute: { ...initialState.compute, npu_available: false },
       vision: initialState.vision,
       models: initialState.models,
-      features: { enabled: [], active: null },
       ros2State: "absent",
       runtimeMode: "full",
       display: undefined,
@@ -40,7 +38,7 @@ afterEach(() => {
 });
 
 describe("useVisibleTabs", () => {
-  it("returns overview + features + system + scripts + plugins for a loaded full agent with no extras", () => {
+  it("returns overview + system + scripts + plugins for a loaded full drone agent", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
       runtimeMode: "full",
@@ -48,7 +46,6 @@ describe("useVisibleTabs", () => {
     const { result } = renderHook(() => useVisibleTabs());
     expect(result.current).toEqual([
       "overview",
-      "features",
       "system",
       "scripts",
       "plugins",
@@ -66,11 +63,10 @@ describe("useVisibleTabs", () => {
     expect(result.current).toContain("scripts");
   });
 
-  it("drops scripts, smart-modes, ros, and plugins for a lite agent", () => {
+  it("drops scripts, ros, and plugins for a lite agent", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
       runtimeMode: "lite",
-      // Even with vision-mode signals, lite must still hide smart-modes.
       cameras: [
         {
           name: "uvc-cam",
@@ -86,31 +82,29 @@ describe("useVisibleTabs", () => {
     });
     const { result } = renderHook(() => useVisibleTabs());
     expect(result.current).not.toContain("scripts");
-    expect(result.current).not.toContain("smart-modes");
     expect(result.current).not.toContain("ros");
     expect(result.current).not.toContain("plugins");
   });
 
-  it("keeps overview, features, and system visible for a lite agent", () => {
+  it("keeps overview and system visible for a lite agent", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
       runtimeMode: "lite",
     });
     const { result } = renderHook(() => useVisibleTabs());
-    expect(result.current).toEqual(["overview", "features", "system"]);
+    expect(result.current).toEqual(["overview", "system"]);
   });
 
   it("treats an undefined runtimeMode as full backend", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
-      // runtimeMode left at its default "full".
     });
     const { result } = renderHook(() => useVisibleTabs());
     expect(result.current).toContain("scripts");
     expect(result.current).toContain("plugins");
   });
 
-  it("shows plugins for a full agent and hides it on a ground station", () => {
+  it("shows plugins for a full drone agent and hides it on a ground station", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
       runtimeMode: "full",

@@ -13,7 +13,6 @@ import type { AgentCapabilities } from "@/lib/agent/feature-types";
 
 import {
   DEFAULT_COMPUTE,
-  DEFAULT_FEATURES,
   DEFAULT_MODELS,
   DEFAULT_VISION,
   normalizeCapabilities,
@@ -46,7 +45,6 @@ const INITIAL_STATE: AgentCapabilitiesState = {
   compute: DEFAULT_COMPUTE,
   vision: DEFAULT_VISION,
   models: DEFAULT_MODELS,
-  features: DEFAULT_FEATURES,
   ros2State: "absent",
   runtimeMode: "full",
   setupState: undefined,
@@ -116,7 +114,6 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>(
         compute: normalized.compute,
         vision: normalized.vision,
         models: normalized.models,
-        features: normalized.features,
         ros2State,
         runtimeMode,
         setupState,
@@ -173,28 +170,6 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>(
         cloudflareUrl:
           cloudflareUrl === undefined ? state.cloudflareUrl : cloudflareUrl,
         loaded: true,
-      }));
-    },
-
-    optimisticEnableFeature(featureId: string) {
-      set((state) => ({
-        features: {
-          ...state.features,
-          enabled: state.features.enabled.includes(featureId)
-            ? state.features.enabled
-            : [...state.features.enabled, featureId],
-        },
-      }));
-    },
-
-    optimisticDisableFeature(featureId: string) {
-      set((state) => ({
-        features: {
-          ...state.features,
-          enabled: state.features.enabled.filter((id) => id !== featureId),
-          active:
-            state.features.active === featureId ? null : state.features.active,
-        },
       }));
     },
 

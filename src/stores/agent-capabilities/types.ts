@@ -13,7 +13,6 @@ import type {
   ComputeCapability,
   VisionState,
   ModelCacheInfo,
-  FeatureState,
   NavigationCapability,
 } from "@/lib/agent/feature-types";
 import type { RadioState } from "@/lib/api/ground-station/types";
@@ -52,7 +51,6 @@ export interface AgentCapabilitiesState {
   compute: ComputeCapability;
   vision: VisionState;
   models: ModelCacheInfo;
-  features: FeatureState;
   /** ROS 2 environment state: absent (no support), available (board supports, not running), running. */
   ros2State: Ros2State;
   /** Backend variant the agent process is running. "lite" hides plugin /
@@ -145,10 +143,6 @@ export interface AgentCapabilitiesState {
 export interface AgentCapabilitiesActions {
   /** Update all capabilities from a parsed API response (normalizes shape). */
   setCapabilities: (caps: AgentCapabilities | Record<string, unknown>) => void;
-  /** Optimistically mark a feature as enabled (before API confirmation). */
-  optimisticEnableFeature: (featureId: string) => void;
-  /** Optimistically mark a feature as disabled. */
-  optimisticDisableFeature: (featureId: string) => void;
   /** Reset store on disconnect. */
   clear: () => void;
 }

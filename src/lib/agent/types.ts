@@ -137,19 +137,6 @@ export interface ScriptRunResult {
   durationMs: number;
 }
 
-export interface SuiteInfo {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  sensorsRequired: string[];
-  tierRequired: number;
-  version: string;
-  installed: boolean;
-  active: boolean;
-  category: "security" | "mapping" | "agriculture" | "logistics" | "rescue" | "inspection";
-}
-
 export interface MeshNetEnrollment {
   enrolled: boolean;
   droneId?: string;

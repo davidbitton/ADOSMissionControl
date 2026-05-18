@@ -22,14 +22,12 @@ import type {
   ServiceInfo,
   SetupActionResult,
   SetupStatus,
-  SuiteInfo,
   SystemResources,
 } from "@/lib/agent/types";
 import type { AgentCapabilities } from "@/lib/agent/feature-types";
 import { delay, jitter, startTime } from "./utils";
 import { MOCK_PERIPHERALS } from "./peripherals";
 import { MOCK_SCRIPTS } from "./scripts";
-import { MOCK_SUITES } from "./suites";
 import { MOCK_ENROLLMENT, MOCK_PEERS } from "./fleet";
 import { getMockCapabilities } from "./capabilities";
 import { MOCK_LOGS } from "./logs";
@@ -63,7 +61,6 @@ for (let i = 0; i < 60; i++) {
 // ── Script storage ──────────────────────────────────────────
 
 let mockScripts: ScriptInfo[] = [...MOCK_SCRIPTS];
-const mockSuites: SuiteInfo[] = MOCK_SUITES.map((s) => ({ ...s }));
 
 // ── MockAgentClient ─────────────────────────────────────────
 
@@ -210,36 +207,6 @@ export class MockAgentClient {
       exitCode: 0,
       durationMs: 1420,
     };
-  }
-
-  // ── Suites ──────────────────────────────────────────────
-
-  async getSuites(): Promise<SuiteInfo[]> {
-    await delay(60);
-    return mockSuites.map((s) => ({ ...s }));
-  }
-
-  async installSuite(id: string): Promise<CommandResult> {
-    await delay(600);
-    const suite = mockSuites.find((s) => s.id === id);
-    if (suite) suite.installed = true;
-    return { success: true, message: `Suite ${id} installed` };
-  }
-
-  async uninstallSuite(id: string): Promise<CommandResult> {
-    await delay(400);
-    const suite = mockSuites.find((s) => s.id === id);
-    if (suite) {
-      suite.installed = false;
-      suite.active = false;
-    }
-    return { success: true, message: `Suite ${id} uninstalled` };
-  }
-
-  async activateSuite(id: string): Promise<CommandResult> {
-    await delay(200);
-    mockSuites.forEach((s) => (s.active = s.id === id));
-    return { success: true, message: `Suite ${id} activated` };
   }
 
   // ── Fleet ───────────────────────────────────────────────

@@ -30,7 +30,6 @@ import type {
   NetworkPeer,
   PeripheralInfo,
   ScriptInfo,
-  SuiteInfo,
 } from "@/lib/agent/types";
 import {
   buildGroundStationPatch,
@@ -194,10 +193,6 @@ export function CloudStatusBridge() {
     if (Array.isArray(scripts)) {
       useAgentScriptsStore.setState({ scripts: scripts as ScriptInfo[] });
     }
-    const suites = cloudRecord.suites;
-    if (Array.isArray(suites)) {
-      useAgentScriptsStore.setState({ suites: suites as SuiteInfo[] });
-    }
     const peers = cloudRecord.peers;
     if (Array.isArray(peers)) {
       useAgentScriptsStore.setState({ peers: peers as NetworkPeer[] });
@@ -332,7 +327,6 @@ export function CloudStatusBridge() {
         compute: capState.compute,
         vision: capState.vision,
         models: capState.models,
-        features: capState.features,
         runtimeMode: capState.runtimeMode,
         setupState: capState.setupState,
         profileSource: capState.profileSource,

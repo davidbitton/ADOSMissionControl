@@ -22,7 +22,6 @@ const COMMAND_RESULT_MAP: Record<string, { store: StoreTarget; field: string }> 
   get_peripherals: { store: "peripherals", field: "peripherals" },
   scan_peripherals: { store: "peripherals", field: "peripherals" },
   get_scripts: { store: "scripts", field: "scripts" },
-  get_suites: { store: "scripts", field: "suites" },
   get_peers: { store: "scripts", field: "peers" },
   get_enrollment: { store: "scripts", field: "enrollment" },
   get_logs: { store: "system", field: "logs" },
@@ -30,7 +29,7 @@ const COMMAND_RESULT_MAP: Record<string, { store: StoreTarget; field: string }> 
 };
 
 function setStoreField(store: StoreTarget, field: string, data: unknown) {
-  const arrayFields = ["peripherals", "scripts", "suites", "peers", "logs", "services"];
+  const arrayFields = ["peripherals", "scripts", "peers", "logs", "services"];
   if (arrayFields.includes(field) && !Array.isArray(data)) return;
 
   switch (store) {
