@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
 export const submit = mutation({
   args: {
@@ -14,7 +15,13 @@ export const submit = mutation({
     linkedin: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("contactSubmissions", args);
+    const id = await ctx.db.insert("contactSubmissions", args);
+    await ctx.scheduler.runAfter(
+      0,
+      internal.discordNotify.sendContactSubmission,
+      args,
+    );
+    return id;
   },
 });
 
