@@ -30,7 +30,18 @@ export interface ProbeResult {
   name: string;
   version: string;
   board: string;
+  /** Cloud-pair status: the agent is claimed by a Mission Control
+   * account via the Convex API-key flow. Distinct from `radioPaired`. */
   paired: boolean;
+  /** Radio-pair status: the wfb-ng key handshake with the peer has
+   * completed and the WFB radio link is authenticated. The two
+   * states are independent — a cloud-paired drone may have no
+   * radio pair, and a radio-paired drone may have no cloud claim. */
+  radioPaired?: boolean;
+  /** Truncated device-id of the radio-paired peer (16 ASCII chars).
+   * Populated from the persisted pair state once bind completes or
+   * a WFB-radio presence beacon back-fills it. */
+  radioPeerDeviceId?: string | null;
   pairingCode?: string;
   ownerId?: string;
   pairedAt?: number;
@@ -309,6 +320,12 @@ export async function probeAgent(
     version: String(body.version ?? ""),
     board: String(body.board ?? "unknown"),
     paired: Boolean(body.paired),
+    radioPaired: Boolean(body.radio_paired),
+    radioPeerDeviceId:
+      typeof body.radio_peer_device_id === "string"
+      && (body.radio_peer_device_id as string).length > 0
+        ? (body.radio_peer_device_id as string)
+        : null,
     pairingCode: (body.pairing_code as string | undefined) ?? undefined,
     ownerId: (body.owner_id as string | undefined) ?? undefined,
     pairedAt: (body.paired_at as number | undefined) ?? undefined,
