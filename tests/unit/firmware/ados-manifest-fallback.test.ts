@@ -20,7 +20,7 @@
 
 import { describe, it, expect } from "vitest";
 import fixture from "../../fixtures/ados-agent-manifest.fixture.json";
-import { EMBEDDED_FALLBACK } from "@/app/api/ados-manifest/route";
+import { EMBEDDED_FALLBACK } from "@/app/api/ados-manifest/fallback";
 
 describe("ADOS manifest embedded-fallback parity", () => {
   it("the fixture has at least one board id (sanity check)", () => {
