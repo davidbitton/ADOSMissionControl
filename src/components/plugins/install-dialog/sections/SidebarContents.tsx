@@ -114,7 +114,7 @@ function ContentsGroup({
         {icon}
         <span>{heading}</span>
       </div>
-      <ul className="space-y-1 pl-5">{children}</ul>
+      <ul className="space-y-1">{children}</ul>
     </div>
   );
 }
