@@ -19,7 +19,7 @@ import { useTranslations } from "next-intl";
 import type { InstallManifestSummary } from "../../PluginInstallDialog";
 import type { CompatibilityResult } from "../check-compatibility";
 
-import { SidebarTree } from "./SidebarTree";
+import { SidebarContents } from "./SidebarContents";
 
 const HAIRLINE = "border-t border-border-default/30";
 
@@ -53,7 +53,7 @@ export function SidebarPanel({
       </div>
       <div className={`${HAIRLINE} mt-4 pt-4`}>
         <SectionLabel label={t("contents")} />
-        <SidebarTree manifest={manifest} />
+        <SidebarContents manifest={manifest} />
       </div>
       <div className={`${HAIRLINE} mt-4 pt-4`}>
         <LinksBlock manifest={manifest} t={t} tRoot={tRoot} />
