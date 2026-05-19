@@ -120,6 +120,16 @@ export function CloudDroneBridge() {
               | string
               | undefined)
           : undefined;
+      const peerDeviceId =
+        typeof (drone as { peerDeviceId?: unknown }).peerDeviceId === "string"
+        && ((drone as { peerDeviceId: string }).peerDeviceId).length > 0
+          ? ((drone as { peerDeviceId: string }).peerDeviceId)
+          : null;
+      const peerRssiDbm =
+        typeof (drone as { peerRssiDbm?: unknown }).peerRssiDbm === "number"
+        && Number.isFinite((drone as { peerRssiDbm: number }).peerRssiDbm)
+          ? ((drone as { peerRssiDbm: number }).peerRssiDbm)
+          : null;
 
       const fleetDrone: FleetDrone = {
         id: fleetId,
@@ -143,6 +153,8 @@ export function CloudDroneBridge() {
         manualMavlinkWsUrl,
         navigationGpsDenied,
         navigationMode,
+        peerDeviceId,
+        peerRssiDbm,
       };
 
       if (trackedIds.current.has(fleetId)) {

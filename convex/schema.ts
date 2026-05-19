@@ -559,6 +559,12 @@ fullName: v.optional(v.string()),
     // optical-flow or VIO estimator. Denormalized so the fleet card
     // can render a "GPS-denied" badge without joining cmd_droneStatus.
     navigationGpsDenied: v.optional(v.boolean()),
+    // Inter-rig peer device-id quick-flag for fleet pills. Synced
+    // from cmd_droneStatus.peerDeviceId so the fleet card renders a
+    // "Peer" pill without joining cmd_droneStatus on every render.
+    // Null / undefined when no peer beacon has decoded recently.
+    peerDeviceId: v.optional(v.union(v.string(), v.null())),
+    peerRssiDbm: v.optional(v.union(v.number(), v.null())),
     // List of plugin ids currently installed on this drone. Synced
     // from cmd_pluginInstalls so the drone-detail panel can resolve
     // plugin slot contributions (drone.detail.tab and friends)
@@ -810,6 +816,17 @@ fullName: v.optional(v.string()),
     // can confirm the auto-update loop is alive. Older agents that
     // predate the loop omit this field; the GCS renders "Never checked".
     last_plugin_update_check_at: v.optional(v.number()),
+    // Inter-rig peer presence — populated by the agent's HopListener
+    // when it decodes a WFB-radio PresenceBeacon from the paired peer.
+    // All five fields are optional; they stay undefined until at least
+    // one beacon decodes and the agent's 60s freshness gate accepts.
+    // Drone heartbeats carry the GS's identity; GS heartbeats carry
+    // the drone's identity.
+    peerDeviceId: v.optional(v.union(v.string(), v.null())),
+    peerRole: v.optional(v.union(v.string(), v.null())),
+    peerChannel: v.optional(v.union(v.number(), v.null())),
+    peerRssiDbm: v.optional(v.union(v.number(), v.null())),
+    peerSeenAtUnix: v.optional(v.union(v.number(), v.null())),
     updatedAt: v.number(),
   })
     .index("by_deviceId", ["deviceId"]),

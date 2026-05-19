@@ -142,6 +142,14 @@ export const pushStatus = internalMutation({
     displayType: v.optional(v.string()),
     // Epoch ms of the last plugin-update registry sweep on the agent.
     last_plugin_update_check_at: v.optional(v.number()),
+    // Inter-rig peer presence — sourced from the agent's HopListener
+    // peer cache (WFB-radio PresenceBeacon stream). Drone heartbeats
+    // carry the GS's identity; GS heartbeats carry the drone's.
+    peerDeviceId: v.optional(v.union(v.string(), v.null())),
+    peerRole: v.optional(v.union(v.string(), v.null())),
+    peerChannel: v.optional(v.union(v.number(), v.null())),
+    peerRssiDbm: v.optional(v.union(v.number(), v.null())),
+    peerSeenAtUnix: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -231,6 +239,12 @@ export const pushStatus = internalMutation({
         ...(args.profile !== undefined ? { profile: args.profile } : {}),
         ...(args.role !== undefined ? { role: args.role } : {}),
         ...(manualMavlinkWsUrl !== undefined ? { manualMavlinkWsUrl } : {}),
+        ...(args.peerDeviceId !== undefined
+          ? { peerDeviceId: args.peerDeviceId }
+          : {}),
+        ...(args.peerRssiDbm !== undefined
+          ? { peerRssiDbm: args.peerRssiDbm }
+          : {}),
       });
     }
 

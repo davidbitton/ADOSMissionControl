@@ -343,6 +343,11 @@ export interface HeartbeatExtras {
   profile: string | undefined;
   role: string | null | undefined;
   runtimeMode: "full" | "lite";
+  peerDeviceId: string | null;
+  peerRole: string | null;
+  peerChannel: number | null;
+  peerRssiDbm: number | null;
+  peerSeenAtUnix: number | null;
 }
 
 const FAILOVER_STATES = ["local", "cloud_relay", "failed"] as const;
@@ -479,6 +484,22 @@ export function buildHeartbeatExtras(
   const runtimeMode: "full" | "lite" =
     cloudStatus.runtimeMode === "lite" ? "lite" : "full";
 
+  const peerSeenRaw = cloudStatus.peerSeenAtUnix;
+  const peerSeenAtUnix =
+    typeof peerSeenRaw === "number" && Number.isFinite(peerSeenRaw)
+      ? peerSeenRaw
+      : null;
+  const peerChannelRaw = cloudStatus.peerChannel;
+  const peerChannel =
+    typeof peerChannelRaw === "number" && Number.isFinite(peerChannelRaw)
+      ? peerChannelRaw
+      : null;
+  const peerRssiRaw = cloudStatus.peerRssiDbm;
+  const peerRssiDbm =
+    typeof peerRssiRaw === "number" && Number.isFinite(peerRssiRaw)
+      ? peerRssiRaw
+      : null;
+
   return {
     videoRestartAttempts,
     foxgloveBindFailed,
@@ -496,5 +517,10 @@ export function buildHeartbeatExtras(
     profile,
     role,
     runtimeMode,
+    peerDeviceId: pickStringOrNull(cloudStatus.peerDeviceId),
+    peerRole: pickStringOrNull(cloudStatus.peerRole),
+    peerChannel,
+    peerRssiDbm,
+    peerSeenAtUnix,
   };
 }

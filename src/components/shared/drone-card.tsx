@@ -145,6 +145,20 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
               </Badge>
             </span>
           )}
+          {drone.peerDeviceId && (
+            <span
+              title={`WFB peer seen: ${drone.peerDeviceId}${
+                typeof drone.peerRssiDbm === "number" && drone.peerRssiDbm !== 0
+                  ? ` (${drone.peerRssiDbm} dBm)`
+                  : ""
+              }`}
+              className="inline-flex"
+            >
+              <Badge variant="success" className="text-[10px]">
+                Peer
+              </Badge>
+            </span>
+          )}
           {(drone.profileSource === "detected" ||
             drone.profileSource === "tiebreaker" ||
             drone.profileSource === "default") && (

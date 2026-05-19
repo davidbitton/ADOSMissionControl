@@ -291,6 +291,16 @@ export function normalizeCapabilities(raw: unknown): AgentCapabilities {
     ? (data.navigation as NavigationCapability)
     : undefined;
 
+  const asStringOrNull = (v: unknown): string | null =>
+    typeof v === "string" && v.length > 0 ? v : null;
+  const asNumberOrNull = (v: unknown): number | null =>
+    typeof v === "number" && Number.isFinite(v) ? v : null;
+  const peerDeviceId = asStringOrNull((data as Record<string, unknown>).peerDeviceId);
+  const peerRole = asStringOrNull((data as Record<string, unknown>).peerRole);
+  const peerChannel = asNumberOrNull((data as Record<string, unknown>).peerChannel);
+  const peerRssiDbm = asNumberOrNull((data as Record<string, unknown>).peerRssiDbm);
+  const peerSeenAtUnix = asNumberOrNull((data as Record<string, unknown>).peerSeenAtUnix);
+
   return {
     tier: Number(data.tier ?? 0),
     cameras,
@@ -304,5 +314,10 @@ export function normalizeCapabilities(raw: unknown): AgentCapabilities {
     uiTheme,
     videoPipeline,
     navigation,
+    peerDeviceId,
+    peerRole,
+    peerChannel,
+    peerRssiDbm,
+    peerSeenAtUnix,
   };
 }

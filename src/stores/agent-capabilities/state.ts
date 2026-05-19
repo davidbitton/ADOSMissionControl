@@ -67,6 +67,11 @@ const INITIAL_STATE: AgentCapabilitiesState = {
   cloudRelayUrl: null,
   cloudflareUrl: null,
   navigation: undefined,
+  peerDeviceId: null,
+  peerRole: null,
+  peerChannel: null,
+  peerRssiDbm: null,
+  peerSeenAtUnix: null,
   loaded: false,
 };
 
@@ -169,6 +174,28 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>(
           cloudRelayUrl === undefined ? state.cloudRelayUrl : cloudRelayUrl,
         cloudflareUrl:
           cloudflareUrl === undefined ? state.cloudflareUrl : cloudflareUrl,
+        // Peer presence — sparse heartbeats preserve the prior value
+        // until the agent's 60s staleness window drops it explicitly.
+        peerDeviceId:
+          normalized.peerDeviceId === undefined
+            ? state.peerDeviceId
+            : normalized.peerDeviceId,
+        peerRole:
+          normalized.peerRole === undefined
+            ? state.peerRole
+            : normalized.peerRole,
+        peerChannel:
+          normalized.peerChannel === undefined
+            ? state.peerChannel
+            : normalized.peerChannel,
+        peerRssiDbm:
+          normalized.peerRssiDbm === undefined
+            ? state.peerRssiDbm
+            : normalized.peerRssiDbm,
+        peerSeenAtUnix:
+          normalized.peerSeenAtUnix === undefined
+            ? state.peerSeenAtUnix
+            : normalized.peerSeenAtUnix,
         loaded: true,
       }));
     },

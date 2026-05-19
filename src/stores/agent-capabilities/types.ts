@@ -136,6 +136,18 @@ export interface AgentCapabilitiesState {
    * Undefined when the agent has not wired the navigation surfaces or
    * the heartbeat predates the field. */
   navigation: NavigationCapability | undefined;
+  /** Inter-rig peer device-id, sourced from WFB-radio presence beacons.
+   * Null when no beacon has been decoded recently. */
+  peerDeviceId: string | null;
+  /** "drone" or "gs" — peer's self-reported role. Null when unknown. */
+  peerRole: string | null;
+  /** Channel the peer reports it is currently on. Null when unknown. */
+  peerChannel: number | null;
+  /** Peer-reported RSSI in dBm (signed). Null when unknown. */
+  peerRssiDbm: number | null;
+  /** UNIX seconds the local listener last decoded a peer beacon. Null
+   * when no beacon decoded. */
+  peerSeenAtUnix: number | null;
   /** True once we've received at least one capabilities payload. */
   loaded: boolean;
 }

@@ -297,6 +297,28 @@ export interface AgentCapabilities {
    * peripheral specifically. Undefined on agents that predate the
    * enrichment. */
   displayType?: "auto" | "hdmi" | "lcd" | "none" | null;
+  /** Optional. Inter-rig peer device-id, populated from WFB-radio
+   * presence beacons (control plane, radio_id 1). Surfaces on the
+   * drone card so the operator sees a stable peer link before any
+   * MAVLink traffic flows. Truncated to 16 ASCII characters by the
+   * agent's beacon encoder. Undefined when no beacon has decoded or
+   * the agent predates the presence-beacon surface. */
+  peerDeviceId?: string | null;
+  /** Optional. "drone" or "gs" — which side of the radio pair the
+   * peer identifies itself as. Lets the GCS render the correct icon
+   * (drone receiving a GS beacon vs GS receiving a drone beacon). */
+  peerRole?: string | null;
+  /** Optional. Channel the peer reports it is currently sitting on.
+   * Differs from the local channel during the short window between a
+   * HopAck and the next presence beacon. */
+  peerChannel?: number | null;
+  /** Optional. Peer-reported RSSI in dBm, signed. 0 means unknown
+   * rather than 0 dBm. */
+  peerRssiDbm?: number | null;
+  /** Optional. UNIX seconds the local listener last decoded a beacon
+   * from the peer. Used to compute freshness; the agent itself drops
+   * a "stale" snapshot to null after 60 s of silence. */
+  peerSeenAtUnix?: number | null;
 }
 
 // ── Model Registry (from registry.json) ──────────────────

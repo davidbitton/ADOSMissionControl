@@ -302,6 +302,11 @@ export function CloudStatusBridge() {
         if (extras.role !== undefined) payload.role = extras.role;
         if (extras.radioRaw !== undefined) payload.radio = extras.radioRaw;
         if (extras.videoPipeline !== undefined) payload.videoPipeline = extras.videoPipeline;
+        payload.peerDeviceId = extras.peerDeviceId;
+        payload.peerRole = extras.peerRole;
+        payload.peerChannel = extras.peerChannel;
+        payload.peerRssiDbm = extras.peerRssiDbm;
+        payload.peerSeenAtUnix = extras.peerSeenAtUnix;
         useAgentCapabilitiesStore.getState().setCapabilities(payload);
       }
     } else {
@@ -357,6 +362,11 @@ export function CloudStatusBridge() {
         manualConnectionUrls: extras.manualConnectionUrls,
         cloudRelayUrl: extras.cloudRelayUrl,
         cloudflareUrl: extras.cloudflareUrl,
+        peerDeviceId: extras.peerDeviceId,
+        peerRole: extras.peerRole,
+        peerChannel: extras.peerChannel,
+        peerRssiDbm: extras.peerRssiDbm,
+        peerSeenAtUnix: extras.peerSeenAtUnix,
         ...(extras.radioRaw !== undefined ? { radio: extras.radioRaw } : {}),
       } as Record<string, unknown>);
     }

@@ -94,7 +94,15 @@ export interface FleetDrone extends DroneInfo {
    * agent's ``mode`` config). Used by the fleet card to render the
    * correct short badge: "OF" / "OF*" / "VIO" / "Hybrid". Undefined
    * for agents that predate the estimator framework heartbeat. */
-  navigationMode?: string;
+   navigationMode?: string;
+   /** Inter-rig peer device-id (truncated to 16 ASCII chars), populated
+    * by the agent's HopListener when it decodes a WFB-radio
+    * PresenceBeacon. Drives the "Peer" pill on the drone card. Null
+    * or undefined when no beacon decoded recently. */
+   peerDeviceId?: string | null;
+   /** Peer-reported RSSI in dBm (signed). Surfaced in the Peer pill
+    * tooltip. Null when unknown or 0 dBm. */
+   peerRssiDbm?: number | null;
 }
 
 export type AlertSeverity = "info" | "warning" | "critical";
