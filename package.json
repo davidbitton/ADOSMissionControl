@@ -40,7 +40,8 @@
     "test:all": "vitest run && playwright test --project=demo",
     "convex:dev": "npx convex dev",
     "convex:deploy": "npx convex deploy",
-    "generate:agent-types": "openapi-typescript ../ADOSDroneAgent/dist/openapi.json -o src/lib/agent/api-types.gen.ts"
+    "generate:agent-types": "openapi-typescript ../ADOSDroneAgent/dist/openapi.json -o src/lib/agent/api-types.gen.ts",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@blockly/theme-dark": "^8.0.3",
@@ -111,6 +112,7 @@
     "listr2": "^8.2.0",
     "msw": "^2.12.10",
     "openapi-typescript": "^7.13.0",
+    "patch-package": "^8.0.1",
     "picocolors": "^1.1.1",
     "tailwindcss": "^4",
     "tsx": "^4.19.0",
