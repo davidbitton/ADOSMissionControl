@@ -41,7 +41,7 @@ export interface FlashProgress {
 export type FlashProgressCallback = (progress: FlashProgress) => void;
 
 /** Flash method selection. */
-export type FlashMethod = "serial" | "dfu" | "auto" | "px4-serial";
+export type FlashMethod = "serial" | "dfu" | "auto" | "px4-serial" | "dronecan-ota";
 
 /** Firmware stack selection for the Flash Tool UI. */
 export type FirmwareStack =

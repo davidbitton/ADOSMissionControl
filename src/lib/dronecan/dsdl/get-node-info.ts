@@ -73,7 +73,7 @@ export function encodeGetNodeInfoResponse(res: GetNodeInfoResponse): Uint8Array 
   }
 
   const out = new Uint8Array(
-    NODE_STATUS_SIZE + 15 + 18 + coa.length + nameBytes.length,
+    NODE_STATUS_SIZE + 15 + 19 + coa.length + nameBytes.length,
   );
   let off = 0;
   out.set(encodeNodeStatus(res.status), off);

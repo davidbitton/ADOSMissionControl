@@ -67,6 +67,13 @@ export class FlashManager {
     options: FlashOptions,
     onProgress: FlashProgressCallback,
   ): Promise<void> {
+    if (options.method === "dronecan-ota") {
+      throw new Error(
+        "DroneCAN OTA flashes must be driven by a DroneCanOtaFlasher constructed " +
+          "with a live DroneCanClient (peripheral target node + source node id). " +
+          "FlashManager's bootloader-poll path does not own the CAN bus.",
+      );
+    }
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
 
