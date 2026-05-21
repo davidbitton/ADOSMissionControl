@@ -18,7 +18,7 @@ import {
   isChannelName,
   parseDirectoryIndex,
 } from "@/lib/protocol/firmware/ap-periph-manifest";
-import { sanitizePath } from "@/app/api/ap-periph-manifest/route";
+import { sanitizePath } from "@/lib/protocol/firmware/ap-periph-path";
 
 // ── Fixtures ───────────────────────────────────────────────
 
