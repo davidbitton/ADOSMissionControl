@@ -11,6 +11,8 @@ import {
 import { useDroneCanFlashStore } from "@/stores/dronecan/flash-store";
 import { useDroneCanNodeStore } from "@/stores/dronecan/node-store";
 import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
+import { useDroneManager } from "@/stores/drone-manager";
+import { useSlcanModeStore } from "@/stores/slcan-mode-store";
 import { isDemoMode } from "@/lib/utils";
 import { FirmwareApPeriphNodeTable } from "./FirmwareApPeriphNodeTable";
 import { FirmwareApPeriphFirmwareCard } from "./FirmwareApPeriphFirmwareCard";
@@ -27,6 +29,7 @@ interface Props {
     targetNodeId: number;
     board: string;
     channel: string;
+    transport: "slcan" | "can-forward";
   }) => void | Promise<void>;
 }
 
@@ -41,13 +44,23 @@ export function FirmwareApPeriphSection({
   // Connection state — in demo mode, treat SLCAN as active so the UI
   // is exerciseable without live agent wiring.
   const [transport, setTransport] = useState<"slcan" | "can-forward">("slcan");
-  const slcanActive = demo;
+
+  // SLCAN gating: the radio is only enabled when the selected drone is
+  // connected over a WebSerial-capable transport (direct USB). Cloud /
+  // MQTT / WebSocket links can't drive SLCAN because they don't own the
+  // FC's USB byte stream.
+  const selectedDrone = useDroneManager((s) => s.getSelectedDrone());
+  const slcanCapable =
+    demo || selectedDrone?.transport?.type === "webserial";
+
+  // Live SLCAN state from the arbiter (banner + button glyph).
+  const slcanState = useSlcanModeStore((s) => s.state);
+  const slcanActive = demo || slcanState === "SLCAN_ACTIVE";
 
   // CAN_FORWARD reachability: the agent advertises CAN bus presence via
   // `canBuses` once its capability heartbeat has populated. Demo mode
   // enables the option so the production radio path is exerciseable from
-  // a synthetic session too. SLCAN is still stubbed at the flash layer,
-  // so the inverse hint is shown below.
+  // a synthetic session too.
   const canBuses = useAgentCapabilitiesStore((s) => s.canBuses);
   const canForwardEnabled = demo || (Array.isArray(canBuses) && canBuses.length > 0);
 
@@ -182,6 +195,7 @@ export function FirmwareApPeriphSection({
       targetNodeId: selectedNodeId,
       board: selectedBoard,
       channel: selectedChannel,
+      transport,
     });
   };
   // Show the debug drawer while a flash is mid-flight. The drawer renders
@@ -212,11 +226,21 @@ export function FirmwareApPeriphSection({
           <button
             role="radio"
             aria-checked={transport === "slcan"}
-            onClick={() => setTransport("slcan")}
+            disabled={!slcanCapable}
+            onClick={() => {
+              if (slcanCapable) setTransport("slcan");
+            }}
+            title={
+              slcanCapable
+                ? t("connection.transport.slcan")
+                : t("connection.transport.slcanRequiresUsb")
+            }
             className={`flex-1 px-3 py-2 text-xs font-semibold border cursor-pointer transition-colors ${
-              transport === "slcan"
-                ? "border-accent-primary text-accent-primary bg-accent-primary/10"
-                : "border-border-default text-text-secondary hover:text-text-primary"
+              !slcanCapable
+                ? "border-border-default text-text-tertiary opacity-40 cursor-not-allowed"
+                : transport === "slcan"
+                  ? "border-accent-primary text-accent-primary bg-accent-primary/10"
+                  : "border-border-default text-text-secondary hover:text-text-primary"
             }`}
           >
             {t("connection.transport.slcan")}
@@ -245,12 +269,12 @@ export function FirmwareApPeriphSection({
           </button>
         </div>
 
-        {transport === "slcan" && !demo && (
+        {transport === "slcan" && !demo && !slcanCapable && (
           <p
             className="text-[10px] text-status-warning"
-            data-testid="ap-periph-slcan-pending"
+            data-testid="ap-periph-slcan-requires-usb"
           >
-            {t("connection.slcanPendingUseCanForward")}
+            {t("connection.transport.slcanRequiresUsb")}
           </p>
         )}
 

@@ -38,10 +38,12 @@ export function FirmwarePanel() {
       targetNodeId,
       board,
       channel,
+      transport,
     }: {
       targetNodeId: number;
       board: string;
       channel: string;
+      transport: "slcan" | "can-forward";
     }) => {
       const protocol = getSelectedProtocol();
       if (!protocol) {
@@ -60,6 +62,7 @@ export function FirmwarePanel() {
           board,
           channel,
           manifest: apPeriphManifestRef.current,
+          transport,
         });
         flashDisposerRef.current = handle.dispose;
       } catch (err) {

@@ -15,7 +15,11 @@
  */
 
 import type { DroneProtocol } from "@/lib/protocol/types/protocol";
-import { MavlinkCanForwardTransport } from "@/lib/protocol/transport/can-transport";
+import {
+  MavlinkCanForwardTransport,
+  type CanTransport,
+} from "@/lib/protocol/transport/can-transport";
+import { enterSlcanMode } from "@/lib/protocol/transport/slcan-flash-arbiter";
 import { DroneCanClient } from "@/lib/dronecan/client";
 import { DroneCanOtaOrchestrator } from "@/lib/dronecan/ota";
 import { ApPeriphManifest } from "@/lib/protocol/firmware/ap-periph-manifest";
@@ -31,7 +35,18 @@ export interface FlashApPeriphParams {
   board: string;
   channel: string;
   manifest: ApPeriphManifest;
-  bus?: number;
+  bus?: 1 | 2;
+  /**
+   * Transport for the CAN bus during the OTA flow.
+   *   - `"can-forward"` (default): MAVLink CAN_FORWARD relay, agent-friendly.
+   *   - `"slcan"`: direct SLCAN session on the FC's USB port. Requires a
+   *     direct WebSerial connection; arbited via `enterSlcanMode()`.
+   */
+  transport?: "slcan" | "can-forward";
+  /** SLCAN bitrate in bits/s (only used when `transport === "slcan"`). */
+  slcanBitrate?: number;
+  /** SLCAN auto-revert timeout in seconds (only used when `transport === "slcan"`). */
+  slcanTimeoutSec?: number;
 }
 
 /**
@@ -42,17 +57,45 @@ export interface FlashApPeriphParams {
 export async function flashApPeriph(
   params: FlashApPeriphParams,
 ): Promise<{ dispose: () => Promise<void> }> {
-  const { protocol, targetNodeId, board, channel, manifest, bus = 1 } = params;
+  const {
+    protocol,
+    targetNodeId,
+    board,
+    channel,
+    manifest,
+    bus = 1,
+    transport: transportKind = "can-forward",
+    slcanBitrate = 1_000_000,
+    slcanTimeoutSec = 300,
+  } = params;
 
   // 1. Fetch the firmware payload. Do this BEFORE we mess with the CAN
   //    bus so a 404 doesn't leave the FC in CAN_FORWARD mode.
   const fileBytes = await manifest.downloadFirmware(channel, board);
 
-  // 2. Open the MAVLink passthrough. The actual bitrate is owned by the
-  //    FC's CAN_P*_BITRATE params; we pass 1 Mbps as a default for the
-  //    `CanTransport` shape since the value is informational here.
-  const transport = new MavlinkCanForwardTransport(protocol, { bus });
-  await transport.open({ bitrate: 1_000_000 });
+  // 2. Open the chosen CAN transport. The MAVLink CAN_FORWARD path leaves
+  //    the MAVLink link up; the SLCAN path replaces it with a direct
+  //    SLCAN session on the same USB port (the arbiter handles the
+  //    reboot vs hot-switch handoff per chip family).
+  let transport: CanTransport;
+  let slcanExit: (() => Promise<void>) | null = null;
+  if (transportKind === "slcan") {
+    const droneId =
+      protocol.getVehicleInfo()?.systemId?.toString() ?? "unknown";
+    const session = await enterSlcanMode({
+      protocol,
+      droneId,
+      bus: bus === 2 ? 2 : 1,
+      bitrate: slcanBitrate,
+      timeoutSec: slcanTimeoutSec,
+    });
+    transport = session.slcanTransport;
+    slcanExit = session.exitFn;
+  } else {
+    const fwdTransport = new MavlinkCanForwardTransport(protocol, { bus });
+    await fwdTransport.open({ bitrate: 1_000_000 });
+    transport = fwdTransport;
+  }
 
   // 3. Build a DroneCanClient on top of the transport.
   const client = new DroneCanClient(transport);
@@ -95,6 +138,13 @@ export async function flashApPeriph(
         await transport.close();
       } catch {
         // Best effort.
+      }
+      if (slcanExit) {
+        try {
+          await slcanExit();
+        } catch {
+          // Best effort — the FC's CAN_SLCAN_TIMOUT will auto-revert.
+        }
       }
     },
   };

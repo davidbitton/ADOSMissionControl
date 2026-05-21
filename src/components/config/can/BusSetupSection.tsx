@@ -12,11 +12,12 @@
  * The Save and Write-to-Flash buttons at the bottom call into
  * `useParamPanelActions`, matching the established Power panel pattern.
  *
- * The "Enter SLCAN mode" button at the foot of the SLCAN card prefills
- * the four SLCAN parameters and surfaces a confirm dialog warning the
- * operator that MAVLink will pause and the FC must be rebooted to take
- * the change. The actual reboot command is left as a manual user action
- * in this revision.
+ * The "Enter SLCAN mode" button at the foot of the SLCAN card hands off
+ * to the SLCAN flash arbiter (`enterSlcanMode`). The arbiter writes the
+ * four `CAN_SLCAN_*` params, decides between reboot-and-poll (F4) or
+ * MAV_CMD_CAN_FORWARD hot-switch (F7/H7/G4), opens the SLCAN session, and
+ * returns an `exitFn` for the page to invoke when the operator clicks
+ * "Resume MAVLink" (driven from the top-of-shell banner).
  *
  * @license GPL-3.0-only
  */
@@ -31,6 +32,9 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useFcPanelState } from "@/hooks/use-fc-panel-state";
 import { useParamPanelActions } from "@/hooks/use-param-panel-actions";
+import { enterSlcanMode } from "@/lib/protocol/transport/slcan-flash-arbiter";
+import { useDroneManager } from "@/stores/drone-manager";
+import { useSlcanModeStore } from "@/stores/slcan-mode-store";
 
 const BUS_SETUP_PARAMS = [
   "CAN_P1_DRIVER",
@@ -165,13 +169,36 @@ export function BusSetupSection() {
   const setNum = (name: string, v: string) => setLocalValue(name, Number(v) || 0);
   const isMissing = (name: string) => missingOptional.has(name);
 
-  const enterSlcan = () => {
+  const selectedDrone = useDroneManager((s) => s.getSelectedDrone());
+  const slcanState = useSlcanModeStore((s) => s.state);
+
+  const enterSlcan = async () => {
+    setSlcanConfirmOpen(false);
+    const protocol = getProtocol();
+    if (!protocol || !selectedDrone) return;
+    if (selectedDrone.transport?.type !== "webserial") {
+      setRebootStatus("error");
+      return;
+    }
+    // Mirror the desired params locally for UI continuity. The arbiter
+    // writes the same four params on the FC before flipping the mode.
     setLocalValue("CAN_SLCAN_CPORT", 1);
     setLocalValue("CAN_SLCAN_SERNUM", 0);
     setLocalValue("CAN_SLCAN_TIMOUT", 300);
     setLocalValue("CAN_SLCAN_OVRIDE", 1);
-    setSlcanConfirmOpen(false);
-    setRebootPending(true);
+    try {
+      await enterSlcanMode({
+        protocol,
+        droneId: selectedDrone.id,
+        bus: 1,
+        bitrate: 1_000_000,
+        timeoutSec: 300,
+      });
+      setRebootPending(false);
+    } catch {
+      // Arbiter has already pushed an error message into the store; the
+      // banner surfaces it. Leave the panel in a passive state.
+    }
   };
 
   const rebootFc = async () => {
@@ -367,7 +394,11 @@ export function BusSetupSection() {
               size="sm"
               icon={<ShieldAlert size={12} />}
               onClick={() => setSlcanConfirmOpen(true)}
-              disabled={!connected}
+              disabled={
+                !connected ||
+                slcanState !== "IDLE" ||
+                selectedDrone?.transport?.type !== "webserial"
+              }
             >
               {t("enterSlcan")}
             </Button>

@@ -3363,6 +3363,7 @@
         "transportAria": "CAN transport mode",
         "transport": {
           "slcan": "SLCAN",
+          "slcanRequiresUsb": "SLCAN requires a direct USB connection to the FC",
           "canForward": "CAN_FORWARD (via agent)",
           "canForwardComingSoon": "Available in next release",
           "canForwardWaiting": "Waiting for agent CAN bus capability",
