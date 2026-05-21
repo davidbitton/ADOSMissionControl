@@ -200,12 +200,38 @@ export interface NavigationCapability {
   cameraImuSyncOffsetMs?: number;
 }
 
+/**
+ * One CAN bus entry as the agent reports it from the persisted FC
+ * parameter cache. ``port`` matches the FC's ``CAN_Pn_*`` parameter
+ * suffix (1 or 2). ``driver`` is the ``CAN_Pn_DRIVER`` slot (0 means
+ * the port is disabled). ``bitrate`` is the FC-configured bus speed
+ * in bits per second. ``protocol`` is the ``CAN_Dn_PROTOCOL``
+ * selection (1 = DroneCAN; vendor-specific otherwise). Mission
+ * Control surfaces this on the drone card so an operator can see
+ * the per-port CAN configuration without opening the FC parameter
+ * panel. Future agent revisions may add fields (frame error counts,
+ * bus utilization); the GCS treats unknown fields as a forward-
+ * compatible no-op.
+ */
+export interface CanBusInfo {
+  port: number;
+  driver: number;
+  bitrate: number;
+  protocol: number;
+}
+
 export interface AgentCapabilities {
   tier: number;
   cameras: CameraCapability[];
   compute: ComputeCapability;
   vision: VisionState;
   models: ModelCacheInfo;
+  /** Optional. Per-port CAN bus configuration the agent harvests from
+   * the persisted FC parameter cache. Absent during the warmup window
+   * between FC connect and the first parameter download, and absent
+   * entirely on FCs that expose no CAN ports. Empty array means the
+   * agent has the params but reports both ports as disabled. */
+  canBuses?: CanBusInfo[];
   /** Backend variant the agent process is running. Hides plugin /
    * peripheral / scripting / ROS surfaces when "lite". Defaults to
    * "full" when absent. */

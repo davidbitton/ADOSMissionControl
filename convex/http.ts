@@ -364,6 +364,33 @@ http.route({
       telemetry: body.telemetry,
       logs: body.logs,
       radio: radioField(body, "radio"),
+      // FC CAN bus configuration. Validate the inner shape here so a
+      // malformed agent payload (e.g., a string masquerading as a
+      // port number) doesn't get rejected by the strict pushStatus
+      // validator and fail the entire heartbeat. The field stays
+      // undefined unless every entry is a complete numeric record.
+      canBuses: (() => {
+        const raw = body.canBuses;
+        if (!Array.isArray(raw)) return undefined;
+        const entries: Array<{ port: number; driver: number; bitrate: number; protocol: number }> = [];
+        for (const entry of raw) {
+          if (!entry || typeof entry !== "object") continue;
+          const e = entry as Record<string, unknown>;
+          if (
+            typeof e.port !== "number"
+            || typeof e.driver !== "number"
+            || typeof e.bitrate !== "number"
+            || typeof e.protocol !== "number"
+          ) continue;
+          entries.push({
+            port: e.port,
+            driver: e.driver,
+            bitrate: e.bitrate,
+            protocol: e.protocol,
+          });
+        }
+        return entries;
+      })(),
     };
     const result = await ctx.runMutation(internal.cmdDroneStatus.pushStatus, statusPayload);
     return new Response(JSON.stringify(result), {

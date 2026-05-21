@@ -152,6 +152,19 @@ export const pushStatus = internalMutation({
     peerSeenAtUnix: v.optional(v.union(v.number(), v.null())),
     // Primary camera discovery state — "ready" | "missing" | "error".
     cameraState: v.optional(v.union(v.string(), v.null())),
+    // FC CAN bus configuration harvested from the persisted parameter
+    // cache. The agent emits an array of {port, driver, bitrate,
+    // protocol} entries once the cache holds at least one CAN_P*_*
+    // value. Absent during the warmup window between FC connect and
+    // the first parameter download finishing. Forwarded straight to
+    // the cloud row so the GCS can render the per-port configuration
+    // on the drone card without re-querying the FC.
+    canBuses: v.optional(v.array(v.object({
+      port: v.number(),
+      driver: v.number(),
+      bitrate: v.number(),
+      protocol: v.number(),
+    }))),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db

@@ -837,6 +837,15 @@ fullName: v.optional(v.string()),
     // or HAL probe failed. Older agents that predate the surface
     // omit the field (the drone card hides the pill).
     cameraState: v.optional(v.union(v.string(), v.null())),
+    // FC CAN bus configuration. Array of per-port entries. Absent
+    // during warmup; empty array means agent has the params but
+    // reports both ports disabled.
+    canBuses: v.optional(v.array(v.object({
+      port: v.number(),
+      driver: v.number(),
+      bitrate: v.number(),
+      protocol: v.number(),
+    }))),
     updatedAt: v.number(),
   })
     .index("by_deviceId", ["deviceId"]),

@@ -307,6 +307,36 @@ export function normalizeCapabilities(raw: unknown): AgentCapabilities {
       ? cameraStateRaw
       : null;
 
+  // CAN bus list. The agent omits the field entirely until the FC
+  // parameter cache has at least one CAN_P*_DRIVER / BITRATE / CAN_D*_PROTOCOL
+  // entry, so `undefined` means "not yet known"; an empty array would
+  // mean "agent has the params but reports both ports disabled".
+  // Inner shape is validated structurally rather than via Zod so
+  // future fields (frame error counters, utilization) pass through
+  // without bumping the normalizer.
+  const canBusesRaw = (data as Record<string, unknown>).canBuses;
+  let canBuses: AgentCapabilities["canBuses"] | undefined;
+  if (Array.isArray(canBusesRaw)) {
+    canBuses = canBusesRaw.flatMap((entry) => {
+      if (!entry || typeof entry !== "object") return [];
+      const e = entry as Record<string, unknown>;
+      if (
+        typeof e.port !== "number"
+        || typeof e.driver !== "number"
+        || typeof e.bitrate !== "number"
+        || typeof e.protocol !== "number"
+      ) {
+        return [];
+      }
+      return [{
+        port: e.port,
+        driver: e.driver,
+        bitrate: e.bitrate,
+        protocol: e.protocol,
+      }];
+    });
+  }
+
   return {
     tier: Number(data.tier ?? 0),
     cameras,
@@ -326,5 +356,6 @@ export function normalizeCapabilities(raw: unknown): AgentCapabilities {
     peerRssiDbm,
     peerSeenAtUnix,
     cameraState,
+    canBuses,
   };
 }

@@ -73,6 +73,7 @@ const INITIAL_STATE: AgentCapabilitiesState = {
   peerRssiDbm: null,
   peerSeenAtUnix: null,
   cameraState: null,
+  canBuses: undefined,
   loaded: false,
 };
 
@@ -201,6 +202,16 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>(
           normalized.cameraState === undefined
             ? state.cameraState
             : normalized.cameraState,
+        // Forward-permissive: a sparse heartbeat that omits the
+        // canBuses block keeps whatever the store had on the prior
+        // tick. The agent only emits the field once it has cached at
+        // least one CAN_P*_DRIVER / CAN_P*_BITRATE / CAN_D*_PROTOCOL
+        // value, so the warmup window naturally falls back to "no
+        // CAN data yet" via `undefined`.
+        canBuses:
+          normalized.canBuses === undefined
+            ? state.canBuses
+            : normalized.canBuses,
         loaded: true,
       }));
     },

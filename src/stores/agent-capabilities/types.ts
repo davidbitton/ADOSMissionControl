@@ -10,6 +10,7 @@
 import type {
   AgentCapabilities,
   CameraCapability,
+  CanBusInfo,
   ComputeCapability,
   VisionState,
   ModelCacheInfo,
@@ -152,6 +153,12 @@ export interface AgentCapabilitiesState {
    * Null when the agent hasn't reported a state or the agent predates
    * the surface. */
   cameraState: string | null;
+  /** Per-port CAN bus configuration harvested from the FC parameter
+   * cache. Undefined during the warmup window before the first
+   * parameter download finishes; empty array when the agent has the
+   * params but reports both ports as disabled. Latest heartbeat wins
+   * on merge so a sparse tick keeps the prior view. */
+  canBuses: CanBusInfo[] | undefined;
   /** True once we've received at least one capabilities payload. */
   loaded: boolean;
 }

@@ -309,7 +309,7 @@ export class MockCanBus {
 /** Singleton for easy access from CanMonitorPanel sidebar. */
 export const mockCanBus = new MockCanBus();
 
-// ── Mock DroneCAN client (Phase 2 demo wiring) ───────────────────────
+// ── Mock DroneCAN client (demo-mode wiring) ──────────────────────────
 //
 // The block below adds a thin in-memory model of three synthetic DroneCAN
 // nodes (a regular AP_Periph node, a bootloader-only node, and a peripheral

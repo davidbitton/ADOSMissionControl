@@ -349,6 +349,7 @@ export interface HeartbeatExtras {
   peerRssiDbm: number | null;
   peerSeenAtUnix: number | null;
   cameraState: string | null;
+  canBuses: AgentCapabilities["canBuses"];
 }
 
 const FAILOVER_STATES = ["local", "cloud_relay", "failed"] as const;
@@ -529,6 +530,35 @@ export function buildHeartbeatExtras(
         return raw;
       }
       return null;
+    })(),
+    canBuses: (() => {
+      // Structural pass-through. The agent emits the canBuses array on
+      // the heartbeat root once the FC parameter cache has at least
+      // one CAN_P*_DRIVER / BITRATE / CAN_D*_PROTOCOL entry; before
+      // that the field is omitted entirely. We return undefined to
+      // preserve that "not yet known" semantics so the store's merge
+      // can keep the prior value through a sparse tick.
+      const raw = cloudStatus.canBuses;
+      if (!Array.isArray(raw)) return undefined;
+      const parsed = raw.flatMap((entry) => {
+        if (!entry || typeof entry !== "object") return [];
+        const e = entry as Record<string, unknown>;
+        if (
+          typeof e.port !== "number"
+          || typeof e.driver !== "number"
+          || typeof e.bitrate !== "number"
+          || typeof e.protocol !== "number"
+        ) {
+          return [];
+        }
+        return [{
+          port: e.port,
+          driver: e.driver,
+          bitrate: e.bitrate,
+          protocol: e.protocol,
+        }];
+      });
+      return parsed;
     })(),
   };
 }
