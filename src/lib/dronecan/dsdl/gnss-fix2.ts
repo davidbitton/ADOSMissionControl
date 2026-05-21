@@ -4,28 +4,29 @@
  *
  * Wire layout (bit stream, little-endian byte order, LSB-first within
  * each byte):
- *   uavcan.Timestamp   timestamp                  (56 bits)
- *   uavcan.Timestamp   gnss_timestamp             (56 bits)
+ *   uavcan.Timestamp   timestamp                  (uint56)
+ *   uavcan.Timestamp   gnss_timestamp             (uint56)
  *   uint3              gnss_time_standard
- *   uint13             (reserved, zero on the wire)
+ *   void13             (reserved)
  *   uint8              num_leap_seconds
  *   int37              longitude_deg_1e8
  *   int37              latitude_deg_1e8
  *   int27              height_ellipsoid_mm
  *   int27              height_msl_mm
- *   float16[3]         ned_velocity
+ *   float32[3]         ned_velocity
  *   uint6              sats_used
  *   uint2              status
  *   uint4              mode
  *   uint6              sub_mode
- *   float16[<=36]      covariance (variable-length array with uint6 length prefix)
+ *   float16[<=36]      covariance (uint6 length prefix; this array is not last)
  *   float16            pdop
- *   ECEFPositionVelocity[<=1] ecef_position_velocity (tail array; 1-bit length prefix)
+ *   ECEFPositionVelocity[<=1] ecef_position_velocity (last field; TAO drops the length prefix)
  *
  * ECEFPositionVelocity nested type:
- *   float16[3]         velocity_xyz
+ *   float32[3]         velocity_xyz
  *   int36[3]           position_xyz_mm
- *   float16[<=36]      covariance
+ *   void6              (alignment)
+ *   float16[<=36]      covariance (last field; TAO drops the length prefix)
  *
  * The GCS subscribes to `Fix2` broadcasts; an encoder is provided for
  * round-trip tests but is not used at runtime.
@@ -99,9 +100,9 @@ export function decodeFix2(buf: Uint8Array): GnssFix2 {
   const heightEllipsoidMm = r.read(27, true);
   const heightMslMm = r.read(27, true);
   const nedVelocity: [number, number, number] = [
-    r.readFloat16(),
-    r.readFloat16(),
-    r.readFloat16(),
+    r.readFloat32(),
+    r.readFloat32(),
+    r.readFloat32(),
   ];
   const satsUsed = r.read(6);
   const status = r.read(2) as FixStatus;
@@ -114,25 +115,36 @@ export function decodeFix2(buf: Uint8Array): GnssFix2 {
 
   const pdop = r.readFloat16();
 
+  // ecef_position_velocity is the last field of Fix2 with element type
+  // ECEFPositionVelocity (composite, >=8 bits per element), so the
+  // tail-array optimization (TAO) elides the 1-bit length prefix. If
+  // enough bits remain for a nested ECEFPositionVelocity, decode one;
+  // otherwise the broadcast carried no ECEF block.
+  //
+  // Inside ECEFPositionVelocity: velocity_xyz is float32[3] (96 bits),
+  // position_xyz_mm is int36[3] (108 bits), then void6, then a TAO
+  // float16[<=36] covariance whose count is inferred from remaining bits.
   let ecefPositionVelocity: EcefPositionVelocity | undefined;
-  if (r.remaining() >= 1) {
-    const ecefCount = r.read(1);
-    if (ecefCount === 1) {
-      const vx = r.readFloat16();
-      const vy = r.readFloat16();
-      const vz = r.readFloat16();
-      const px = r.readBig(36, true);
-      const py = r.readBig(36, true);
-      const pz = r.readBig(36, true);
-      const innerCount = Math.min(r.read(6), FIX2_COVARIANCE_MAX);
-      const innerCov: number[] = [];
-      for (let i = 0; i < innerCount; i++) innerCov.push(r.readFloat16());
-      ecefPositionVelocity = {
-        velocityXyz: [vx, vy, vz],
-        positionXyzMm: [px, py, pz],
-        covariance: innerCov,
-      };
-    }
+  const ECEF_HEADER_BITS = 96 + 108 + 6; // velocity + position + void6
+  if (r.remaining() >= ECEF_HEADER_BITS) {
+    const vx = r.readFloat32();
+    const vy = r.readFloat32();
+    const vz = r.readFloat32();
+    const px = r.readBig(36, true);
+    const py = r.readBig(36, true);
+    const pz = r.readBig(36, true);
+    r.skip(6); // void6 alignment pad
+    const innerCount = Math.min(
+      Math.floor(r.remaining() / 16),
+      FIX2_COVARIANCE_MAX,
+    );
+    const innerCov: number[] = [];
+    for (let i = 0; i < innerCount; i++) innerCov.push(r.readFloat16());
+    ecefPositionVelocity = {
+      velocityXyz: [vx, vy, vz],
+      positionXyzMm: [px, py, pz],
+      covariance: innerCov,
+    };
   }
 
   return {
@@ -172,7 +184,7 @@ export function encodeFix2(msg: GnssFix2): Uint8Array {
   w.writeBig(msg.latitudeDeg1e8, 37);
   w.write(msg.heightEllipsoidMm | 0, 27);
   w.write(msg.heightMslMm | 0, 27);
-  for (const v of msg.nedVelocity) w.writeFloat16(v);
+  for (const v of msg.nedVelocity) w.writeFloat32(v);
   w.write(msg.satsUsed & 0x3f, 6);
   w.write(msg.status & 0x3, 2);
   w.write(msg.mode & 0xf, 4);
@@ -181,6 +193,10 @@ export function encodeFix2(msg: GnssFix2): Uint8Array {
   for (const v of msg.covariance) w.writeFloat16(v);
   w.writeFloat16(msg.pdop);
 
+  // ecef_position_velocity is the last field with composite element type,
+  // so TAO drops the outer length prefix. We emit either the full
+  // ECEFPositionVelocity block or nothing. The inner covariance array is
+  // also under TAO and emits without a length prefix.
   const ecef = msg.ecefPositionVelocity;
   if (ecef) {
     if (ecef.covariance.length > FIX2_COVARIANCE_MAX) {
@@ -188,13 +204,10 @@ export function encodeFix2(msg: GnssFix2): Uint8Array {
         `ecef.covariance has ${ecef.covariance.length} entries; max ${FIX2_COVARIANCE_MAX}`,
       );
     }
-    w.write(1, 1);
-    for (const v of ecef.velocityXyz) w.writeFloat16(v);
+    for (const v of ecef.velocityXyz) w.writeFloat32(v);
     for (const p of ecef.positionXyzMm) w.writeBig(p, 36);
-    w.write(ecef.covariance.length & 0x3f, 6);
+    w.write(0, 6); // void6 alignment pad
     for (const v of ecef.covariance) w.writeFloat16(v);
-  } else {
-    w.write(0, 1);
   }
   return w.toUint8Array();
 }

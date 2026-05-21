@@ -91,6 +91,13 @@ export class BitReader {
     return decodeFloat16(raw);
   }
 
+  /** Read an IEEE 754 single-precision float (32 bits). */
+  readFloat32(): number {
+    const raw = this.read(32) >>> 0;
+    F32_U32[0] = raw;
+    return F32_F32[0] ?? 0;
+  }
+
   /**
    * Read `n` whole bytes. Requires the current bit offset to be byte aligned.
    * Returns a defensive copy.
@@ -180,6 +187,13 @@ export class BitWriter {
     this.write(encodeFloat16(v), 16);
   }
 
+  /** Write an IEEE 754 single-precision float (32 bits). */
+  writeFloat32(v: number): void {
+    F32_F32[0] = v;
+    const raw = F32_U32[0] ?? 0;
+    this.writeBig(BigInt(raw >>> 0), 32);
+  }
+
   /**
    * Write `buf` as raw bytes. Requires the current bit offset to be byte
    * aligned.
@@ -233,6 +247,10 @@ export class BitWriter {
 const F16_SCRATCH_BUF = new ArrayBuffer(4);
 const F16_F32 = new Float32Array(F16_SCRATCH_BUF);
 const F16_U32 = new Uint32Array(F16_SCRATCH_BUF);
+
+const F32_SCRATCH_BUF = new ArrayBuffer(4);
+const F32_F32 = new Float32Array(F32_SCRATCH_BUF);
+const F32_U32 = new Uint32Array(F32_SCRATCH_BUF);
 
 /** Encode a JS number into the 16-bit IEEE 754 half representation. */
 export function encodeFloat16(v: number): number {
