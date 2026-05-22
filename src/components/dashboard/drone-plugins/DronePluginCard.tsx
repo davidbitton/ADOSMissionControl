@@ -228,7 +228,9 @@ export function DronePluginCard({ install, className }: DronePluginCardProps) {
             onClick={() => setUpdateSettingsOpen(true)}
           />
           <DronePluginStatusPill label={statusLabel} />
-          <RiskBadge level={install.risk} size="sm" />
+          {install.source !== "agent_webapp" && (
+            <RiskBadge level={install.risk} size="sm" />
+          )}
           {trustSignals.map((s) => (
             <TrustBadge key={s} signal={s} />
           ))}

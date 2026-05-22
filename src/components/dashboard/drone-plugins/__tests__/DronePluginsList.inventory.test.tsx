@@ -108,4 +108,43 @@ describe("DronePluginsList inventory merge", () => {
     renderList("drone-1");
     expect(screen.queryByTestId("card")).toBeNull();
   });
+
+  it("clears agent-only entries when the heartbeat reports an empty inventory", () => {
+    useAgentPluginInventoryStore.getState().setForDevice("drone-1", [
+      { plugin_id: "com.example.first", version: "0.1.0", status: "running" },
+    ]);
+    const view = renderList("drone-1");
+    expect(view.queryAllByTestId("card")).toHaveLength(1);
+
+    useAgentPluginInventoryStore.getState().setForDevice("drone-1", []);
+    view.rerender(
+      <NextIntlClientProvider locale="en" messages={messages}>
+        <DronePluginsList agentId="drone-1" emptyState={<span>empty</span>} />
+      </NextIntlClientProvider>,
+    );
+    expect(view.queryByTestId("card")).toBeNull();
+  });
+
+  it("drops entries whose plugin_id fails the canonical regex", () => {
+    useAgentPluginInventoryStore.getState().setForDevice("drone-1", [
+      { plugin_id: "<script>alert(1)</script>", version: "0.1.0", status: "running" },
+      { plugin_id: "Has Spaces", version: "0.1.0", status: "running" },
+      { plugin_id: "com.altnautica.legit", version: "0.1.0", status: "running" },
+    ]);
+    renderList("drone-1");
+    const cards = screen.getAllByTestId("card");
+    expect(cards).toHaveLength(1);
+    expect(cards[0].textContent).toContain("com.altnautica.legit");
+  });
+
+  it("caps the inventory render at the hard ceiling", () => {
+    const entries = Array.from({ length: 60 }).map((_, i) => ({
+      plugin_id: `com.altnautica.cap-${i.toString().padStart(2, "0")}`,
+      version: "0.1.0",
+      status: "running" as const,
+    }));
+    useAgentPluginInventoryStore.getState().setForDevice("drone-1", entries);
+    renderList("drone-1");
+    expect(screen.getAllByTestId("card")).toHaveLength(50);
+  });
 });

@@ -11,6 +11,7 @@ import type { AgentStatus, ServiceInfo } from "@/lib/agent/types";
 import { inferCapabilities } from "@/lib/agent/infer-capabilities";
 import { useAgentSystemStore } from "../agent-system-store";
 import { useAgentPeripheralsStore } from "../agent-peripherals-store";
+import { useAgentPluginInventoryStore } from "../agent-plugin-inventory-store";
 import { useAgentScriptsStore } from "../agent-scripts-store";
 import { useVideoStore } from "../video-store";
 import { useAgentCapabilitiesStore } from "../agent-capabilities-store";
@@ -199,6 +200,7 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
     // Clear all other stores.
     useAgentSystemStore.getState().clear();
     useAgentPeripheralsStore.getState().clear();
+    useAgentPluginInventoryStore.getState().clear();
     useAgentScriptsStore.getState().clear();
   },
 

@@ -70,6 +70,17 @@ const listForDeviceRef = makeFunctionReference<
   InstallRowForDevice[]
 >("cmdPlugins:listForDevice");
 
+/** Hard ceiling on inventory entries that survive the heartbeat
+ *  poisoning filter. A real drone has dozens at most; anything
+ *  beyond this is either misconfigured or hostile. */
+const INVENTORY_RENDER_CAP = 50;
+
+/** Reverse-DNS-style plugin id (matches the agent-side validator).
+ *  Anchored on both ends so a tampered heartbeat cannot smuggle
+ *  HTML, control characters, or shell metacharacters into the
+ *  rendered name. */
+const PLUGIN_ID_RE = /^[a-z0-9][a-z0-9._-]{1,127}$/;
+
 export function DronePluginsList({
   agentId,
   className,
@@ -125,17 +136,30 @@ export function DronePluginsList({
     }));
     // Merge agent-reported inventory entries that the Convex query
     // did not return. These are typically webapp installs done on
-    // the drone itself before the GCS knew about them.
+    // the drone itself before the GCS knew about them. The cap and
+    // the plugin_id regex bound the surface area against a heartbeat
+    // that an attacker-controlled relay tampered with: anything
+    // beyond INVENTORY_RENDER_CAP entries or any id that does not
+    // match the canonical reverse-DNS plugin namespace gets dropped
+    // before it reaches the render path.
     const seen = new Set(fromConvex.map((c) => c.pluginId));
     const fromAgent: DronePluginCardData[] = (inventory ?? [])
-      .filter((entry) => entry.plugin_id && !seen.has(entry.plugin_id))
+      .filter(
+        (entry) =>
+          entry.plugin_id &&
+          PLUGIN_ID_RE.test(entry.plugin_id) &&
+          !seen.has(entry.plugin_id),
+      )
+      .slice(0, INVENTORY_RENDER_CAP)
       .map((entry) => ({
         pluginId: entry.plugin_id,
         version: entry.version ?? "—",
         name: entry.plugin_id,
-        // Webapp installs report no GCS-side metadata. Fall back to
-        // safe defaults; the card already renders a status pill from
-        // ``status`` so the operator sees what the agent reports.
+        // Webapp installs report no GCS-side metadata. The card
+        // suppresses the risk badge for agent_webapp entries (no
+        // trustworthy risk context lives in the heartbeat). The
+        // status pill still renders from ``status`` so the operator
+        // sees what the agent reports.
         risk: "low" as PluginRiskLevel,
         source: "agent_webapp" as PluginSource,
         signerId: undefined,
