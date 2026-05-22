@@ -1,0 +1,111 @@
+/**
+ * @license GPL-3.0-only
+ *
+ * Render tests for DronePluginsList's webapp inventory merge. The
+ * Convex listForDevice query stays authoritative; this verifies
+ * that entries reported by the agent heartbeat (and only by the
+ * heartbeat, not the Convex table) are surfaced as additional
+ * cards with the agent_webapp source tag.
+ */
+
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextIntlClientProvider } from "next-intl";
+import { render, screen } from "@testing-library/react";
+import messages from "../../../../../locales/en.json";
+
+vi.mock("lucide-react", () =>
+  new Proxy(
+    {},
+    {
+      get: (_t, name) => {
+        if (name === "__esModule") return false;
+        return (props: Record<string, unknown>) => (
+          <span data-testid={`icon-${String(name)}`} {...props} />
+        );
+      },
+    },
+  ),
+);
+
+// Convex query returns an empty install list so the only cards rendered
+// come from the inventory store.
+let convexRows: unknown[] = [];
+vi.mock("@/hooks/use-convex-skip-query", () => ({
+  useConvexSkipQuery: () => convexRows,
+}));
+
+// Stub the card so the merge contract is observable without rendering
+// the full Convex-bound install card.
+vi.mock("../DronePluginCard", () => ({
+  DronePluginCard: ({
+    install,
+  }: {
+    install: { pluginId: string; source: string; status: string };
+  }) => (
+    <div data-testid="card">
+      {install.pluginId}|{install.source}|{install.status}
+    </div>
+  ),
+}));
+
+import { DronePluginsList } from "../DronePluginsList";
+import { useAgentPluginInventoryStore } from "@/stores/agent-plugin-inventory-store";
+
+function renderList(agentId: string) {
+  return render(
+    <NextIntlClientProvider locale="en" messages={messages}>
+      <DronePluginsList agentId={agentId} emptyState={<span>empty</span>} />
+    </NextIntlClientProvider>,
+  );
+}
+
+describe("DronePluginsList inventory merge", () => {
+  beforeEach(() => {
+    convexRows = [];
+    useAgentPluginInventoryStore.getState().clear();
+  });
+
+  it("surfaces agent-only inventory entries with agent_webapp source", () => {
+    useAgentPluginInventoryStore.getState().setForDevice("drone-1", [
+      { plugin_id: "com.example.webapp-only", version: "0.1.0", status: "running" },
+    ]);
+    renderList("drone-1");
+    const card = screen.getByTestId("card");
+    expect(card.textContent).toBe("com.example.webapp-only|agent_webapp|running");
+  });
+
+  it("does not duplicate inventory entries that are also in Convex", () => {
+    convexRows = [
+      {
+        _id: "row-1",
+        pluginId: "com.example.dup",
+        name: "Dup",
+        version: "1.0.0",
+        risk: "low",
+        source: "registry",
+        status: "running",
+        halves: ["agent"],
+        deviceId: "drone-1",
+      },
+    ];
+    useAgentPluginInventoryStore.getState().setForDevice("drone-1", [
+      { plugin_id: "com.example.dup", version: "1.0.0", status: "running" },
+      { plugin_id: "com.example.extra", version: "0.2.0", status: "enabled" },
+    ]);
+    renderList("drone-1");
+    const cards = screen.getAllByTestId("card");
+    expect(cards).toHaveLength(2);
+    expect(cards.map((c) => c.textContent)).toEqual([
+      "com.example.dup|registry|running",
+      "com.example.extra|agent_webapp|enabled",
+    ]);
+  });
+
+  it("scopes inventory to its own deviceId", () => {
+    useAgentPluginInventoryStore.getState().setForDevice("drone-2", [
+      { plugin_id: "com.example.other-drone", version: "0.1.0", status: "running" },
+    ]);
+    renderList("drone-1");
+    expect(screen.queryByTestId("card")).toBeNull();
+  });
+});

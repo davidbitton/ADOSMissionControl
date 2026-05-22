@@ -41,6 +41,7 @@ describe("installLanDirectFromUrl", () => {
       expect(body.expected_sha256).toBe(baseInputs.expectedSha256);
       expect(body.requested_permissions).toEqual(baseInputs.grantedPermissions);
       expect(body.job_id).toBe(baseInputs.jobId);
+      expect(body.from_catalog).toBe(false);
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
@@ -56,6 +57,19 @@ describe("installLanDirectFromUrl", () => {
     expect(calledUrl).toBe(
       "http://drone.local:8080/api/plugins/install_from_url",
     );
+  });
+
+  it("forwards from_catalog=true when the dialog flags a catalog source", async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse((init?.body as string) ?? "{}");
+      expect(body.from_catalog).toBe(true);
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await installLanDirectFromUrl({ ...baseInputs, fromCatalog: true });
   });
 
   it("throws LanDirectError with cause=server-4xx on 4xx", async () => {

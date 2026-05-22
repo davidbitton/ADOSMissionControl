@@ -19,7 +19,12 @@ export type PluginSource =
   | "local_file"
   | "git_url"
   | "registry"
-  | "builtin";
+  | "builtin"
+  // Reported via the agent heartbeat for installs the operator made
+  // directly from the agent webapp at port 8080 with no Convex row
+  // backing them. Surfaces in the per-drone Plugins list with no
+  // trust signals (signing context lives on the agent, not the GCS).
+  | "agent_webapp";
 
 /**
  * The well-known UI slots a plugin can mount into. The 13 slots mirror

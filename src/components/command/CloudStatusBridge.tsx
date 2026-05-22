@@ -14,6 +14,10 @@ import { useMutation, useConvexAuth } from "convex/react";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useAgentSystemStore } from "@/stores/agent-system-store";
 import { useAgentPeripheralsStore } from "@/stores/agent-peripherals-store";
+import {
+  useAgentPluginInventoryStore,
+  type AgentPluginInventoryEntry,
+} from "@/stores/agent-plugin-inventory-store";
 import { useAgentScriptsStore } from "@/stores/agent-scripts-store";
 import { useLocalNodesStore } from "@/stores/local-nodes-store";
 import { usePairingStore } from "@/stores/pairing-store";
@@ -200,6 +204,17 @@ export function CloudStatusBridge() {
     const enrollment = cloudRecord.enrollment;
     if (enrollment && typeof enrollment === "object") {
       useAgentScriptsStore.setState({ enrollment: enrollment as MeshNetEnrollment });
+    }
+    // Webapp-side plugin installs reported by the agent. Convex's
+    // cmdPlugins:listForDevice stays authoritative; the inventory
+    // store fills in installs the operator made directly from the
+    // agent's local dashboard at port 8080.
+    const inventory = cloudRecord.pluginInventory;
+    if (Array.isArray(inventory) && cloudDeviceId) {
+      useAgentPluginInventoryStore.getState().setForDevice(
+        cloudDeviceId,
+        inventory as AgentPluginInventoryEntry[],
+      );
     }
 
     // Ground-station fan-out. Only writes when the corresponding heartbeat

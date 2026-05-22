@@ -30,6 +30,7 @@ import type {
   PluginRiskLevel,
   PluginSource,
 } from "@/lib/plugins/types";
+import { useAgentPluginInventoryStore } from "@/stores/agent-plugin-inventory-store";
 
 import {
   DronePluginCard,
@@ -88,6 +89,14 @@ export function DronePluginsList({
     enabled: Boolean(agentId) && !isDemoMode(),
   });
 
+  // Webapp-side installs the agent reported via heartbeat. The Convex
+  // table stays the authority; this surfaces only entries that the
+  // GCS-side query did not yet see (the operator installed straight
+  // from the agent dashboard at port 8080 with no cloud account).
+  const inventory = useAgentPluginInventoryStore(
+    (s) => s.byDevice[agentId],
+  );
+
   // In demo mode the list reads from a static fixture set so the per-
   // drone tab is observable without Convex. The mock module exposes a
   // shape compatible with the production card.
@@ -101,8 +110,8 @@ export function DronePluginsList({
         deviceId: agentId,
       }));
     }
-    if (!installs) return [];
-    return installs.map<DronePluginCardData>((row) => ({
+    const convexRows = installs ?? [];
+    const fromConvex: DronePluginCardData[] = convexRows.map((row) => ({
       pluginId: row.pluginId,
       version: row.version,
       name: row.name,
@@ -114,7 +123,29 @@ export function DronePluginsList({
       installId: String(row._id),
       deviceId: row.deviceId,
     }));
-  }, [agentId, installs]);
+    // Merge agent-reported inventory entries that the Convex query
+    // did not return. These are typically webapp installs done on
+    // the drone itself before the GCS knew about them.
+    const seen = new Set(fromConvex.map((c) => c.pluginId));
+    const fromAgent: DronePluginCardData[] = (inventory ?? [])
+      .filter((entry) => entry.plugin_id && !seen.has(entry.plugin_id))
+      .map((entry) => ({
+        pluginId: entry.plugin_id,
+        version: entry.version ?? "—",
+        name: entry.plugin_id,
+        // Webapp installs report no GCS-side metadata. Fall back to
+        // safe defaults; the card already renders a status pill from
+        // ``status`` so the operator sees what the agent reports.
+        risk: "low" as PluginRiskLevel,
+        source: "agent_webapp" as PluginSource,
+        signerId: undefined,
+        status: (entry.status ?? "unknown") as PluginInstallStatus,
+        halves: ["agent"] as Array<"agent" | "gcs">,
+        installId: `agent:${entry.plugin_id}`,
+        deviceId: agentId,
+      }));
+    return [...fromConvex, ...fromAgent];
+  }, [agentId, installs, inventory]);
 
   if (!isDemoMode() && installs === undefined) {
     return (

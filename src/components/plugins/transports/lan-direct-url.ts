@@ -55,6 +55,10 @@ export interface LanDirectFromUrlInputs {
   pluginName: string;
   /** Device id used by the progress toast to scope status queries. */
   deviceId: string;
+  /** Set when the URL came from the first-party catalog browser. The
+   * agent rejects ``from_catalog=true`` calls that ship without a
+   * pinned ``expected_sha256``, so we forward the flag verbatim. */
+  fromCatalog?: boolean;
 }
 
 /**
@@ -78,6 +82,7 @@ export async function installLanDirectFromUrl(
     expected_sha256: inputs.expectedSha256,
     requested_permissions: [...inputs.grantedPermissions],
     job_id: inputs.jobId,
+    from_catalog: inputs.fromCatalog === true,
   });
 
   const controller = new AbortController();

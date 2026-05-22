@@ -169,6 +169,7 @@ export function useInstallHandler(args: UseInstallHandlerArgs) {
           pluginId: manifest.pluginId,
           pluginName: manifest.name,
           deviceId: targetDevice.deviceId,
+          fromCatalog: true,
         });
       } else {
         const ctx = {
