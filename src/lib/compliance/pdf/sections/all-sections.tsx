@@ -266,13 +266,6 @@ export function GeofenceSection({ record }: SectionProps) {
   );
 }
 
-export function KpisSection(_: SectionProps) {
-  // Per-suite KPI table retired with the suite framework. Kept as
-  // a no-op export so existing PDF template wiring resolves; the
-  // template renderer skips the empty View at render time.
-  return null;
-}
-
 export function PreflightSection({ record }: SectionProps) {
   const pf = record.preflight;
   if (!pf) return null;
@@ -380,7 +373,6 @@ export const SECTION_COMPONENTS: Record<string, React.FC<SectionProps>> = {
   "phases": PhasesSection,
   "adherence": AdherenceSection,
   "geofence": GeofenceSection,
-  "kpis": KpisSection,
   "preflight": PreflightSection,
   "loadout": LoadoutSection,
   "media": MediaSection,

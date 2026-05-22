@@ -106,7 +106,7 @@ export const useDroneMetadataStore = create<DroneMetadataStoreState>()(
     {
       name: "altcmd:drone-metadata",
       storage: createJSONStorage(indexedDBStorage.storage),
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
         const state = persisted as Record<string, unknown>;
         if (version < 2) {
@@ -116,6 +116,19 @@ export const useDroneMetadataStore = create<DroneMetadataStoreState>()(
             for (const id of Object.keys(profiles)) {
               if (!profiles[id].videoWhepUrl) {
                 profiles[id].videoWhepUrl = "";
+              }
+            }
+          }
+        }
+        if (version < 3) {
+          // v3 retired the suite framework. Strip the dropped
+          // ``suiteType`` field off each profile so the persisted
+          // shape matches the TypeScript interface verbatim.
+          const profiles = state.profiles as Record<string, Record<string, unknown>> | undefined;
+          if (profiles) {
+            for (const id of Object.keys(profiles)) {
+              if ("suiteType" in profiles[id]) {
+                delete profiles[id].suiteType;
               }
             }
           }

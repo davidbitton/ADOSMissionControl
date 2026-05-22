@@ -32,7 +32,6 @@ export const PDF_SECTIONS: PdfSectionDef[] = [
   { id: "phases", label: "Flight Phases", description: "Takeoff, climb, cruise, hover, descent, land breakdown", defaultOn: false, group: "analysis" },
   { id: "adherence", label: "Mission Adherence", description: "Waypoints reached, cross-track error", defaultOn: false, group: "analysis" },
   { id: "geofence", label: "Geofence", description: "Breach list with type, zone, distance", defaultOn: false, group: "analysis" },
-  { id: "kpis", label: "Suite KPIs", description: "Per-suite metrics (area, efficiency, etc.)", defaultOn: false, group: "analysis" },
 
   // Equipment
   { id: "preflight", label: "Pre-flight", description: "Checklist items, prearm failures, SYS_STATUS", defaultOn: false, group: "equipment" },

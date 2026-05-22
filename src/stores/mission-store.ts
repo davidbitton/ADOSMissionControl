@@ -269,16 +269,26 @@ export const useMissionStore = create<MissionStoreState>()(
     {
       name: "altcmd:mission-store",
       storage: createJSONStorage(indexedDBStorage.storage),
-      version: 1,
+      version: 2,
       partialize: (state) => ({
         waypoints: state.waypoints,
         activeMission: state.activeMission,
       }),
-      migrate: (persisted, _version) => {
-        // Bump `version` and branch on `_version` here when the persisted
-        // mission-store shape changes. Identity passthrough is correct
-        // while the schema is stable.
-        return persisted as MissionStoreState;
+      migrate: (persisted, version) => {
+        const state = persisted as Record<string, unknown>;
+        if (version < 2) {
+          // v2 retired the suite framework. Strip the dropped
+          // ``suiteType`` field off ``activeMission`` so the
+          // persisted shape matches the TypeScript interface
+          // verbatim rather than relying on excess-property
+          // tolerance.
+          const active = state.activeMission as Record<string, unknown> | null;
+          if (active && "suiteType" in active) {
+            delete active.suiteType;
+            state.activeMission = active;
+          }
+        }
+        return state as unknown as MissionStoreState;
       },
     }
   )
