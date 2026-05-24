@@ -25,6 +25,7 @@ import { StaleBanner } from "../shared/StaleBanner";
 import { GroundStationMeshCard } from "../shared/GroundStationMeshCard";
 import { GroundStationLinkCard } from "../shared/GroundStationLinkCard";
 import { GroundStationUplinkCard } from "../shared/GroundStationUplinkCard";
+import { GroundStationVideoCard } from "../shared/GroundStationVideoCard";
 import { PairedDroneCard } from "../shared/PairedDroneCard";
 
 export function GroundStationOverview() {
@@ -68,6 +69,7 @@ export function GroundStationOverview() {
         </div>
 
         <div className="xl:row-span-3 space-y-3">
+          <GroundStationVideoCard />
           <GroundStationMeshCard />
           <PairedDroneCard />
           <GroundStationLinkCard />

@@ -35,6 +35,15 @@ export interface RadioState {
   fecRecovered: number;
   fecLost: number;
   packetsLost: number;
+  // Receive-side link quality. Forwarded by newer agents on both the
+  // transmit and receive sides; on a ground station these describe the
+  // downlink it decodes. Null on older agents (the normalizer defaults
+  // missing/non-finite values to null).
+  snrDb: number | null;
+  noiseDbm: number | null;
+  lossPercent: number | null;
+  mcsIndex: number | null;
+  rxSilentSeconds: number | null;
   // Pair-state surface added in agent v0.16. Older agents omit
   // these fields; the normalizer falls back to safe defaults so
   // older heartbeats render as "unpaired" without crashes.

@@ -38,6 +38,28 @@ const NOISY_PATTERNS: ReadonlyArray<readonly [string, string]> = [
   ["mavlink.streams", "stream_request"],
 ];
 
+// Render a log entry's timestamp as HH:MM:SS, tolerating either an
+// ISO-8601 string or a raw epoch number. Older agents emitted the
+// timestamp as a float epoch, which would crash a naive `.slice()`.
+// Returns "" for anything unparseable so a malformed entry never throws.
+export function formatLogTime(ts: unknown): string {
+  if (typeof ts === "string") {
+    // ISO-8601: "2026-05-24T09:30:00+00:00" → take HH:MM:SS.
+    if (ts.includes("T") && ts.length >= 19) return ts.slice(11, 19);
+    const asNum = Number(ts);
+    if (Number.isFinite(asNum)) return formatLogTime(asNum);
+    return "";
+  }
+  if (typeof ts === "number" && Number.isFinite(ts)) {
+    // Heuristic: values below 1e12 are epoch seconds, not milliseconds.
+    const ms = ts < 1e12 ? ts * 1000 : ts;
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toTimeString().slice(0, 8);
+  }
+  return "";
+}
+
 function isNoisyEntry(entry: LogEntry): boolean {
   if (entry.level !== "info" && entry.level !== "debug") return false;
   return NOISY_PATTERNS.some(
@@ -152,7 +174,7 @@ export function LogViewer({ logs, onRefresh }: LogViewerProps) {
           visibleLogs.map((entry, i) => (
             <div key={i} className="flex gap-2 py-0.5">
               <span className="text-text-tertiary shrink-0">
-                {entry.timestamp.slice(11, 19)}
+                {formatLogTime(entry.timestamp)}
               </span>
               <span
                 className={cn(

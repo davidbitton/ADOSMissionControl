@@ -99,6 +99,11 @@ export function RadioPanel() {
   const fecLost = cloudRadio?.fecLost ?? linkHealth.fec_lost;
   const driver = cloudRadio?.driver ?? null;
   const iface = cloudRadio?.iface ?? null;
+  const snrDb = cloudRadio?.snrDb ?? null;
+  const noiseDbm = cloudRadio?.noiseDbm ?? null;
+  const lossPercent = cloudRadio?.lossPercent ?? null;
+  const mcsIndex = cloudRadio?.mcsIndex ?? null;
+  const rxSilentSeconds = cloudRadio?.rxSilentSeconds ?? null;
   const txPowerDbm = cloudRadio?.txPowerDbm ?? wfbTxPowerDbm;
   const txPowerMaxDbm = cloudRadio?.txPowerMaxDbm ?? DEFAULT_TX_MAX_DBM;
 
@@ -305,6 +310,11 @@ export function RadioPanel() {
         fecLost={fecLost}
         driver={driver}
         iface={iface}
+        snrDb={snrDb}
+        noiseDbm={noiseDbm}
+        lossPercent={lossPercent}
+        mcsIndex={mcsIndex}
+        rxSilentSeconds={rxSilentSeconds}
       />
 
       <PairingCard

@@ -2768,7 +2768,12 @@
           "success": "Success",
           "failed": "Failed"
         }
-      }
+      },
+      "snr": "SNR",
+      "loss": "Loss",
+      "mcs": "MCS",
+      "noise": "Noise",
+      "rxIdle": "RX idle"
     },
     "setupAccess": {
       "title": "Setup and access",
@@ -3318,7 +3323,13 @@
       "rssi": "RSSI",
       "bitrate": "Bitrate",
       "fecLost": "FEC lost",
-      "channel": "Channel"
+      "channel": "Channel",
+      "snr": "SNR",
+      "loss": "Loss",
+      "freq": "Frequency",
+      "mcs": "MCS",
+      "noise": "Noise",
+      "rxIdle": "RX idle"
     },
     "uplink": {
       "title": "Uplink",
@@ -3336,6 +3347,12 @@
     "pairedDrone": {
       "title": "Paired drone",
       "unpaired": "No drone paired"
+    },
+    "video": {
+      "title": "Downlink video",
+      "live": "Live",
+      "connecting": "Connecting",
+      "noSignal": "No downlink"
     }
   },
   "navigation": {

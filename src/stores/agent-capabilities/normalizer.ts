@@ -119,6 +119,13 @@ export function normalizeRadio(raw: unknown): RadioState | null {
     fecRecovered: numOrZero(r.fecRecovered),
     fecLost: numOrZero(r.fecLost),
     packetsLost: numOrZero(r.packetsLost),
+    // Receive-side link quality. Optional on the wire; null when a
+    // field is absent or non-finite so the UI can skip a missing row.
+    snrDb: num(r.snrDb),
+    noiseDbm: num(r.noiseDbm),
+    lossPercent: num(r.lossPercent),
+    mcsIndex: num(r.mcsIndex),
+    rxSilentSeconds: num(r.rxSilentSeconds),
     // Pair-state fields are optional on the wire (older agents omit
     // them). Treat absent / null as "unpaired, auto-pair unknown" so
     // the UI never confuses a missing field with an explicit false.

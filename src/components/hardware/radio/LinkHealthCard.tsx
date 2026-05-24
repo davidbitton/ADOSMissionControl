@@ -32,6 +32,13 @@ export interface LinkHealthCardProps {
   fecLost: number;
   driver: string | null;
   iface: string | null;
+  // Receive-side link quality. Optional — older agents and the local
+  // LAN poll omit them, so each row only renders when a value arrives.
+  snrDb?: number | null;
+  noiseDbm?: number | null;
+  lossPercent?: number | null;
+  mcsIndex?: number | null;
+  rxSilentSeconds?: number | null;
 }
 
 export function LinkHealthCard({
@@ -48,6 +55,11 @@ export function LinkHealthCard({
   fecLost,
   driver,
   iface,
+  snrDb,
+  noiseDbm,
+  lossPercent,
+  mcsIndex,
+  rxSilentSeconds,
 }: LinkHealthCardProps) {
   const t = useTranslations("hardware.radio");
   return (
@@ -106,6 +118,21 @@ export function LinkHealthCard({
         />
         <StatRow label={t("fecRecovered")} value={String(fecRecovered)} />
         <StatRow label={t("fecLost")} value={String(fecLost)} />
+        {snrDb != null ? (
+          <StatRow label={t("snr")} value={`${snrDb.toFixed(0)} dB`} />
+        ) : null}
+        {lossPercent != null ? (
+          <StatRow label={t("loss")} value={`${lossPercent.toFixed(1)}%`} />
+        ) : null}
+        {mcsIndex != null ? (
+          <StatRow label={t("mcs")} value={String(mcsIndex)} />
+        ) : null}
+        {noiseDbm != null ? (
+          <StatRow label={t("noise")} value={`${noiseDbm.toFixed(0)} dBm`} />
+        ) : null}
+        {rxSilentSeconds != null ? (
+          <StatRow label={t("rxIdle")} value={`${rxSilentSeconds.toFixed(1)} s`} />
+        ) : null}
         {driver ? <StatRow label={t("driver")} value={driver} /> : null}
         {iface ? <StatRow label={t("iface")} value={iface} /> : null}
       </dl>

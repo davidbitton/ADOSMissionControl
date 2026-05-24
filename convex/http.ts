@@ -106,6 +106,11 @@ interface RadioPayload {
   fecRecovered: number;
   fecLost: number;
   packetsLost: number;
+  snrDb: number | null;
+  noiseDbm: number | null;
+  lossPercent: number | null;
+  mcsIndex: number | null;
+  rxSilentSeconds: number | null;
 }
 
 function nullableNumber(value: unknown): number | null | undefined {
@@ -158,6 +163,11 @@ function radioField(
   const txPowerDbm = nullableNumber(row.tx_power_dbm);
   const rssiDbm = nullableNumber(row.rssi_dbm);
   const bitrateKbps = nullableNumber(row.bitrate_kbps);
+  const snrDb = nullableNumber(row.snr_db);
+  const noiseDbm = nullableNumber(row.noise_dbm);
+  const lossPercent = nullableNumber(row.loss_percent);
+  const mcsIndex = nullableNumber(row.mcs_index);
+  const rxSilentSeconds = nullableNumber(row.rx_silent_seconds);
 
   return {
     state,
@@ -174,6 +184,11 @@ function radioField(
     fecRecovered,
     fecLost,
     packetsLost,
+    snrDb: snrDb === undefined ? null : snrDb,
+    noiseDbm: noiseDbm === undefined ? null : noiseDbm,
+    lossPercent: lossPercent === undefined ? null : lossPercent,
+    mcsIndex: mcsIndex === undefined ? null : mcsIndex,
+    rxSilentSeconds: rxSilentSeconds === undefined ? null : rxSilentSeconds,
   };
 }
 

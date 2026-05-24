@@ -763,6 +763,15 @@ fullName: v.optional(v.string()),
       fecRecovered: v.union(v.number(), v.null()),
       fecLost: v.union(v.number(), v.null()),
       packetsLost: v.union(v.number(), v.null()),
+      // Receive-side link quality. Forwarded by newer agents on both
+      // the transmit and receive sides; on a ground station these track
+      // the downlink it decodes. Older agents omit them; v.optional +
+      // null covers missing-key and explicit-null shapes alike.
+      snrDb: v.optional(v.union(v.number(), v.null())),
+      noiseDbm: v.optional(v.union(v.number(), v.null())),
+      lossPercent: v.optional(v.union(v.number(), v.null())),
+      mcsIndex: v.optional(v.union(v.number(), v.null())),
+      rxSilentSeconds: v.optional(v.union(v.number(), v.null())),
       // Pair-state surface added in agent v0.16. Old rows from
       // pre-0.16 heartbeats lack these fields; the cloud relay
       // remap leaves them undefined and the GCS treats them as
