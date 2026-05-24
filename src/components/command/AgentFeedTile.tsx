@@ -10,6 +10,7 @@ import { useCallback, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import {
+  Activity,
   Battery,
   Cpu,
   Expand,
@@ -23,9 +24,12 @@ import {
   Radio,
   RefreshCw,
   Satellite,
+  SignalHigh,
   Thermometer,
+  TrendingDown,
   Video,
   VideoOff,
+  Wifi,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -84,6 +88,24 @@ export function AgentFeedTile({
   const hasVideo = session.state === "connected";
   const connecting = session.state === "connecting";
   const failed = session.state === "failed";
+
+  // Profile-aware surfaces. A ground station has no flight controller,
+  // battery, GPS, or flight mode — it receives a downlink over the radio.
+  // Swap the FC/armed badges and the top metric row for link-centric data.
+  const isGround = agent.profile === "ground-station";
+  const radio = agent.radio;
+  const linkUp = radio?.state === "connected";
+  const roleLabel =
+    agent.role === "direct"
+      ? t("roleDirect")
+      : agent.role === "relay"
+        ? t("roleRelay")
+        : agent.role === "receiver"
+          ? t("roleReceiver")
+          : null;
+  const pairedShort = radio?.pairedWithDeviceId
+    ? radio.pairedWithDeviceId.slice(0, 8)
+    : null;
 
   return (
     <article
@@ -151,20 +173,50 @@ export function AgentFeedTile({
           <span className={cn("rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase", livenessClass(agent.liveness))}>
             {t(agent.liveness)}
           </span>
-          <span className="rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-primary">
-            {agent.system.fcConnected ? t("fcOn") : t("fcOff")}
+          <span className="rounded bg-accent-primary/80 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-white">
+            {isGround ? t("profileGround") : t("profileDrone")}
           </span>
-          {agent.telemetry.armed != null && (
-            <span
-              className={cn(
-                "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase",
-                agent.telemetry.armed
-                  ? "bg-status-error text-bg-primary"
-                  : "bg-black/55 text-text-primary",
+          {isGround ? (
+            <>
+              {roleLabel && (
+                <span className="rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-primary">
+                  {roleLabel}
+                </span>
               )}
-            >
-              {agent.telemetry.armed ? t("armed") : t("disarmed")}
-            </span>
+              <span
+                className={cn(
+                  "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                  linkUp
+                    ? "bg-status-success text-bg-primary"
+                    : "bg-black/55 text-text-primary",
+                )}
+              >
+                {linkUp ? t("linked") : t("noLink")}
+              </span>
+              {pairedShort && (
+                <span className="rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-mono uppercase text-text-secondary">
+                  {t("paired")} {pairedShort}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="rounded bg-black/55 px-1.5 py-0.5 text-[9px] font-semibold uppercase text-text-primary">
+                {agent.system.fcConnected ? t("fcOn") : t("fcOff")}
+              </span>
+              {agent.telemetry.armed != null && (
+                <span
+                  className={cn(
+                    "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase",
+                    agent.telemetry.armed
+                      ? "bg-status-error text-bg-primary"
+                      : "bg-black/55 text-text-primary",
+                  )}
+                >
+                  {agent.telemetry.armed ? t("armed") : t("disarmed")}
+                </span>
+              )}
+            </>
           )}
         </div>
 
@@ -245,10 +297,21 @@ export function AgentFeedTile({
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-text-secondary sm:grid-cols-4">
-          <Metric icon={<Battery size={12} />} label={t("battery")} value={pct(agent.telemetry.batteryRemaining)} />
-          <Metric icon={<Satellite size={12} />} label={t("gps")} value={agent.telemetry.gpsSatellites == null ? "--" : `${agent.telemetry.gpsSatellites}`} />
-          <Metric icon={<MapPin size={12} />} label={t("alt")} value={fixed(agent.telemetry.altitudeRel, 0, "m")} />
-          <Metric icon={<Gauge size={12} />} label={t("mode")} value={agent.telemetry.mode ?? "--"} />
+          {isGround ? (
+            <>
+              <Metric icon={<SignalHigh size={12} />} label={t("rssi")} value={radio?.rssiDbm == null ? "--" : `${Math.round(radio.rssiDbm)} dBm`} />
+              <Metric icon={<Activity size={12} />} label={t("snr")} value={radio?.snrDb == null ? "--" : `${Math.round(radio.snrDb)} dB`} />
+              <Metric icon={<TrendingDown size={12} />} label={t("loss")} value={radio?.lossPercent == null ? "--" : `${radio.lossPercent.toFixed(1)}%`} />
+              <Metric icon={<Wifi size={12} />} label={t("link")} value={radio?.bitrateKbps == null ? "--" : `${(radio.bitrateKbps / 1000).toFixed(1)} Mbps`} />
+            </>
+          ) : (
+            <>
+              <Metric icon={<Battery size={12} />} label={t("battery")} value={pct(agent.telemetry.batteryRemaining)} />
+              <Metric icon={<Satellite size={12} />} label={t("gps")} value={agent.telemetry.gpsSatellites == null ? "--" : `${agent.telemetry.gpsSatellites}`} />
+              <Metric icon={<MapPin size={12} />} label={t("alt")} value={fixed(agent.telemetry.altitudeRel, 0, "m")} />
+              <Metric icon={<Gauge size={12} />} label={t("mode")} value={agent.telemetry.mode ?? "--"} />
+            </>
+          )}
           <Metric icon={<Cpu size={12} />} label={t("cpu")} value={pct(agent.system.cpuPercent)} />
           <Metric icon={<Radio size={12} />} label={t("mem")} value={pct(agent.system.memoryPercent)} />
           <Metric icon={<Thermometer size={12} />} label={t("temp")} value={fixed(agent.system.temperature, 0, "C")} />

@@ -18,6 +18,11 @@ import {
   STALE_THRESHOLD_MS,
   OFFLINE_THRESHOLD_MS,
 } from "@/lib/agent/freshness";
+import { normalizeRadio } from "@/stores/agent-capabilities/normalizer";
+import type { RadioState } from "@/lib/api/ground-station/types";
+
+export type CommandAgentProfile = "drone" | "ground-station" | "compute" | "lite";
+export type CommandAgentRole = "direct" | "relay" | "receiver" | null;
 
 export type CommandAgentLiveness = "live" | "stale" | "offline";
 export type CommandAgentVideoState =
@@ -37,6 +42,9 @@ export interface CommandAgentSummary {
     version?: string;
     lastIp?: string;
   };
+  profile: CommandAgentProfile;
+  role: CommandAgentRole;
+  radio: RadioState | null;
   liveness: CommandAgentLiveness;
   lastSeen: number | null;
   system: {
@@ -133,6 +141,9 @@ export function useCommandAgentFleet(
           version: status?.version ?? drone.agentVersion,
           lastIp: status?.lastIp ?? drone.lastIp,
         },
+        profile: drone.profile ?? "drone",
+        role: drone.role ?? null,
+        radio: status?.radio ? normalizeRadio(status.radio) : null,
         liveness,
         lastSeen,
         system: {

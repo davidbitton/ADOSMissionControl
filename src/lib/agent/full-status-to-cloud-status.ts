@@ -140,6 +140,7 @@ export function mapFullStatusToCloudStatus(
     videoWhepUrl: videoWhepUrl ?? undefined,
     videoWhepPort: parseWhepPort(videoWhepUrl),
     telemetry: mapTelemetry(resp.telemetry ?? {}),
+    radio: resp.radio ?? undefined,
     updatedAt: Date.now(),
   };
 }

@@ -3242,7 +3242,19 @@
     "mem": "Mem",
     "temp": "Temp",
     "video": "Video",
-    "unavailable": "Unavailable"
+    "unavailable": "Unavailable",
+    "profileDrone": "Drone",
+    "profileGround": "Ground",
+    "roleDirect": "Direct",
+    "roleRelay": "Relay",
+    "roleReceiver": "Receiver",
+    "linked": "Linked",
+    "noLink": "No link",
+    "paired": "Paired",
+    "rssi": "RSSI",
+    "snr": "SNR",
+    "loss": "Loss",
+    "link": "Link"
   },
   "flashTool": {
     "ados": {

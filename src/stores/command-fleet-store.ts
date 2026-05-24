@@ -74,6 +74,11 @@ export interface CommandCloudStatus {
     publicUrls?: string[];
   };
   telemetry?: CommandTelemetrySnapshot;
+  // WFB radio snapshot (camelCase). Cloud path: the cmd_droneStatus row
+  // carries it verbatim. LAN path: copied from /api/status/full. Kept as
+  // a loose record so both sources fit without coupling to a strict type;
+  // the fleet hook normalizes it before display.
+  radio?: Record<string, unknown> | null;
   updatedAt: number;
 }
 
