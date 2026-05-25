@@ -149,6 +149,12 @@ interface VideoStoreState {
     lastBytesReceived: number;
     lastJitterDelay: number;
     lastJitterEmitted: number;
+    // Wall-clock of the last poll where framesDecoded OR bytesReceived
+    // advanced. The frozen-stream watchdog compares the gap against a
+    // threshold to detect a silent stall. Reset on visibilitychange so a
+    // backgrounded tab (frame production legitimately pauses) does not
+    // false-trigger a reconnect.
+    lastProgressTime: number;
   };
   setPollState: (s: Partial<VideoStoreState["_pollState"]>) => void;
   resetPollState: () => void;
@@ -158,6 +164,15 @@ interface VideoStoreState {
   transportHealth: Record<VideoTransport, TransportHealth>;
   setTransportHealth: (t: VideoTransport, h: Partial<TransportHealth>) => void;
   resetTransportHealth: () => void;
+
+  // Frozen-stream signal. The stats poller increments this when frames
+  // and bytes are both flat while the peer connection still reports
+  // "connected" — a silent decoder/transport stall that the native
+  // connectionstatechange handler never sees. Video surfaces watch this
+  // counter and re-fetch the offer (WHEP cannot renegotiate in place),
+  // so the bump acts as a one-way "tear down and reconnect" edge.
+  videoStallSignal: number;
+  signalVideoStall: () => void;
 
   // Cloud video state
   cloudStreamUrl: string | null;
@@ -228,6 +243,7 @@ export const useVideoStore = create<VideoStoreState>((set) => ({
     lastBytesReceived: 0,
     lastJitterDelay: 0,
     lastJitterEmitted: 0,
+    lastProgressTime: 0,
   },
 
   transportHealth: {
@@ -238,6 +254,8 @@ export const useVideoStore = create<VideoStoreState>((set) => ({
     "off": emptyHealth(),
     "unknown": emptyHealth(),
   },
+
+  videoStallSignal: 0,
 
   cloudStreamUrl: null,
   cloudStreaming: false,
@@ -270,6 +288,7 @@ export const useVideoStore = create<VideoStoreState>((set) => ({
         lastBytesReceived: 0,
         lastJitterDelay: 0,
         lastJitterEmitted: 0,
+        lastProgressTime: 0,
       },
     }),
   setTransportHealth: (t, h) =>
@@ -290,6 +309,7 @@ export const useVideoStore = create<VideoStoreState>((set) => ({
         "unknown": emptyHealth(),
       },
     }),
+  signalVideoStall: () => set((prev) => ({ videoStallSignal: prev.videoStallSignal + 1 })),
   setCloudStreamUrl: (cloudStreamUrl) => set({ cloudStreamUrl }),
   setCloudStreaming: (cloudStreaming) => set({ cloudStreaming }),
   setAgentVideoStatus: (agentVideoState, agentWhepUrl, deps) =>

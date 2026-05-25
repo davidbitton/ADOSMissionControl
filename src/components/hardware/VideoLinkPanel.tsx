@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { AgentClient } from "@/lib/agent/client";
@@ -8,6 +9,11 @@ import {
   ChannelHistoryChart,
   type HoppingState,
 } from "@/components/hardware/ChannelHistoryChart";
+
+// Heartbeat older than this marks the link telemetry as stale. The panel
+// polls at 1 Hz, so a few missed polls still reads fresh; this only trips
+// when the agent has gone quiet for a meaningful stretch.
+const TELEMETRY_STALE_MS = 6000;
 
 type VideoConfigRadio = {
   channel: number | null;
@@ -50,10 +56,30 @@ type VideoConfigAdaptive = {
   tiers?: AdaptiveTier[];
 };
 
+// Link-liveness fields the agent reports alongside the config. All
+// optional and defaulted — older agents omit them and the panel reads
+// them defensively so it still renders on older firmware.
+type VideoConfigLink = {
+  // Per-stream transmit/receive throughput counters. Flat counters while
+  // the link reports connected indicate a silently dead radio pipe.
+  tx_bytes_per_s?: number | null;
+  valid_rx_packets_per_s?: number | null;
+  video_inbound_bytes_per_s?: number | null;
+  rx_silent_seconds?: number | null;
+  // Single-node acquisition signal. Each agent reports only its own
+  // radio state: the channel it sits on, whether it has locked onto the
+  // peer, and where it is in the acquisition flow. There is no peer
+  // channel on this payload, so lock is the only cross-link truth.
+  channel?: number | null;
+  channel_locked?: boolean | null;
+  acquire_state?: string | null;
+};
+
 type VideoConfig = {
   radio: VideoConfigRadio;
   encoder: VideoConfigEncoder;
   adaptive: VideoConfigAdaptive;
+  link?: VideoConfigLink;
   hopping?: HoppingState;
   warnings?: string[];
 };
@@ -81,6 +107,7 @@ const _POLL_INTERVAL_MS = 1000;
  * on older firmware.
  */
 export function VideoLinkPanel() {
+  const t = useTranslations("hardware.videoLink");
   const agentUrl = useAgentConnectionStore((s) => s.agentUrl);
   const apiKey = useAgentConnectionStore((s) => s.apiKey);
 
@@ -88,6 +115,11 @@ export function VideoLinkPanel() {
   const [latency, setLatency] = useState<VideoLatency | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Wall-clock of the last successful config fetch. Drives the
+  // telemetry-stale badge: a heartbeat older than the threshold means the
+  // link readouts can no longer be trusted as current.
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   const client = useMemo(() => {
     if (!agentUrl) return null;
@@ -103,7 +135,10 @@ export function VideoLinkPanel() {
         client.getVideoConfig() as Promise<VideoConfig | null>,
         client.getVideoLatency() as Promise<VideoLatency | null>,
       ]);
-      if (cfg) setConfig(cfg);
+      if (cfg) {
+        setConfig(cfg);
+        setLastUpdatedAt(Date.now());
+      }
       if (lat) setLatency(lat);
       setError(null);
     } catch (err) {
@@ -117,6 +152,9 @@ export function VideoLinkPanel() {
     void refresh();
     pollRef.current = window.setInterval(() => {
       void refresh();
+      // Tick a clock so the stale badge reflects the gap even when polls
+      // stop returning data.
+      setNow(Date.now());
     }, _POLL_INTERVAL_MS);
     return () => {
       if (pollRef.current !== null) {
@@ -125,6 +163,9 @@ export function VideoLinkPanel() {
       }
     };
   }, [client, refresh]);
+
+  const telemetryStale =
+    lastUpdatedAt != null && now - lastUpdatedAt > TELEMETRY_STALE_MS;
 
   const onSetAuto = useCallback(
     async (next: boolean) => {
@@ -159,16 +200,35 @@ export function VideoLinkPanel() {
   }
 
   const { radio, encoder, adaptive } = config;
+  const link = config.link ?? {};
   const tiers = adaptive.tiers ?? [];
   const activeTierIdx = adaptive.tier_idx ?? -1;
   const auto = adaptive.auto ?? true;
+
+  // Acquisition signal. A single agent payload only knows its own radio
+  // state, so we cannot compare peer channels here. The link is still
+  // acquiring when it has not locked onto the peer (channel_locked is
+  // explicitly false) or the agent reports it is searching. Once locked,
+  // the banner clears.
+  const acquiring =
+    link.channel_locked === false || link.acquire_state === "searching";
+
+  const fmtRate = (v: number | null | undefined, unit: string): string =>
+    v == null ? "—" : `${Math.round(v)} ${unit}`;
 
   return (
     <>
     <section className="rounded border border-border-default bg-surface-primary">
       <header className="flex items-center justify-between border-b border-border-default px-3 py-2">
-        <div className="text-xs font-mono uppercase tracking-widest text-text-primary">
-          Video Link
+        <div className="flex items-center gap-2">
+          <div className="text-xs font-mono uppercase tracking-widest text-text-primary">
+            {t("title")}
+          </div>
+          {telemetryStale ? (
+            <span className="rounded bg-status-warning/15 px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-widest text-status-warning">
+              {t("stale")}
+            </span>
+          ) : null}
         </div>
         <div className="text-[10px] font-mono uppercase tracking-widest text-text-tertiary">
           {adaptive.available
@@ -178,6 +238,17 @@ export function VideoLinkPanel() {
             : "Static"}
         </div>
       </header>
+
+      {acquiring ? (
+        <div className="border-b border-status-warning/40 bg-status-warning/10 px-3 py-2">
+          <div className="text-[10px] font-mono uppercase tracking-widest text-status-warning">
+            {t("acquiring")}
+          </div>
+          <div className="mt-1 text-[10px] font-mono text-text-secondary">
+            {t("acquiringDetail")}
+          </div>
+        </div>
+      ) : null}
       <div className="grid grid-cols-2 gap-2 p-3 text-[11px] font-mono">
         <ReadoutRow
           label="Latency"
@@ -224,6 +295,33 @@ export function VideoLinkPanel() {
           hint={radio.tx_power_dbm != null ? `${radio.tx_power_dbm} dBm` : undefined}
         />
       </div>
+
+      {/* Link liveness counters. Rendered only when the agent reports the
+          link block; older builds omit it. */}
+      {config.link ? (
+        <div className="grid grid-cols-2 gap-2 border-t border-border-default p-3 text-[11px] font-mono">
+          <ReadoutRow
+            label={t("txRate")}
+            value={fmtRate(link.tx_bytes_per_s, "B/s")}
+          />
+          <ReadoutRow
+            label={t("rxPackets")}
+            value={fmtRate(link.valid_rx_packets_per_s, "pkt/s")}
+          />
+          <ReadoutRow
+            label={t("videoInbound")}
+            value={fmtRate(link.video_inbound_bytes_per_s, "B/s")}
+          />
+          <ReadoutRow
+            label={t("rxSilent")}
+            value={
+              link.rx_silent_seconds != null
+                ? `${Math.round(link.rx_silent_seconds)} s`
+                : "—"
+            }
+          />
+        </div>
+      ) : null}
 
       {adaptive.available && tiers.length > 0 ? (
         <div className="border-t border-border-default px-3 py-2">

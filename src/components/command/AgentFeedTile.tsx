@@ -6,7 +6,7 @@
  * @license GPL-3.0-only
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -46,6 +46,10 @@ interface AgentFeedTileProps {
   onTogglePin: (deviceId: string) => void;
   onTogglePause: (deviceId: string) => void;
 }
+
+// A tile that has been "connecting" longer than this is wedged. Force a
+// fresh session attempt rather than spinning the placeholder forever.
+const TILE_CONNECT_TIMEOUT_MS = 15_000;
 
 function pct(value: number | null): string {
   return value == null ? "--" : `${Math.round(value)}%`;
@@ -88,6 +92,17 @@ export function AgentFeedTile({
   const hasVideo = session.state === "connected";
   const connecting = session.state === "connecting";
   const failed = session.state === "failed";
+
+  // Connect-timeout guard. A session stuck in "connecting" past the
+  // window almost certainly lost its SDP answer or stalled ICE; bump the
+  // retry key to start a fresh session instead of spinning forever.
+  useEffect(() => {
+    if (!connecting) return;
+    const handle = setTimeout(() => {
+      setRetryKey((k) => k + 1);
+    }, TILE_CONNECT_TIMEOUT_MS);
+    return () => clearTimeout(handle);
+  }, [connecting]);
 
   // Profile-aware surfaces. A ground station has no flight controller,
   // battery, GPS, or flight mode — it receives a downlink over the radio.

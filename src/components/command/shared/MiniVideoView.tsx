@@ -14,6 +14,11 @@ import { useVideoStore } from "@/stores/video-store";
 import { communityApi } from "@/lib/community-api";
 import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
 
+// A WebRTC connect that hasn't produced a track within this window is
+// almost certainly wedged (lost SDP answer, stalled ICE). Force a fresh
+// attempt instead of spinning forever.
+const CONNECT_TIMEOUT_MS = 15_000;
+
 export function MiniVideoView() {
   const cloudMode = useAgentConnectionStore((s) => s.cloudMode);
   const cloudDeviceId = useAgentConnectionStore((s) => s.cloudDeviceId);
@@ -28,6 +33,8 @@ export function MiniVideoView() {
   const [directStreaming, setDirectStreaming] = useState(false);
   directStreamingRef.current = directStreaming;
   const [connecting, setConnecting] = useState(false);
+  // Bumped by the connect-timeout to force the WHEP effect to re-run.
+  const [retryKey, setRetryKey] = useState(0);
 
   // Cloud mode fallback: MSE player (only if WHEP isn't already streaming)
   useEffect(() => {
@@ -62,6 +69,15 @@ export function MiniVideoView() {
     let cancelled = false;
     setConnecting(true);
 
+    // Connect-timeout guard. If the attempt is still in flight after the
+    // window, bump retryKey to tear down and re-run this effect with a
+    // fresh connection rather than leaving the spinner up indefinitely.
+    const connectTimeout = setTimeout(() => {
+      if (!cancelled && !directStreamingRef.current) {
+        setRetryKey((k) => k + 1);
+      }
+    }, CONNECT_TIMEOUT_MS);
+
     async function connect() {
       try {
         const { startStream } = await import("@/lib/video/webrtc-client");
@@ -73,6 +89,7 @@ export function MiniVideoView() {
         videoRef.current!.srcObject = stream;
         setDirectStreaming(true);
         setConnecting(false);
+        clearTimeout(connectTimeout);
       } catch {
         if (!cancelled) {
           setDirectStreaming(false);
@@ -85,13 +102,14 @@ export function MiniVideoView() {
 
     return () => {
       cancelled = true;
+      clearTimeout(connectTimeout);
       setConnecting(false);
       setDirectStreaming(false);
       import("@/lib/video/webrtc-client").then(({ stopStream }) => {
         stopStream();
       });
     };
-  }, [cloudMode, agentWhepUrl, agentVideoState]);
+  }, [cloudMode, agentWhepUrl, agentVideoState, retryKey]);
 
   // Cloud mode rendering
   if (cloudMode && cloudDeviceId) {

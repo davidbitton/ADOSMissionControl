@@ -42,6 +42,14 @@ interface VideoFeedCardProps {
   onPopOut?: () => void;
 }
 
+// Auto-recovery backoff. The base delay doubles per attempt and is
+// clamped at the ceiling, then keeps retrying at the ceiling forever — a
+// stalled link that comes back hours later still reconnects without any
+// operator action. There is no attempt cap: silently giving up leaves the
+// operator staring at a frozen frame with no indication anything is wrong.
+const RETRY_BASE_DELAY_SEC = 3;
+const RETRY_MAX_DELAY_SEC = 30;
+
 export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
   const agentWhepUrl = useVideoStore((s) => s.agentWhepUrl);
   const agentVideoState = useVideoStore((s) => s.agentVideoState);
@@ -58,6 +66,9 @@ export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
   const airLatencyMs = useVideoStore((s) => s.latency.airLatencyMs);
   const trueG2GMs = useVideoStore((s) => s.latency.trueG2GMs);
   const cloudDeviceId = useAgentConnectionStore((s) => s.cloudDeviceId);
+  // Frozen-stream signal from the stats watchdog. A bump means the active
+  // stream silently stalled while still "connected"; drive auto-recovery.
+  const videoStallSignal = useVideoStore((s) => s.videoStallSignal);
   // User transport preference (persisted to IndexedDB)
   const transportMode = useSettingsStore((s) => s.videoTransportMode);
 
@@ -199,9 +210,7 @@ export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
     enabled: stableEnabled,
   });
 
-  // Exponential backoff for auto-retry. Resets to 0 on connect or manual
-  // retry. Caps at 5 attempts before requiring user action.
-  // Delays: 3s, 6s, 12s, 24s, 30s.
+  // Reset the backoff counter on a healthy connect or manual retry.
   useEffect(() => {
     if (cascade.state === "connected") {
       retryAttemptRef.current = 0;
@@ -209,17 +218,33 @@ export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
     }
   }, [cascade.state]);
 
+  // The frozen-stream watchdog raised the stall signal: the link looked
+  // "connected" but stopped delivering frames. Re-cascade immediately so
+  // the WHEP offer is re-fetched (WHEP cannot renegotiate in place). The
+  // re-cascade either reconnects (resetting the backoff) or transitions
+  // to "failed", which the indefinite-retry effect below then handles.
+  const lastHandledStallRef = useRef(videoStallSignal);
+  useEffect(() => {
+    if (videoStallSignal === lastHandledStallRef.current) return;
+    lastHandledStallRef.current = videoStallSignal;
+    if (agentVideoState !== "running") return;
+    setRetryDelaySec(0);
+    setRetryKey((k) => k + 1);
+  }, [videoStallSignal, agentVideoState]);
+
+  // Indefinite auto-retry with exponential backoff capped at the ceiling.
+  // Never stops while the agent reports the video service running, so the
+  // feed self-heals whenever the link recovers. Manual retry resets the
+  // attempt counter to start the backoff over from the base delay.
   useEffect(() => {
     if (cascade.state !== "failed" || agentVideoState !== "running") {
       return;
     }
     const attempt = retryAttemptRef.current;
-    if (attempt >= 5) {
-      // Max retries reached — stop auto-retrying, wait for user action
-      setRetryDelaySec(0);
-      return;
-    }
-    const delaySec = Math.min(3 * Math.pow(2, attempt), 10);
+    const delaySec = Math.min(
+      RETRY_BASE_DELAY_SEC * Math.pow(2, attempt),
+      RETRY_MAX_DELAY_SEC,
+    );
     setRetryDelaySec(delaySec);
     const retryHandle = setTimeout(() => {
       retryAttemptRef.current += 1;

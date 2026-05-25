@@ -15,6 +15,14 @@ declare global {
 
 const VIDEO_RELAY_URL_DEFAULT = "wss://video.altnautica.com";
 
+// Reconnect delay after a transport drop or a detected stall.
+const RECONNECT_DELAY_MS = 3000;
+// How often the playback-stall watchdog samples currentTime.
+const STALL_CHECK_INTERVAL_MS = 1000;
+// currentTime frozen for at least this long while the socket is open
+// means the decoder has wedged; force a fresh connection.
+const PLAYBACK_STALL_TIMEOUT_MS = 5000;
+
 export class MsePlayer {
   private ws: WebSocket | null = null;
   private mediaSource: MediaSource | null = null;
@@ -25,12 +33,27 @@ export class MsePlayer {
   private videoRelayUrl: string = VIDEO_RELAY_URL_DEFAULT;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Playback-stall watchdog. Tracks currentTime advancement so a frozen
+  // decoder (no socket close, no error event) still triggers a reconnect.
+  private stallTimer: ReturnType<typeof setInterval> | null = null;
+  private lastPlaybackTime = 0;
+  private lastPlaybackAdvanceAt = 0;
+  // Guards against overlapping reconnect attempts from multiple triggers
+  // (ws close + sourceBuffer error + stall watchdog all firing at once).
+  private reconnectScheduled = false;
+  // Set while stop() is tearing the session down. A socket closed as part
+  // of an intentional teardown must NOT schedule a reconnect, so every
+  // reconnect trigger bails when this is set. Cleared by the next start().
+  private tearingDown = false;
+
   // Recording state
   private recorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
 
   start(deviceId: string, videoElement: HTMLVideoElement, videoRelayUrl?: string): void {
     this.stop();
+    // A fresh session — clear the teardown latch that stop() set.
+    this.tearingDown = false;
     this.deviceId = deviceId;
     this.videoElement = videoElement;
     if (videoRelayUrl) this.videoRelayUrl = videoRelayUrl;
@@ -46,6 +69,44 @@ export class MsePlayer {
     this.mediaSource.addEventListener("sourceopen", () => {
       this.connectWebSocket();
     });
+
+    this.startStallWatchdog();
+  }
+
+  /**
+   * Poll currentTime while the socket is open. If playback has not
+   * advanced within the timeout, the decoder has stalled silently (the
+   * relay can keep the socket open and keep sending bytes that the
+   * decoder refuses) — reconnect from scratch instead of waiting for an
+   * onclose that never comes.
+   */
+  private startStallWatchdog(): void {
+    if (this.stallTimer) return;
+    this.lastPlaybackAdvanceAt = Date.now();
+    this.lastPlaybackTime = this.videoElement?.currentTime ?? 0;
+    this.stallTimer = setInterval(() => {
+      const video = this.videoElement;
+      // Only judge a stall while the socket is open. A closed socket has
+      // its own reconnect path; a paused/backgrounded tab should not be
+      // treated as a failure.
+      if (!video || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        this.lastPlaybackAdvanceAt = Date.now();
+        return;
+      }
+      if (video.paused) {
+        this.lastPlaybackAdvanceAt = Date.now();
+        return;
+      }
+      const now = Date.now();
+      if (video.currentTime > this.lastPlaybackTime) {
+        this.lastPlaybackTime = video.currentTime;
+        this.lastPlaybackAdvanceAt = now;
+        return;
+      }
+      if (now - this.lastPlaybackAdvanceAt > PLAYBACK_STALL_TIMEOUT_MS) {
+        this.scheduleReconnect();
+      }
+    }, STALL_CHECK_INTERVAL_MS);
   }
 
   /** Start recording the video stream to a .webm file. */
@@ -93,12 +154,27 @@ export class MsePlayer {
   }
 
   stop(): void {
+    // Latch teardown so the imminent socket close does not bounce back
+    // through scheduleReconnect(). reconnect() re-issues start(), which
+    // clears the latch for the new session.
+    this.tearingDown = true;
     this.stopRecording();
+    if (this.stallTimer) {
+      clearInterval(this.stallTimer);
+      this.stallTimer = null;
+    }
+    this.reconnectScheduled = false;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
     if (this.ws) {
+      // Detach handlers BEFORE close() so the onclose teardown event does
+      // not fire scheduleReconnect() on an intentional stop.
+      this.ws.onclose = null;
+      this.ws.onerror = null;
+      this.ws.onmessage = null;
+      this.ws.onopen = null;
       this.ws.close();
       this.ws = null;
     }
@@ -124,23 +200,56 @@ export class MsePlayer {
     this.ws = new WebSocket(url);
     this.ws.binaryType = "arraybuffer";
 
+    this.ws.onopen = () => {
+      // Fresh connection — reset the stall baseline and clear the
+      // reconnect guard so a later failure can schedule again.
+      this.reconnectScheduled = false;
+      this.lastPlaybackAdvanceAt = Date.now();
+      this.lastPlaybackTime = this.videoElement?.currentTime ?? 0;
+    };
+
     this.ws.onmessage = (event) => {
       const data = event.data as ArrayBuffer;
       this.appendBuffer(data);
     };
 
     this.ws.onclose = () => {
-      // Auto-reconnect after 3s
-      this.reconnectTimer = setTimeout(() => {
-        if (this.mediaSource && this.deviceId) {
-          this.connectWebSocket();
-        }
-      }, 3000);
+      this.scheduleReconnect();
     };
 
     this.ws.onerror = () => {
       this.ws?.close();
     };
+  }
+
+  /**
+   * Debounced reconnect. Multiple triggers (socket close, sourceBuffer
+   * error/abort, playback stall) can fire near-simultaneously; the guard
+   * collapses them into a single fresh connection attempt.
+   */
+  private scheduleReconnect(): void {
+    if (this.tearingDown || this.reconnectScheduled || !this.deviceId) return;
+    this.reconnectScheduled = true;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnect();
+    }, RECONNECT_DELAY_MS);
+  }
+
+  /**
+   * Tear the transport + MSE graph down and rebuild it. A frozen decoder
+   * or an aborted sourceBuffer cannot be recovered in place, so we
+   * recreate the MediaSource and re-open the socket from scratch.
+   */
+  private reconnect(): void {
+    const video = this.videoElement;
+    const deviceId = this.deviceId;
+    const relayUrl = this.videoRelayUrl;
+    if (!video || !deviceId) return;
+    // stop() clears timers + tracks + nulls videoElement; re-issue start
+    // with the captured references to rebuild the pipeline.
+    this.stop();
+    this.start(deviceId, video, relayUrl);
   }
 
   private appendBuffer(data: ArrayBuffer): void {
@@ -152,6 +261,14 @@ export class MsePlayer {
         this.sourceBuffer = this.mediaSource.addSourceBuffer('video/mp4; codecs="avc1.640029"');
         this.sourceBuffer.addEventListener("updateend", () => {
           this.flushQueue();
+        });
+        // A sourceBuffer error or abort wedges the decode graph; neither
+        // is recoverable by appending more data. Reconnect from scratch.
+        this.sourceBuffer.addEventListener("error", () => {
+          this.scheduleReconnect();
+        });
+        this.sourceBuffer.addEventListener("abort", () => {
+          this.scheduleReconnect();
         });
       } catch {
         return;

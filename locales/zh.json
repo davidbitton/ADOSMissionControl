@@ -2777,6 +2777,16 @@
       "videoTxStalled": "Video TX stalled",
       "videoTxRecoveries": "Video TX recoveries"
     },
+    "videoLink": {
+      "title": "Video Link",
+      "stale": "Stale",
+      "acquiring": "Acquiring drone signal…",
+      "acquiringDetail": "The radio is searching for the peer. Video starts once the link locks.",
+      "txRate": "TX rate",
+      "rxPackets": "Valid RX",
+      "videoInbound": "Video in",
+      "rxSilent": "RX silent"
+    },
     "setupAccess": {
       "title": "Setup and access",
       "openSetup": "Open setup",
