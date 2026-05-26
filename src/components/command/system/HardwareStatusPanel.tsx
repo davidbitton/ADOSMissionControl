@@ -39,15 +39,31 @@ type BadgeVariant = "success" | "warning" | "error" | "info" | "neutral";
 
 const WFB_MODULE_VARIANT: Record<WfbModuleSource, BadgeVariant> = {
   prebuilt: "success",
-  dkms: "warning",
+  dkms: "success",
   none: "neutral",
 };
 
 const WFB_MODULE_LABEL: Record<WfbModuleSource, string> = {
-  prebuilt: "Radio module: prebuilt",
-  dkms: "Radio module: DKMS",
-  none: "Radio module: none",
+  prebuilt: "Radio module: Prebuilt",
+  dkms: "Radio module: Built on-device",
+  none: "Radio module: Not loaded",
 };
+
+function wfbModuleLabel(source: WfbModuleSource | string): string {
+  if (source in WFB_MODULE_LABEL) {
+    return WFB_MODULE_LABEL[source as WfbModuleSource];
+  }
+  // Forward-compat: unknown value from a future agent version — title-case and show it.
+  const display = source.charAt(0).toUpperCase() + source.slice(1);
+  return `Radio module: ${display}`;
+}
+
+function wfbModuleVariant(source: WfbModuleSource | string): BadgeVariant {
+  if (source in WFB_MODULE_VARIANT) {
+    return WFB_MODULE_VARIANT[source as WfbModuleSource];
+  }
+  return "neutral";
+}
 
 const INSTALL_STATUS_VARIANT: Record<InstallStatus, BadgeVariant> = {
   ok: "success",
@@ -139,8 +155,8 @@ export function HardwareStatusPanel() {
               {(status.wfb_module_source || status.install_status) && (
                 <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                   {status.wfb_module_source && (
-                    <Badge variant={WFB_MODULE_VARIANT[status.wfb_module_source]}>
-                      {WFB_MODULE_LABEL[status.wfb_module_source]}
+                    <Badge variant={wfbModuleVariant(status.wfb_module_source)}>
+                      {wfbModuleLabel(status.wfb_module_source)}
                     </Badge>
                   )}
                   {status.install_status &&

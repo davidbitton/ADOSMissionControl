@@ -27,7 +27,7 @@ type BadgeVariant = "success" | "warning" | "error" | "info" | "neutral";
 
 const WFB_VARIANT: Record<WfbModuleSource, BadgeVariant> = {
   prebuilt: "success",
-  dkms: "warning",
+  dkms: "success",
   none: "neutral",
 };
 
