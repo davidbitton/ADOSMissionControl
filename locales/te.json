@@ -190,10 +190,7 @@
     "offline": "ఆఫ్‌లైన్",
     "armed": "సక్రియం",
     "disarmed": "నిష్క్రియం",
-    "online": "ఆన్‌లైన్",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "ఆన్‌లైన్"
   },
   "auth": {
     "signIn": "సైన్ ఇన్",
@@ -953,8 +950,7 @@
       "profileLabel": {
         "drone": "డ్రోన్",
         "groundStation": "గ్రౌండ్ స్టేషన్",
-        "compute": "కంప్యూట్",
-        "lite": "డ్రోన్ (లైట్)"
+        "compute": "కంప్యూట్"
       },
       "probeFailedStatusError": "పరిశీలన విఫలమైంది: {status} {statusText}",
       "pairFailedStatusError": "జత చేయడం విఫలమైంది: {status} {statusText}",

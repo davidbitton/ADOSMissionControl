@@ -46,7 +46,7 @@ export interface ProbeResult {
   ownerId?: string;
   pairedAt?: number;
   mdnsHost: string;
-  profile: "drone" | "ground-station" | "compute" | "lite";
+  profile: "drone" | "ground-station" | "compute";
   role?: "direct" | "relay" | "receiver" | null;
   /** The normalised base URL the GCS should keep talking to. */
   hostname: string;

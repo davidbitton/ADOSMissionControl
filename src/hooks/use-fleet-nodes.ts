@@ -17,7 +17,7 @@ import {
 
 export interface FleetNodeEntry extends PairedDrone {
   /** Wire-contract profile of this node. */
-  profile: "drone" | "ground-station" | "compute" | "lite";
+  profile: "drone" | "ground-station" | "compute";
   /** Ground-station role when applicable. */
   role?: "direct" | "relay" | "receiver" | null;
   /** True when this entry is browser-local (LAN-paired). False when

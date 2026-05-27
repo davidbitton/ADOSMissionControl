@@ -190,10 +190,7 @@
     "offline": "离线",
     "armed": "已解锁",
     "disarmed": "已加锁",
-    "online": "在线",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "在线"
   },
   "auth": {
     "signIn": "登录",
@@ -938,8 +935,7 @@
       "profileLabel": {
         "drone": "无人机",
         "groundStation": "地面站",
-        "compute": "计算节点",
-        "lite": "无人机（精简版）"
+        "compute": "计算节点"
       },
       "probeFailedStatusError": "探测失败：{status} {statusText}",
       "pairFailedStatusError": "配对失败：{status} {statusText}",

@@ -190,10 +190,7 @@
     "offline": "오프라인",
     "armed": "시동 걸림",
     "disarmed": "시동 꺼짐",
-    "online": "온라인",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "온라인"
   },
   "auth": {
     "signIn": "로그인",
@@ -953,8 +950,7 @@
       "profileLabel": {
         "drone": "드론",
         "groundStation": "지상국",
-        "compute": "컴퓨트",
-        "lite": "드론 (라이트)"
+        "compute": "컴퓨트"
       },
       "probeFailedStatusError": "프로브 실패: {status} {statusText}",
       "pairFailedStatusError": "페어링 실패: {status} {statusText}",

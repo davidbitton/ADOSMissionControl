@@ -190,10 +190,7 @@
     "offline": "Offline",
     "armed": "Aktif",
     "disarmed": "Nonaktif",
-    "online": "Online",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "Online"
   },
   "auth": {
     "signIn": "Masuk",
@@ -953,8 +950,7 @@
       "profileLabel": {
         "drone": "Drone",
         "groundStation": "Stasiun darat",
-        "compute": "Komputasi",
-        "lite": "Drone (lite)"
+        "compute": "Komputasi"
       },
       "probeFailedStatusError": "Probe gagal: {status} {statusText}",
       "pairFailedStatusError": "Pemasangan gagal: {status} {statusText}",

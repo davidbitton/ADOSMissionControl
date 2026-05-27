@@ -190,10 +190,7 @@
     "offline": "オフライン",
     "armed": "アーム済み",
     "disarmed": "ディスアーム",
-    "online": "オンライン",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "オンライン"
   },
   "auth": {
     "signIn": "サインイン",
@@ -953,8 +950,7 @@
       "profileLabel": {
         "drone": "ドローン",
         "groundStation": "地上局",
-        "compute": "コンピュート",
-        "lite": "ドローン (Lite)"
+        "compute": "コンピュート"
       },
       "probeFailedStatusError": "プローブに失敗しました: {status} {statusText}",
       "pairFailedStatusError": "ペアリングに失敗しました: {status} {statusText}",

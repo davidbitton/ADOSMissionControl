@@ -2,14 +2,13 @@
 
 /**
  * @module DroneOverview
- * @description Per-node overview for the `drone` profile (full runtime).
+ * @description Per-node overview for the `drone` profile.
  * Renders flight-relevant cards: video, flight data, RC input, battery,
  * compute metrics, sensor status, plus the shared status / services /
  * resources / logs surface.
  *
- * Picked by `NodeOverviewRouter` when `profile === "drone"` and
- * `runtimeMode === "full"`. Lite agents route to `LiteOverview`; ground
- * stations to `GroundStationOverview`.
+ * Picked by `NodeOverviewRouter` when `profile === "drone"`. Ground
+ * stations route to `GroundStationOverview`.
  * @license GPL-3.0-only
  */
 

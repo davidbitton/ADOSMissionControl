@@ -182,11 +182,8 @@ const NPU_BY_SOC: Record<string, { tops: number; runtime: "rknn" | "tensorrt" }>
   RV1126: { tops: 2.0, runtime: "rknn" },
   RV1126B: { tops: 2.0, runtime: "rknn" },
   RV1109: { tops: 2.0, runtime: "rknn" },
-  RV1106: { tops: 0.5, runtime: "rknn" },
-  RV1106G3: { tops: 1.0, runtime: "rknn" },
   RV1103: { tops: 0.5, runtime: "rknn" },
   // Broadcom Pi-class boards (no NPU)
-  BCM2710A1: { tops: 0, runtime: "rknn" }, // Pi Zero 2 W
   BCM2711: { tops: 0, runtime: "rknn" },   // Pi 4B / CM4
   BCM2712: { tops: 0, runtime: "rknn" },   // Pi 5
   // NVIDIA Jetson

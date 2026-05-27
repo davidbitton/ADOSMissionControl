@@ -190,10 +190,7 @@
     "offline": "ઑફલાઇન",
     "armed": "સક્રિય",
     "disarmed": "નિષ્ક્રિય",
-    "online": "ઑનલાઇન",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "ઑનલાઇન"
   },
   "auth": {
     "signIn": "સાઇન ઇન",
@@ -953,8 +950,7 @@
       "profileLabel": {
         "drone": "ડ્રોન",
         "groundStation": "ગ્રાઉન્ડ સ્ટેશન",
-        "compute": "કમ્પ્યુટ",
-        "lite": "ડ્રોન (લાઇટ)"
+        "compute": "કમ્પ્યુટ"
       },
       "probeFailedStatusError": "તપાસ નિષ્ફળ: {status} {statusText}",
       "pairFailedStatusError": "જોડાણ નિષ્ફળ: {status} {statusText}",

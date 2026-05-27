@@ -34,11 +34,8 @@ export interface ManualConnectionUrls {
 /** ROS 2 environment state. "absent" = board profile has no support. */
 export type Ros2State = "absent" | "available" | "running";
 
-/** Backend variant the agent process is running. */
-export type AgentRuntimeMode = "full" | "lite";
-
 /** Node deployment category. Drives Command-tab panel selection. */
-export type AgentProfile = "drone" | "ground-station" | "compute" | "lite";
+export type AgentProfile = "drone" | "ground-station" | "compute";
 
 /** Ground-station role; null on drones and compute nodes. */
 export type AgentRole = "direct" | "relay" | "receiver" | null;
@@ -54,16 +51,13 @@ export interface AgentCapabilitiesState {
   models: ModelCacheInfo;
   /** ROS 2 environment state: absent (no support), available (board supports, not running), running. */
   ros2State: Ros2State;
-  /** Backend variant the agent process is running. "lite" hides plugin /
-   * peripheral / scripting / ROS surfaces. Defaults to "full" until set. */
-  runtimeMode: AgentRuntimeMode;
   /** Setup wizard state on the agent. Undefined for legacy heartbeats. */
   setupState?: string;
   /** How the agent landed on its current profile. Undefined for legacy
    * heartbeats. See AgentCapabilities.profileSource for the value set. */
   profileSource?: string;
   /** Node deployment category. "drone" or "ground-station" today,
-   * "compute" / "lite" in the future. Defaults to "drone" when the
+   * "compute" in the future. Defaults to "drone" when the
    * heartbeat omits the field (older agents). Drives Command-tab
    * panel selection and tab visibility per node. */
   profile: AgentProfile;

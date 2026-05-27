@@ -190,10 +190,7 @@
     "offline": "Offline",
     "armed": "Armed",
     "disarmed": "Disarmed",
-    "online": "Online",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "Online"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -938,8 +935,7 @@
       "profileLabel": {
         "drone": "Drohne",
         "groundStation": "Bodenstation",
-        "compute": "Compute",
-        "lite": "Drohne (Lite)"
+        "compute": "Compute"
       },
       "probeFailedStatusError": "Prüfung fehlgeschlagen: {status} {statusText}",
       "pairFailedStatusError": "Kopplung fehlgeschlagen: {status} {statusText}",

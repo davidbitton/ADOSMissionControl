@@ -17,7 +17,6 @@ const VALID_PROFILES = new Set([
   "drone",
   "ground-station",
   "compute",
-  "lite",
 ]);
 const VALID_ROLES = new Set(["direct", "relay", "receiver"]);
 

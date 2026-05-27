@@ -190,10 +190,7 @@
     "offline": "ಆಫ್‌ಲೈನ್",
     "armed": "ಆರ್ಮ್ಡ್",
     "disarmed": "ಡಿಸ್‌ಆರ್ಮ್ಡ್",
-    "online": "ಆನ್‌ಲೈನ್",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "ಆನ್‌ಲೈನ್"
   },
   "auth": {
     "signIn": "ಸೈನ್ ಇನ್",
@@ -938,8 +935,7 @@
       "profileLabel": {
         "drone": "ಡ್ರೋನ್",
         "groundStation": "ಗ್ರೌಂಡ್ ಸ್ಟೇಷನ್",
-        "compute": "ಕಂಪ್ಯೂಟ್",
-        "lite": "ಡ್ರೋನ್ (ಲೈಟ್)"
+        "compute": "ಕಂಪ್ಯೂಟ್"
       },
       "probeFailedStatusError": "ತನಿಖೆ ವಿಫಲವಾಗಿದೆ: {status} {statusText}",
       "pairFailedStatusError": "ಜೋಡಿಸುವಿಕೆ ವಿಫಲವಾಗಿದೆ: {status} {statusText}",

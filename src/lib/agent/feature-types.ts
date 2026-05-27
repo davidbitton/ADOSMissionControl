@@ -232,10 +232,6 @@ export interface AgentCapabilities {
    * entirely on FCs that expose no CAN ports. Empty array means the
    * agent has the params but reports both ports as disabled. */
   canBuses?: CanBusInfo[];
-  /** Backend variant the agent process is running. Hides plugin /
-   * peripheral / scripting / ROS surfaces when "lite". Defaults to
-   * "full" when absent. */
-  runtimeMode?: "full" | "lite";
   /** Setup wizard state on the agent. Live agents report "configured"
    * once the universal webapp wizard has been completed. Older agents
    * omit this and the GCS treats them as configured by default. */

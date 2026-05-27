@@ -148,11 +148,11 @@ export interface PluginInstallSummary {
 }
 
 /** Node profiles a plugin agent half can target. Mirrors the Pydantic
- * `Literal["drone", "ground-station", "lite"]` on the agent side. Older
+ * `Literal["drone", "ground-station"]` on the agent side. Older
  * manifests that omit `agent.target_profiles` default to `["drone"]`
  * during agent-side parsing, so a missing field on the GCS-side wire
  * shape is also treated as drone-only. */
-export type PluginTargetProfile = "drone" | "ground-station" | "lite";
+export type PluginTargetProfile = "drone" | "ground-station";
 
 /** Mirror of the agent's `node_profile` heartbeat field, plus the
  * legacy hyphenated form for the ground-station case. Kept tolerant

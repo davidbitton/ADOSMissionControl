@@ -25,7 +25,7 @@ export interface PairedDrone {
   pairedAt: number;
   /** Wire-contract node profile synced from the agent's heartbeat
    * onto cmd_drones. "drone" by default for legacy rows. */
-  profile?: "drone" | "ground-station" | "compute" | "lite";
+  profile?: "drone" | "ground-station" | "compute";
   /** Ground-station role when applicable; null on drones. */
   role?: "direct" | "relay" | "receiver" | null;
 }

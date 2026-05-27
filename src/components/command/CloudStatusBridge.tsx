@@ -287,11 +287,6 @@ export function CloudStatusBridge() {
     }
 
     // Infer capabilities from cloud status (board SoC → NPU, peripherals → cameras).
-    // The cloud row carries the agent's runtimeMode regardless of whether the
-    // /api/capabilities endpoint exists, so merge it into the inferred shape
-    // before handing to the store. Without this, agents that never expose
-    // /api/capabilities (notably the lightweight Rust backend at v0.1) would
-    // silently fall back to runtimeMode="full".
     const capState = useAgentCapabilitiesStore.getState();
     const extras = buildHeartbeatExtras(cloudRecord);
 
@@ -301,7 +296,6 @@ export function CloudStatusBridge() {
       if (inferred) {
         const payload: Record<string, unknown> = {
           ...inferred,
-          runtimeMode: extras.runtimeMode,
           videoRestartAttempts: extras.videoRestartAttempts,
           foxgloveBindFailed: extras.foxgloveBindFailed,
           pairingCodeExpiresAt: extras.pairingCodeExpiresAt,
@@ -349,7 +343,6 @@ export function CloudStatusBridge() {
         compute: capState.compute,
         vision: capState.vision,
         models: capState.models,
-        runtimeMode: capState.runtimeMode,
         setupState: capState.setupState,
         profileSource: capState.profileSource,
         profile: reMergedProfile,

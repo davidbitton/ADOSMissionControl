@@ -17,7 +17,6 @@ import { AgentCapabilitiesRawSchema } from "@/lib/agent/schemas";
 import type {
   AgentProfile,
   AgentRole,
-  AgentRuntimeMode,
   ManualConnectionUrls,
   Ros2State,
   WfbFailoverState,
@@ -38,14 +37,6 @@ export function deriveRos2State(caps: unknown): Ros2State {
   const rawRos = rosParsed.success ? rosParsed.data.ros : undefined;
   if (!rawRos?.supported) return "absent";
   return rawRos.state === "running" ? "running" : "available";
-}
-
-/** Pull runtime mode (full vs lite) out of either snake_case or camelCase. */
-export function deriveRuntimeMode(caps: unknown): AgentRuntimeMode {
-  const rawRuntime =
-    (caps as { runtimeMode?: unknown }).runtimeMode ??
-    (caps as { runtime_mode?: unknown }).runtime_mode;
-  return rawRuntime === "lite" ? "lite" : "full";
 }
 
 /** Extract setup-wizard state. Accepts snake_case or camelCase. */
@@ -73,11 +64,7 @@ export function deriveProfile(caps: unknown): AgentProfile {
   const rawProfile =
     (caps as { profile?: unknown }).profile ??
     (caps as { node_profile?: unknown }).node_profile;
-  if (
-    rawProfile === "ground-station" ||
-    rawProfile === "compute" ||
-    rawProfile === "lite"
-  ) {
+  if (rawProfile === "ground-station" || rawProfile === "compute") {
     return rawProfile;
   }
   if (

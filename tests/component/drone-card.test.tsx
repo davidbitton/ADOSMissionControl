@@ -1,6 +1,5 @@
 /**
- * Render tests for DroneCard. Covers the runtime-mode pill (lite vs full)
- * and the local-display pill (SPI LCD).
+ * Render tests for DroneCard. Covers the local-display pill (SPI LCD).
  *
  * @license GPL-3.0-only
  */
@@ -46,21 +45,6 @@ function makeDrone(overrides: Partial<FleetDrone> = {}): FleetDrone {
 }
 
 describe("DroneCard", () => {
-  it("does not render the Lite pill when runtimeMode is full", () => {
-    renderWithIntl(<DroneCard drone={makeDrone({ runtimeMode: "full" })} />);
-    expect(screen.queryByText("Lite")).toBeNull();
-  });
-
-  it("does not render the Lite pill when runtimeMode is undefined", () => {
-    renderWithIntl(<DroneCard drone={makeDrone()} />);
-    expect(screen.queryByText("Lite")).toBeNull();
-  });
-
-  it("renders the Lite pill when runtimeMode is lite", () => {
-    renderWithIntl(<DroneCard drone={makeDrone({ runtimeMode: "lite" })} />);
-    expect(screen.getByText("Lite")).toBeDefined();
-  });
-
   it("renders the LCD pill when an SPI LCD is attached", () => {
     renderWithIntl(
       <DroneCard drone={makeDrone({ attachedDisplayType: "spi-lcd" })} />,
@@ -68,16 +52,8 @@ describe("DroneCard", () => {
     expect(screen.getByText("LCD")).toBeDefined();
   });
 
-  it("renders both Lite and LCD pills together when both apply", () => {
-    renderWithIntl(
-      <DroneCard
-        drone={makeDrone({
-          runtimeMode: "lite",
-          attachedDisplayType: "spi-lcd",
-        })}
-      />,
-    );
-    expect(screen.getByText("Lite")).toBeDefined();
-    expect(screen.getByText("LCD")).toBeDefined();
+  it("does not render the LCD pill when no display is attached", () => {
+    renderWithIntl(<DroneCard drone={makeDrone()} />);
+    expect(screen.queryByText("LCD")).toBeNull();
   });
 });

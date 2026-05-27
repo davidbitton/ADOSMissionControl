@@ -384,7 +384,6 @@ export interface HeartbeatExtras {
   profileSource: string | undefined;
   profile: string | undefined;
   role: string | null | undefined;
-  runtimeMode: "full" | "lite";
   peerDeviceId: string | null;
   peerRole: string | null;
   peerChannel: number | null;
@@ -525,9 +524,6 @@ export function buildHeartbeatExtras(
         ? null
         : undefined;
 
-  const runtimeMode: "full" | "lite" =
-    cloudStatus.runtimeMode === "lite" ? "lite" : "full";
-
   const peerSeenRaw = cloudStatus.peerSeenAtUnix;
   const peerSeenAtUnix =
     typeof peerSeenRaw === "number" && Number.isFinite(peerSeenRaw)
@@ -560,7 +556,6 @@ export function buildHeartbeatExtras(
     profileSource,
     profile,
     role,
-    runtimeMode,
     peerDeviceId: pickStringOrNull(cloudStatus.peerDeviceId),
     peerRole: pickStringOrNull(cloudStatus.peerRole),
     peerChannel,

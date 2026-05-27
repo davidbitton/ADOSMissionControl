@@ -190,10 +190,7 @@
     "offline": "Sin conexión",
     "armed": "Armado",
     "disarmed": "Desarmado",
-    "online": "En línea",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "En línea"
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -938,8 +935,7 @@
       "profileLabel": {
         "drone": "Dron",
         "groundStation": "Estación terrestre",
-        "compute": "Cómputo",
-        "lite": "Dron (lite)"
+        "compute": "Cómputo"
       },
       "probeFailedStatusError": "Error en la sonda: {status} {statusText}",
       "pairFailedStatusError": "Error al emparejar: {status} {statusText}",

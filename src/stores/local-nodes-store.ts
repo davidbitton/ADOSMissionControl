@@ -42,7 +42,7 @@ export interface LocalNode {
   /** API key returned by ``/api/pairing/claim`` for this browser. */
   apiKey: string;
   /** Wire-contract profile from ``/api/pairing/info``. */
-  profile: "drone" | "ground-station" | "compute" | "lite";
+  profile: "drone" | "ground-station" | "compute";
   /** Ground-station role when applicable. */
   role?: "direct" | "relay" | "receiver" | null;
   /** Board name from the agent (e.g. "Raspberry Pi 4B"). */

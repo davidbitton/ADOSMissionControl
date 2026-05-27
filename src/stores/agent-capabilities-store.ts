@@ -20,7 +20,6 @@ export type {
   AgentCapabilitiesStore,
   AgentProfile,
   AgentRole,
-  AgentRuntimeMode,
   ManualConnectionUrls,
   Ros2State,
   WfbFailoverState,

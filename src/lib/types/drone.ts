@@ -47,10 +47,6 @@ export interface FleetDrone extends DroneInfo {
   source?: "local" | "cloud";
   /** Cloud device ID for cloud-paired agents */
   cloudDeviceId?: string;
-  /** Backend variant the agent process is running. Absent values
-   * default to "full". The "lite" variant hides plugin / peripheral /
-   * scripting / ROS surfaces in Mission Control. */
-  runtimeMode?: "full" | "lite";
   /** Cloud posture chosen on the agent. "local" hides the cloud-relay
    * connectivity expectation so the fleet card distinguishes an
    * intentionally offline drone from one that dropped off. Undefined
@@ -77,10 +73,10 @@ export interface FleetDrone extends DroneInfo {
   /** True when the chosen encoder is a hardware path. */
   videoEncoderHwAccel?: boolean;
   /** Wire-contract node profile. "drone" or "ground-station" today,
-   * "compute" / "lite" in the future. Drives node grouping in the
+   * "compute" in the future. Drives node grouping in the
    * Command-tab sidebar and panel selection in the right pane.
    * Defaults to "drone" for legacy heartbeats. */
-  profile?: "drone" | "ground-station" | "compute" | "lite";
+  profile?: "drone" | "ground-station" | "compute";
   /** Ground-station role when applicable. Undefined / null on drones. */
   role?: "direct" | "relay" | "receiver" | null;
   /** Direct LAN MAVLink WebSocket URL the agent advertises in its

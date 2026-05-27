@@ -88,7 +88,6 @@ export function NodeSidebar({
       return t("agentLabel.groundStation");
     }
     if (n.profile === "compute") return t("agentLabel.compute");
-    if (n.profile === "lite") return t("agentLabel.drone");
     return t("agentLabel.drone");
   }
 

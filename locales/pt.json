@@ -190,10 +190,7 @@
     "offline": "Offline",
     "armed": "Armado",
     "disarmed": "Desarmado",
-    "online": "Online",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "Online"
   },
   "auth": {
     "signIn": "Entrar",
@@ -953,8 +950,7 @@
       "profileLabel": {
         "drone": "Drone",
         "groundStation": "Estação terrestre",
-        "compute": "Computação",
-        "lite": "Drone (lite)"
+        "compute": "Computação"
       },
       "probeFailedStatusError": "Falha na sondagem: {status} {statusText}",
       "pairFailedStatusError": "Falha no emparelhamento: {status} {statusText}",

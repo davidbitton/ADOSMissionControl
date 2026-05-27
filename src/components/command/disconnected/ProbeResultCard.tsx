@@ -35,8 +35,6 @@ function profileLabel(profile: string, t: (k: string) => string): string {
       return t("profileLabel.groundStation");
     case "compute":
       return t("profileLabel.compute");
-    case "lite":
-      return t("profileLabel.lite");
     default:
       return t("profileLabel.drone");
   }

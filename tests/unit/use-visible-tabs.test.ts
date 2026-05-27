@@ -1,8 +1,6 @@
 /**
- * Verifies the Command sub-tab visibility hook. Drones running the
- * lightweight backend should not be offered scripting or ROS surfaces
- * because the binary does not ship those subsystems. Ground stations
- * drop tabs that only make sense on a flying node.
+ * Verifies the Command sub-tab visibility hook. Ground stations drop
+ * tabs that only make sense on a flying node.
  *
  * @license GPL-3.0-only
  */
@@ -25,7 +23,6 @@ beforeEach(() => {
       vision: initialState.vision,
       models: initialState.models,
       ros2State: "absent",
-      runtimeMode: "full",
       display: undefined,
       loaded: false,
     },
@@ -38,10 +35,9 @@ afterEach(() => {
 });
 
 describe("useVisibleTabs", () => {
-  it("returns overview + system + scripts + plugins for a loaded full drone agent", () => {
+  it("returns overview + system + scripts + plugins for a loaded drone agent", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
-      runtimeMode: "full",
     });
     const { result } = renderHook(() => useVisibleTabs());
     expect(result.current).toEqual([
@@ -52,10 +48,9 @@ describe("useVisibleTabs", () => {
     ]);
   });
 
-  it("includes the ROS sub-tab when the full agent reports ROS support", () => {
+  it("includes the ROS sub-tab when the agent reports ROS support", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
-      runtimeMode: "full",
       ros2State: "available",
     });
     const { result } = renderHook(() => useVisibleTabs());
@@ -63,10 +58,10 @@ describe("useVisibleTabs", () => {
     expect(result.current).toContain("scripts");
   });
 
-  it("drops scripts, ros, and plugins for a lite agent", () => {
+  it("drops scripts, ros, and plugins for a ground station", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
-      runtimeMode: "lite",
+      profile: "ground-station",
       cameras: [
         {
           name: "uvc-cam",
@@ -86,35 +81,24 @@ describe("useVisibleTabs", () => {
     expect(result.current).not.toContain("plugins");
   });
 
-  it("keeps overview and system visible for a lite agent", () => {
+  it("keeps overview and system visible for a ground station", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
-      runtimeMode: "lite",
+      profile: "ground-station",
     });
     const { result } = renderHook(() => useVisibleTabs());
     expect(result.current).toEqual(["overview", "system"]);
   });
 
-  it("treats an undefined runtimeMode as full backend", () => {
+  it("shows plugins for a drone agent and hides it on a ground station", () => {
     useAgentCapabilitiesStore.setState({
       loaded: true,
-    });
-    const { result } = renderHook(() => useVisibleTabs());
-    expect(result.current).toContain("scripts");
-    expect(result.current).toContain("plugins");
-  });
-
-  it("shows plugins for a full drone agent and hides it on a ground station", () => {
-    useAgentCapabilitiesStore.setState({
-      loaded: true,
-      runtimeMode: "full",
     });
     expect(renderHook(() => useVisibleTabs()).result.current).toContain(
       "plugins",
     );
     useAgentCapabilitiesStore.setState({
       loaded: true,
-      runtimeMode: "full",
       profile: "ground-station",
     });
     expect(

@@ -190,10 +190,7 @@
     "offline": "ऑफ़लाइन",
     "armed": "आर्म्ड",
     "disarmed": "डिसआर्म्ड",
-    "online": "ऑनलाइन",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "ऑनलाइन"
   },
   "auth": {
     "signIn": "साइन इन",
@@ -938,8 +935,7 @@
       "profileLabel": {
         "drone": "ड्रोन",
         "groundStation": "ग्राउंड स्टेशन",
-        "compute": "कंप्यूट",
-        "lite": "ड्रोन (लाइट)"
+        "compute": "कंप्यूट"
       },
       "probeFailedStatusError": "जांच विफल: {status} {statusText}",
       "pairFailedStatusError": "पेयरिंग विफल: {status} {statusText}",

@@ -13,7 +13,6 @@ describe("pluginMatchesProfile", () => {
   it("treats undefined target_profiles as drone-only (legacy default)", () => {
     expect(pluginMatchesProfile(undefined, "drone")).toBe(true);
     expect(pluginMatchesProfile(undefined, "ground-station")).toBe(false);
-    expect(pluginMatchesProfile(undefined, "lite")).toBe(false);
   });
 
   it("treats null target_profiles as drone-only", () => {
@@ -37,7 +36,6 @@ describe("pluginMatchesProfile", () => {
     const list: ("drone" | "ground-station")[] = ["drone", "ground-station"];
     expect(pluginMatchesProfile(list, "drone")).toBe(true);
     expect(pluginMatchesProfile(list, "ground-station")).toBe(true);
-    expect(pluginMatchesProfile(list, "lite")).toBe(false);
   });
 
   it("never matches a compute node, even when target list includes drone", () => {

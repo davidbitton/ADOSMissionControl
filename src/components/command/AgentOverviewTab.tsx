@@ -4,8 +4,8 @@
  * @module AgentOverviewTab
  * @description Default tab in the Command-tab agent view. Defers to
  * `NodeOverviewRouter` which picks a per-profile overview component
- * (drone / ground-station / lite / compute) based on the connected
- * agent's `profile` + `runtimeMode`.
+ * (drone / ground-station / compute) based on the connected
+ * agent's `profile`.
  *
  * The drone overview body (video, flight, RC, battery, services,
  * resources, logs) lives in `overview/DroneOverview.tsx` — this file

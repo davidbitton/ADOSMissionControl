@@ -190,10 +190,7 @@
     "offline": "ਔਫਲਾਈਨ",
     "armed": "ਸਰਗਰਮ",
     "disarmed": "ਡਿਸਆਰਮਡ",
-    "online": "ਔਨਲਾਈਨ",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "ਔਨਲਾਈਨ"
   },
   "auth": {
     "signIn": "ਸਾਈਨ ਇਨ",
@@ -938,8 +935,7 @@
       "profileLabel": {
         "drone": "ਡ੍ਰੋਨ",
         "groundStation": "ਗ੍ਰਾਊਂਡ ਸਟੇਸ਼ਨ",
-        "compute": "ਕੰਪਿਊਟ",
-        "lite": "ਡ੍ਰੋਨ (ਲਾਈਟ)"
+        "compute": "ਕੰਪਿਊਟ"
       },
       "probeFailedStatusError": "ਜਾਂਚ ਅਸਫਲ: {status} {statusText}",
       "pairFailedStatusError": "ਪੇਅਰਿੰਗ ਅਸਫਲ: {status} {statusText}",

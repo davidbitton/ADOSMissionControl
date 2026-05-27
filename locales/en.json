@@ -190,10 +190,7 @@
     "offline": "Offline",
     "armed": "Armed",
     "disarmed": "Disarmed",
-    "online": "Online",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "Online"
   },
   "auth": {
     "signIn": "Sign In",
@@ -992,8 +989,7 @@
       "profileLabel": {
         "drone": "Drone",
         "groundStation": "Ground station",
-        "compute": "Compute",
-        "lite": "Drone (lite)"
+        "compute": "Compute"
       },
       "firstPairWarning": {
         "title": "Your API keys live in this browser",

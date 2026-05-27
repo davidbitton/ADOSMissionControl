@@ -190,10 +190,7 @@
     "offline": "ஆஃப்லைன்",
     "armed": "ஆர்ம்டு",
     "disarmed": "டிசார்ம்டு",
-    "online": "ஆன்லைன்",
-    "runtimeMode": {
-      "lite": "Lite"
-    }
+    "online": "ஆன்லைன்"
   },
   "auth": {
     "signIn": "உள்நுழைவு",
@@ -938,8 +935,7 @@
       "profileLabel": {
         "drone": "ட்ரோன்",
         "groundStation": "தரை நிலையம்",
-        "compute": "கம்ப்யூட்",
-        "lite": "ட்ரோன் (லைட்)"
+        "compute": "கம்ப்யூட்"
       },
       "probeFailedStatusError": "ஆய்வு தோல்வியடைந்தது: {status} {statusText}",
       "pairFailedStatusError": "இணைப்பு தோல்வியடைந்தது: {status} {statusText}",

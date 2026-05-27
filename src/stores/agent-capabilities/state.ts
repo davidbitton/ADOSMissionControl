@@ -29,7 +29,6 @@ import {
   deriveProfileSource,
   deriveRole,
   deriveRos2State,
-  deriveRuntimeMode,
   deriveSetupState,
   deriveVideoRestartAttempts,
   deriveWfbFailoverState,
@@ -46,7 +45,6 @@ const INITIAL_STATE: AgentCapabilitiesState = {
   vision: DEFAULT_VISION,
   models: DEFAULT_MODELS,
   ros2State: "absent",
-  runtimeMode: "full",
   setupState: undefined,
   profileSource: undefined,
   profile: "drone",
@@ -84,10 +82,9 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>(
     setCapabilities(caps: AgentCapabilities | Record<string, unknown>) {
       const normalized = normalizeCapabilities(caps);
 
-      // Wire-contract identity + ROS environment + runtime mode derive
-      // cleanly from the raw payload.
+      // Wire-contract identity + ROS environment derive cleanly from
+      // the raw payload.
       const ros2State = deriveRos2State(caps);
-      const runtimeMode = deriveRuntimeMode(caps);
       const setupState = deriveSetupState(caps);
       const profileSource = deriveProfileSource(caps);
       const profile = deriveProfile(caps);
@@ -122,7 +119,6 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>(
         vision: normalized.vision,
         models: normalized.models,
         ros2State,
-        runtimeMode,
         setupState,
         profileSource,
         profile,
