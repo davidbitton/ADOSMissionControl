@@ -8,7 +8,7 @@
  * @license GPL-3.0-only
  */
 
-import { Radio as RadioIcon, AlertTriangle } from "lucide-react";
+import { Radio as RadioIcon, AlertTriangle, VideoOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type {
   RadioLinkState,
@@ -45,6 +45,17 @@ export interface LinkHealthCardProps {
   // and on the receive side.
   txVideoStalled?: boolean | null;
   txVideoStallKills?: number | null;
+  // True when the control link is up (paired + peer heard) but no valid
+  // WFB packets are decoding on the ground — the radio handshake worked
+  // yet the video downlink isn't flowing.
+  pairedNoVideo?: boolean;
+  // Per-second valid WFB decode rate on the ground. Null on the transmit
+  // side and on older agents.
+  validRxPacketsPerS?: number | null;
+  // Count of destructive ground wfb_rx restarts the valid-packet
+  // watchdog has fired. A climbing value means the receive link is
+  // thrashing. Null on the transmit side and on older agents.
+  reacquireKills?: number | null;
 }
 
 export function LinkHealthCard({
@@ -68,6 +79,9 @@ export function LinkHealthCard({
   rxSilentSeconds,
   txVideoStalled,
   txVideoStallKills,
+  pairedNoVideo,
+  validRxPacketsPerS,
+  reacquireKills,
 }: LinkHealthCardProps) {
   const t = useTranslations("hardware.radio");
   return (
@@ -92,6 +106,17 @@ export function LinkHealthCard({
           <span className="inline-flex items-center gap-1.5 rounded border border-status-error/40 bg-status-error/10 px-2.5 py-1 text-xs text-status-error">
             <AlertTriangle size={12} />
             {t("videoTxStalled")}
+          </span>
+        ) : null}
+        {pairedNoVideo === true ? (
+          <span className="inline-flex items-center gap-1.5 rounded border border-status-warning/40 bg-status-warning/10 px-2.5 py-1 text-xs text-status-warning">
+            <VideoOff size={12} />
+            {t("pairedNoVideo")}
+          </span>
+        ) : validRxPacketsPerS != null && validRxPacketsPerS > 0 ? (
+          <span className="inline-flex items-center gap-1.5 rounded border border-status-success/40 bg-status-success/10 px-2.5 py-1 text-xs text-status-success">
+            <RadioIcon size={12} />
+            {t("linkedBadge")}
           </span>
         ) : null}
       </div>
@@ -146,6 +171,23 @@ export function LinkHealthCard({
         ) : null}
         {rxSilentSeconds != null ? (
           <StatRow label={t("rxIdle")} value={`${rxSilentSeconds.toFixed(1)} s`} />
+        ) : null}
+        {validRxPacketsPerS != null ? (
+          <StatRow
+            label={t("validRxRate")}
+            value={`${validRxPacketsPerS.toFixed(0)} /s`}
+            valueClass={
+              validRxPacketsPerS <= 0 ? "text-status-warning" : undefined
+            }
+          />
+        ) : null}
+        {reacquireKills != null && reacquireKills > 0 ? (
+          <StatRow
+            label={t("reacquireKills")}
+            value={String(reacquireKills)}
+            valueClass="text-status-warning"
+            title={t("reacquireKillsHint")}
+          />
         ) : null}
         {txVideoStallKills != null && txVideoStallKills > 0 ? (
           <StatRow

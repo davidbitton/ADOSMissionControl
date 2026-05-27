@@ -12,14 +12,25 @@
  * @license GPL-3.0-only
  */
 
-import { Radio as RadioIcon, Crosshair, ArrowLeftRight } from "lucide-react";
+import { Radio as RadioIcon, Crosshair, ArrowLeftRight, Lock } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type {
   RadioPeerLink,
   RadioHopState,
+  RadioAcquireState,
 } from "@/lib/api/ground-station/types";
-import { EMPTY, peerLinkClass, hopStateClass } from "./constants";
-import { peerLinkLabel, hopStateLabel, bandLabel } from "./labels";
+import {
+  EMPTY,
+  peerLinkClass,
+  hopStateClass,
+  acquireStateClass,
+} from "./constants";
+import {
+  peerLinkLabel,
+  hopStateLabel,
+  acquireStateLabel,
+  bandLabel,
+} from "./labels";
 import { StatRow } from "./StatRow";
 
 export interface ChannelStateCardProps {
@@ -32,6 +43,10 @@ export interface ChannelStateCardProps {
   txActive: boolean | null;
   peerLink: RadioPeerLink | null;
   hopState: RadioHopState | null;
+  // Ground receive acquirer mode + its boolean lock flag. Null on the
+  // transmit side and on older agents.
+  acquireState: RadioAcquireState | null;
+  channelLocked: boolean | null;
 }
 
 export function ChannelStateCard({
@@ -44,6 +59,8 @@ export function ChannelStateCard({
   txActive,
   peerLink,
   hopState,
+  acquireState,
+  channelLocked,
 }: ChannelStateCardProps) {
   const t = useTranslations("hardware.radio");
 
@@ -56,7 +73,9 @@ export function ChannelStateCard({
     monitorActive != null ||
     txActive != null ||
     peerLink != null ||
-    hopState != null;
+    hopState != null ||
+    acquireState != null ||
+    channelLocked != null;
   if (!hasAnything) return null;
 
   // The drone "locked on home channel N and transmitting" vs "searching
@@ -81,6 +100,14 @@ export function ChannelStateCard({
           >
             <ArrowLeftRight size={12} />
             {t("hop")}: {hopStateLabel(t, hopState)}
+          </span>
+        ) : null}
+        {acquireState != null ? (
+          <span
+            className={`inline-flex items-center gap-1.5 rounded border px-2.5 py-1 text-xs ${acquireStateClass(acquireState)}`}
+          >
+            <Lock size={12} />
+            {t("acquire")}: {acquireStateLabel(t, acquireState)}
           </span>
         ) : null}
         {txActive === true ? (
@@ -128,6 +155,15 @@ export function ChannelStateCard({
             }
             valueClass={
               monitorActive === false ? "text-status-warning" : undefined
+            }
+          />
+        ) : null}
+        {channelLocked != null ? (
+          <StatRow
+            label={t("channelLocked")}
+            value={channelLocked ? t("stateYes") : t("stateNo")}
+            valueClass={
+              channelLocked ? "text-status-success" : "text-status-warning"
             }
           />
         ) : null}

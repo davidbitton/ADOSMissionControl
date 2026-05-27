@@ -12,6 +12,7 @@ import type {
   RadioTopology,
   RadioPeerLink,
   RadioHopState,
+  RadioAcquireState,
 } from "@/lib/api/ground-station/types";
 
 export function linkStateLabel(
@@ -63,6 +64,19 @@ export function hopStateLabel(
     hopping: "hopState.hopping",
   };
   return t(map[hopState]);
+}
+
+export function acquireStateLabel(
+  t: ReturnType<typeof useTranslations>,
+  acquireState: RadioAcquireState,
+): string {
+  const map: Record<RadioAcquireState, string> = {
+    idle: "acquireState.idle",
+    searching: "acquireState.searching",
+    locked: "acquireState.locked",
+    "no-peer": "acquireState.no_peer",
+  };
+  return t(map[acquireState]);
 }
 
 // Friendly band label. The agent emits the U-NII band slug; render a

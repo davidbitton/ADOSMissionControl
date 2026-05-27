@@ -10,6 +10,7 @@ import type {
   RadioTopology,
   RadioPeerLink,
   RadioHopState,
+  RadioAcquireState,
 } from "@/lib/api/ground-station/types";
 
 export const POLL_INTERVAL_MS = 500;
@@ -59,5 +60,15 @@ export function hopStateClass(hopState: RadioHopState): string {
   if (hopState === "locked") return "border-status-success/40 text-status-success";
   if (hopState === "hopping") return "border-accent-primary/40 text-accent-primary";
   if (hopState === "searching") return "border-status-warning/40 text-status-warning";
+  return "border-border-default text-text-secondary";
+}
+
+// Badge color for the ground receive acquirer state. Locked is healthy,
+// searching is a warning (hunting for a valid channel), no-peer is an
+// error (nothing heard from the other end), idle is neutral.
+export function acquireStateClass(acquireState: RadioAcquireState): string {
+  if (acquireState === "locked") return "border-status-success/40 text-status-success";
+  if (acquireState === "searching") return "border-status-warning/40 text-status-warning";
+  if (acquireState === "no-peer") return "border-status-error/40 text-status-error";
   return "border-border-default text-text-secondary";
 }

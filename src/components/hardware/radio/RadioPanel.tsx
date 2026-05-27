@@ -31,6 +31,7 @@ import type {
   RadioTopology,
   RadioPeerLink,
   RadioHopState,
+  RadioAcquireState,
   SetTxPowerResult,
 } from "@/lib/api/ground-station/types";
 import {
@@ -112,6 +113,16 @@ export function RadioPanel() {
   const txPowerDbm = cloudRadio?.txPowerDbm ?? wfbTxPowerDbm;
   const txPowerMaxDbm = cloudRadio?.txPowerMaxDbm ?? DEFAULT_TX_MAX_DBM;
 
+  // Ground receive acquisition surface. acquireState / channelLocked
+  // describe the channel-acquirer; reacquireKills counts destructive
+  // ground wfb_rx restarts (a climbing value = thrashing receive link);
+  // validRxPacketsPerS is the per-second valid WFB decode rate.
+  const acquireState: RadioAcquireState | null =
+    cloudRadio?.acquireState ?? null;
+  const channelLocked = cloudRadio?.channelLocked ?? null;
+  const reacquireKills = cloudRadio?.reacquireKills ?? null;
+  const validRxPacketsPerS = cloudRadio?.validRxPacketsPerS ?? null;
+
   // Channel rendezvous + hop surface. Read-only: the agent owns
   // channel / band / reg-domain config and the hop supervisor decides
   // when to move. The card stays hidden when the agent reports none of
@@ -123,6 +134,18 @@ export function RadioPanel() {
   const txActive = cloudRadio?.txActive ?? null;
   const peerLink: RadioPeerLink | null = cloudRadio?.peerLink ?? null;
   const hopState: RadioHopState | null = cloudRadio?.hopState ?? null;
+  const paired = cloudRadio?.paired ?? false;
+
+  // "Paired — no video": the control link is up (paired and a peer has
+  // been heard) but no valid WFB packets are decoding on the ground.
+  // This is the operator's cue that the radio handshake succeeded yet
+  // the video downlink isn't flowing. A non-zero decode rate means the
+  // receive link is genuinely live.
+  const pairedNoVideo =
+    paired &&
+    (peerLink === "linked" || acquireState === "locked") &&
+    validRxPacketsPerS != null &&
+    validRxPacketsPerS <= 0;
 
   // Brownout: VBUS topology + above 12 dBm. Agent firmware caps the
   // slider in hardware; this is just an informational pill.
@@ -334,6 +357,9 @@ export function RadioPanel() {
         rxSilentSeconds={rxSilentSeconds}
         txVideoStalled={txVideoStalled}
         txVideoStallKills={txVideoStallKills}
+        pairedNoVideo={pairedNoVideo}
+        validRxPacketsPerS={validRxPacketsPerS}
+        reacquireKills={reacquireKills}
       />
 
       <ChannelStateCard
@@ -346,6 +372,8 @@ export function RadioPanel() {
         txActive={txActive}
         peerLink={peerLink}
         hopState={hopState}
+        acquireState={acquireState}
+        channelLocked={channelLocked}
       />
 
       <PairingCard
