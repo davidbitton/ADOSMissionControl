@@ -20,13 +20,17 @@ export interface PairedInfo {
   mdnsHost: string;
 }
 
-export type ClaimCodeMutation = ((args: { code: string }) => Promise<{
-  deviceId?: string;
-  name?: string;
-  apiKey?: string;
-  mdnsHost?: string;
-  localIp?: string;
-}>) | null;
+export type ClaimCodeMutation = ((args: { code: string }) => Promise<
+  | { error: "invalid_pairing_code" | "pairing_code_expired" | "code_already_claimed" }
+  | {
+      error?: null;
+      deviceId?: string;
+      name?: string;
+      apiKey?: string;
+      mdnsHost?: string;
+      localIp?: string;
+    }
+>) | null;
 
 export type PreGenerateMutation = ((args: Record<string, never>) => Promise<{
   code: string;
@@ -230,6 +234,25 @@ export function usePairingFlow({
       }
 
       const result = await claimCode({ code: agent.pairingCode });
+
+      if (result.error) {
+        // Expected outcomes come back as a result, not a throw, so the browser
+        // console stays clean. A code the relay does not know almost always
+        // means the agent is in local mode, so point at LAN pairing.
+        const local = result.error === "invalid_pairing_code";
+        const msg = local
+          ? "That code isn't registered with the cloud relay. If this drone is on your network, pair it by hostname instead."
+          : result.error === "pairing_code_expired"
+            ? "Pairing code expired. Ask the agent to generate a new one."
+            : "This code was already used by another account.";
+        setCanPairLocally(local);
+        setErrorMessage(msg);
+        setState("error");
+        setPairingInProgress(false);
+        setPairingError(msg);
+        return;
+      }
+
       const info: PairedInfo = {
         deviceId: result.deviceId || `ados-${agent.pairingCode.toLowerCase()}`,
         name: result.name || "ADOS Agent",
@@ -249,27 +272,10 @@ export function usePairingFlow({
         }
       }, 1500);
     } catch (err) {
-      // Prefer the typed ConvexError discriminator; fall back to message text
-      // for older deployments that still throw a plain Error.
-      const code = (err as { data?: { code?: string } } | null)?.data?.code;
-      const raw = err instanceof Error ? err.message : "Pairing failed";
-      const isExpired = code === "pairing_code_expired" || raw.includes("expired");
-      const isClaimed = code === "code_already_claimed" || raw.includes("already claimed");
-      const isInvalid = code === "invalid_pairing_code" || raw.includes("Invalid");
-
-      let msg: string;
-      if (isExpired) {
-        msg = "Pairing code expired. Ask the agent to generate a new one.";
-      } else if (isClaimed) {
-        msg = "This code was already used by another account.";
-      } else if (isInvalid) {
-        // Local-first: a code that the cloud relay does not know almost always
-        // means the agent is in local mode. Point at LAN pairing, not the cloud.
-        msg = "That code isn't registered with the cloud relay. If this drone is on your network, pair it by hostname instead.";
-        setCanPairLocally(true);
-      } else {
-        msg = raw;
-      }
+      // Reaching here means a genuinely unexpected throw (Convex unreachable,
+      // or the gated not-authenticated precondition). Expected pairing
+      // failures are handled above as returned results, not exceptions.
+      const msg = err instanceof Error ? err.message : "Pairing failed";
       setErrorMessage(msg);
       setState("error");
       setPairingInProgress(false);

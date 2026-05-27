@@ -4,19 +4,28 @@ All notable changes to ADOS Mission Control are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the project follows [Semantic Versioning](https://semver.org/).
 
+## [0.25.3] - 2026-05-27
+
+### Fixed
+
+- **No console error when a pairing code is not found.** Resolving a code that
+  the cloud relay does not know (the agent is in local mode, the default) no
+  longer logs anything to the browser console. The claim function now returns
+  an expected "not found" result instead of throwing, so the Convex client has
+  no server error to report. The calm local-first message and the "Pair on
+  this network" button are unchanged; they now key off the returned result.
+
 ## [0.25.2] - 2026-05-27
 
 ### Fixed
 
 - **Clearer failure when a pairing code is not found.** Entering a code for an
   agent that is reachable on your network but not registered with the cloud
-  relay used to log a raw server error to the browser console and tell you to
-  check the agent's internet connection. The backend now returns a typed,
-  expected error (no console exception), and the dialog shows a calm message
-  with a "Pair on this network" button that jumps straight to pairing by
-  hostname or IP, which is the path that works on a single network. The
-  Add-a-Node form also nudges you to enter the hostname when a code does not
-  resolve.
+  relay used to tell you to check the agent's internet connection. The dialog
+  now shows a calm message with a "Pair on this network" button that jumps
+  straight to pairing by hostname or IP, which is the path that works on a
+  single network. The Add-a-Node form also nudges you to enter the hostname
+  when a code does not resolve.
 
 ## [0.24.0] - 2026-05-25
 

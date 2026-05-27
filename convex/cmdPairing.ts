@@ -7,7 +7,7 @@
  * @license GPL-3.0-only
  */
 
-import { v, ConvexError } from "convex/values";
+import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -85,14 +85,14 @@ export const claimPairingCodeAnon = mutation({
       .withIndex("by_pairingCode", (q) => q.eq("pairingCode", pairingCode))
       .first();
 
-    if (!request) throw new ConvexError({ code: "invalid_pairing_code", message: "Invalid pairing code" });
+    if (!request) return { error: "invalid_pairing_code" as const };
     if (request.expiresAt < Date.now()) {
       await ctx.db.delete(request._id);
-      throw new ConvexError({ code: "pairing_code_expired", message: "Pairing code expired" });
+      return { error: "pairing_code_expired" as const };
     }
     const browserMarker = `browser:${browserOwner}`;
     if (request.claimedBy && request.claimedBy !== browserMarker) {
-      throw new ConvexError({ code: "code_already_claimed", message: "Code already claimed" });
+      return { error: "code_already_claimed" as const };
     }
 
     await ctx.db.patch(request._id, {
@@ -146,6 +146,7 @@ export const claimPairingCodeAnon = mutation({
     }
 
     return {
+      error: null,
       deviceId,
       name: request.agentName || `Drone ${pairingCode}`,
       apiKey: request.apiKey || "",
@@ -172,12 +173,12 @@ export const claimPairingCode = mutation({
       )
       .first();
 
-    if (!request) throw new ConvexError({ code: "invalid_pairing_code", message: "Invalid pairing code" });
+    if (!request) return { error: "invalid_pairing_code" as const };
     if (request.expiresAt < Date.now()) {
       await ctx.db.delete(request._id);
-      throw new ConvexError({ code: "pairing_code_expired", message: "Pairing code expired" });
+      return { error: "pairing_code_expired" as const };
     }
-    if (request.claimedBy) throw new ConvexError({ code: "code_already_claimed", message: "Code already claimed" });
+    if (request.claimedBy) return { error: "code_already_claimed" as const };
 
     // Mark as claimed
     await ctx.db.patch(request._id, {
@@ -226,6 +227,7 @@ export const claimPairingCode = mutation({
     }
 
     return {
+      error: null,
       droneId,
       apiKey: request.apiKey || "",
       mdnsHost: request.mdnsHost,

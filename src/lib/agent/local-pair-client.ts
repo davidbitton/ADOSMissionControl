@@ -152,15 +152,21 @@ export function looksLikePairCode(input: string): boolean {
  *  call, which `probeByCode` chains into through `probeAgent` →
  *  `pairLocally`. The beacon key is discarded.
  */
-export interface CodeClaimResult {
-  deviceId: string;
-  name: string;
-  apiKey: string;
-  mdnsHost?: string;
-  localIp?: string;
-  board?: string;
-  agentVersion?: string;
-}
+// The claim mutation returns an expected-failure result instead of throwing,
+// so a code the relay does not know produces no console error. Discriminate
+// on `error`: a set string is the failure, null/absent is the success payload.
+export type CodeClaimResult =
+  | { error: "invalid_pairing_code" | "pairing_code_expired" | "code_already_claimed" }
+  | {
+      error?: null;
+      deviceId: string;
+      name: string;
+      apiKey: string;
+      mdnsHost?: string;
+      localIp?: string;
+      board?: string;
+      agentVersion?: string;
+    };
 
 /** Re-export of the LAN discovery scan with the local `combineSignals`
  *  helper bound. Keeps the public surface of this module unchanged for
@@ -214,26 +220,25 @@ export async function probeByCode(
   //    appear here — the user gets the `codeNoLanMatchError` message,
   //    enriched with the current codes of any unpaired LAN agents we
   //    saw so a rotation foot-gun is recoverable in one step.
-  let lookup: CodeClaimResult;
-  try {
-    lookup = await claimAnon({
-      code: cleaned,
-      browserUserId: getBrowserId(),
-    });
-  } catch (e) {
-    if (e instanceof Error && /invalid pairing code/i.test(e.message)) {
-      const hint =
-        lan.unpaired.length > 0
-          ? ` LAN agents we see right now: ${lan.unpaired
-              .map((a) => `${a.name} → ${a.code}`)
-              .join(", ")}.`
-          : "";
-      throw new PairClientError(
-        "codeNoLanMatchError",
-        `No agent on this LAN is advertising that pair code. Codes rotate every 15 minutes — check \`ados status\` on the agent for the current code.${hint}`,
-      );
-    }
-    throw e;
+  // The relay returns a normal result, not a throw, when it does not know the
+  // code (the agent is in local mode, the default, or the code rotated). That
+  // keeps the browser console clean. Surface the LAN agents we did see so a
+  // code-rotation foot-gun is recoverable in one step.
+  const lookup = await claimAnon({
+    code: cleaned,
+    browserUserId: getBrowserId(),
+  });
+  if (lookup.error) {
+    const hint =
+      lan.unpaired.length > 0
+        ? ` LAN agents we see right now: ${lan.unpaired
+            .map((a) => `${a.name} → ${a.code}`)
+            .join(", ")}.`
+        : "";
+    throw new PairClientError(
+      "codeNoLanMatchError",
+      `No agent on this LAN is advertising that pair code. Codes rotate every 15 minutes, so check \`ados status\` on the agent for the current code.${hint}`,
+    );
   }
 
   // Prefer the agent's mDNS host so a DHCP renumber doesn't kill
