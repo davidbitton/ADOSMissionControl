@@ -2815,6 +2815,21 @@
         "unii1": "U-NII-1 (5.15-5.25 GHz)",
         "unii3": "U-NII-3 (5.725-5.85 GHz)",
         "all": "All bands"
+      },
+      "pairedNoVideo": "Paired — no video",
+      "linkedBadge": "Linked",
+      "validRxRate": "Valid RX rate",
+      "reacquireKills": "Link reacquires",
+      "reacquireKillsHint": "How many times the ground receiver has had to destructively restart to recover a valid decode. A high or climbing value means the receive link is thrashing.",
+      "channelLocked": "Channel locked",
+      "acquire": "Acquire",
+      "stateYes": "Yes",
+      "stateNo": "No",
+      "acquireState": {
+        "idle": "Idle",
+        "searching": "Searching",
+        "locked": "Locked",
+        "no_peer": "No peer"
       }
     },
     "videoLink": {

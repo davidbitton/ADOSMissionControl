@@ -2898,13 +2898,22 @@
       "rxIdle": "RX idle",
       "videoTxStalled": "Video TX stalled",
       "videoTxRecoveries": "Video TX recoveries",
+      "pairedNoVideo": "Paired — no video",
+      "linkedBadge": "Linked",
+      "validRxRate": "Valid RX rate",
+      "reacquireKills": "Link reacquires",
+      "reacquireKillsHint": "How many times the ground receiver has had to destructively restart to recover a valid decode. A high or climbing value means the receive link is thrashing.",
       "homeChannel": "Home channel",
       "currentChannel": "Current channel",
       "band": "Band",
       "monitorMode": "Monitor mode",
+      "channelLocked": "Channel locked",
       "hop": "Hop",
+      "acquire": "Acquire",
       "stateOn": "On",
       "stateOff": "Off",
+      "stateYes": "Yes",
+      "stateNo": "No",
       "txActiveBadge": "Transmitting",
       "txIdleBadge": "Not transmitting",
       "peerLinkState": {
@@ -2917,6 +2926,12 @@
         "searching": "Searching",
         "locked": "Locked",
         "hopping": "Hopping"
+      },
+      "acquireState": {
+        "idle": "Idle",
+        "searching": "Searching",
+        "locked": "Locked",
+        "no_peer": "No peer"
       },
       "bandState": {
         "unii1": "U-NII-1 (5.15-5.25 GHz)",
