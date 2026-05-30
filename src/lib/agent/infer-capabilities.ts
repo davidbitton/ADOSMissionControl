@@ -226,9 +226,14 @@ export function inferCapabilities(
   const board = status.board;
   if (!board) return null;
 
-  // Infer NPU from SoC
+  // Infer NPU from SoC. Prefer the probed (kernel device-tree) SoC over
+  // the board-YAML declared value when the agent sends it: the silicon is
+  // authoritative, and the declared string can be wrong or stale. The NPU
+  // lookup table is keyed by the declared family name (e.g. "RK3588S2"),
+  // so try the probed string first, then fall back to the declared `soc`.
   const soc = board.soc ?? "";
-  const npuInfo = NPU_BY_SOC[soc] ?? null;
+  const socProbed = board.soc_probed ?? "";
+  const npuInfo = NPU_BY_SOC[socProbed] ?? NPU_BY_SOC[soc] ?? null;
 
   const compute: ComputeCapability = {
     npu_available: npuInfo !== null,

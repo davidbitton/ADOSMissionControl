@@ -600,6 +600,14 @@ fullName: v.optional(v.string()),
     boardTier: v.optional(v.number()),
     boardSoc: v.optional(v.string()),
     boardArch: v.optional(v.string()),
+    // Probed-from-silicon hardware truth. boardSocProbed is the kernel's
+    // device-tree compatible string (authoritative over the board YAML's
+    // declared soc); boardCpuProbed is the probed CPU-cluster summary;
+    // hwEncoderProbed is the confirmed hardware H.264 encoder node after a
+    // real trial-init. All optional so older agents round-trip cleanly.
+    boardSocProbed: v.optional(v.string()),
+    boardCpuProbed: v.optional(v.string()),
+    hwEncoderProbed: v.optional(v.string()),
     // Running kernel release string (uname -r). Reported by the agent
     // every heartbeat so the drone-detail system area can show which
     // kernel the board booted. Older agents omit it.

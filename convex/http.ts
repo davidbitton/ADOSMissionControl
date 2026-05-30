@@ -408,6 +408,11 @@ http.route({
       boardTier: numberField(body, "boardTier"),
       boardSoc: stringField(body, "boardSoc"),
       boardArch: stringField(body, "boardArch"),
+      // Probed-from-silicon hardware truth, forwarded verbatim. Each stays
+      // undefined when the agent omits it so the row remains additive.
+      boardSocProbed: stringField(body, "boardSocProbed"),
+      boardCpuProbed: stringField(body, "boardCpuProbed"),
+      hwEncoderProbed: stringField(body, "hwEncoderProbed"),
       // Kernel release + radio-module source + install-health summary.
       // Forwarded verbatim from the agent heartbeat; each stays
       // undefined when the agent omits it so the row remains additive.

@@ -24,6 +24,23 @@ export interface BoardInfo {
   soc: string;
   arch: string;
   hw_video_codecs: string[];
+  /** SoC string the board YAML declares (hand-authored). Kept separate
+   * from `soc` so the UI can show declared-vs-probed drift. Undefined on
+   * agents that predate the probed-truth surface. */
+  soc_declared?: string;
+  /** SoC compatible string the kernel actually reports (device-tree
+   * compatible, most-specific first). Authoritative over the declared
+   * value. Undefined when the boot probe sidecar is absent or the SoC
+   * was not probed. */
+  soc_probed?: string;
+  /** Probed CPU-cluster summary the silicon reports, one entry per
+   * big.LITTLE cluster (e.g. "Cortex-A76 x2 + Cortex-A55 x4").
+   * Undefined when not probed. */
+  cpu_probed?: string;
+  /** Confirmed hardware H.264 encoder node, present only after a real
+   * trial-init (not an advertised-but-absent wrapper). Undefined when
+   * no hardware encoder was probed. */
+  hw_encoder_probed?: string;
 }
 
 export interface HealthInfo {

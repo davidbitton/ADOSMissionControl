@@ -55,6 +55,25 @@ export interface MappedAgentStatus {
 }
 
 export function mapCloudStatus(cloudStatus: Record<string, unknown>): AgentStatus {
+  // Probed-from-silicon truth the agent sends on the heartbeat root. The
+  // agent already prefers the probed SoC for `boardSoc`, but it also sends
+  // the raw probed string so the GCS can show declared-vs-probed drift.
+  const socProbed =
+    typeof cloudStatus.boardSocProbed === "string" && cloudStatus.boardSocProbed
+      ? cloudStatus.boardSocProbed
+      : undefined;
+  const cpuProbed =
+    typeof cloudStatus.boardCpuProbed === "string" && cloudStatus.boardCpuProbed
+      ? cloudStatus.boardCpuProbed
+      : undefined;
+  const hwEncoderProbed =
+    typeof cloudStatus.hwEncoderProbed === "string" && cloudStatus.hwEncoderProbed
+      ? cloudStatus.hwEncoderProbed
+      : undefined;
+  // `boardSoc` is the value the agent landed on (probed when available,
+  // else declared). Prefer the probed string for display so the silicon
+  // wins; keep the agent's value as the declared baseline for drift.
+  const boardSoc = (cloudStatus.boardSoc as string | undefined) || "";
   const board = {
     name: (cloudStatus.boardName as string | undefined) || "Unknown",
     model: "",
@@ -65,9 +84,13 @@ export function mapCloudStatus(cloudStatus: Record<string, unknown>): AgentStatu
       0,
     cpu_cores: (cloudStatus.cpuCores as number | undefined) || 0,
     vendor: "",
-    soc: (cloudStatus.boardSoc as string | undefined) || "",
+    soc: socProbed || boardSoc,
     arch: (cloudStatus.boardArch as string | undefined) || "",
     hw_video_codecs: [] as string[],
+    soc_declared: boardSoc || undefined,
+    soc_probed: socProbed,
+    cpu_probed: cpuProbed,
+    hw_encoder_probed: hwEncoderProbed,
   };
   return {
     version: (cloudStatus.version as string | undefined) || "?.?.?",

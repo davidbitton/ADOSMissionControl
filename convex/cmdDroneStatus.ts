@@ -23,6 +23,12 @@ export const pushStatus = internalMutation({
     boardTier: v.optional(v.number()),
     boardSoc: v.optional(v.string()),
     boardArch: v.optional(v.string()),
+    // Probed-from-silicon hardware truth (kernel device-tree SoC, CPU
+    // cluster summary, confirmed hardware H.264 encoder node). Optional so
+    // older agents round-trip cleanly; persisted via the args spread.
+    boardSocProbed: v.optional(v.string()),
+    boardCpuProbed: v.optional(v.string()),
+    hwEncoderProbed: v.optional(v.string()),
     // Kernel release + radio-module source + install-health summary.
     // All optional so an agent that predates the surface round-trips
     // cleanly; mirrors the boardArch/boardSoc handling.
