@@ -342,6 +342,20 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
                 radio: normalizeRadio(full.radio),
               });
             }
+            // Native-vs-packaged runtime mode over the LAN-direct path.
+            // The consolidated status carries the same aggregate the
+            // cloud heartbeat does. Clamp to the known union and merge
+            // only this field so it never clobbers the deeper capability
+            // shape set above.
+            if (
+              full.runtimeMode === "native" ||
+              full.runtimeMode === "hybrid" ||
+              full.runtimeMode === "packaged"
+            ) {
+              useAgentCapabilitiesStore.setState({
+                runtimeMode: full.runtimeMode,
+              });
+            }
             get().noteFetchSuccess();
             return;
           }

@@ -363,6 +363,10 @@ export interface FullStatusResponse {
   capabilities?: Record<string, unknown>;
   /** WFB radio snapshot (camelCase) for the LAN-direct path. Optional for older agents. */
   radio?: Record<string, unknown> | null;
+  /** Native-vs-packaged aggregate for the node. Lets the LAN-direct
+   * path light the same per-node runtime badge the cloud heartbeat
+   * does. Optional for older agents that predate the field. */
+  runtimeMode?: "native" | "hybrid" | "packaged";
 }
 
 // ── Pairing ─────────────────────────────────────────────

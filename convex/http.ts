@@ -452,6 +452,7 @@ http.route({
       mavlinkWsUrl: stringField(body, "mavlinkWsUrl"),
       mavlinkWsUrlPrev: stringField(body, "mavlinkWsUrlPrev"),
       wfbFailoverState: stringField(body, "wfbFailoverState"),
+      runtimeMode: stringField(body, "runtimeMode"),
       remoteAccess: body.remoteAccess,
       peripherals: body.peripherals,
       scripts: body.scripts,
