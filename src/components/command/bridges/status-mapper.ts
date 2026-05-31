@@ -133,6 +133,11 @@ export interface MappedSystemUpdate {
     memory_percent: number;
     memory_used_mb: number;
     memory_total_mb: number;
+    memory_available_mb: number;
+    memory_cache_mb: number;
+    swap_total_mb: number;
+    swap_used_mb: number;
+    swap_percent: number;
     disk_percent: number;
     disk_used_gb: number;
     disk_total_gb: number;
@@ -168,6 +173,11 @@ export function buildSystemUpdate(
       memory_percent: mapped.health.memory_percent,
       memory_used_mb: (cloudStatus.memoryUsedMb as number | undefined) ?? 0,
       memory_total_mb: (cloudStatus.memoryTotalMb as number | undefined) ?? 0,
+      memory_available_mb: (cloudStatus.memoryAvailableMb as number | undefined) ?? 0,
+      memory_cache_mb: (cloudStatus.memoryCacheMb as number | undefined) ?? 0,
+      swap_total_mb: (cloudStatus.swapTotalMb as number | undefined) ?? 0,
+      swap_used_mb: (cloudStatus.swapUsedMb as number | undefined) ?? 0,
+      swap_percent: (cloudStatus.swapPercent as number | undefined) ?? 0,
       disk_percent: mapped.health.disk_percent,
       disk_used_gb: (cloudStatus.diskUsedGb as number | undefined) ?? 0,
       disk_total_gb: (cloudStatus.diskTotalGb as number | undefined) ?? 0,

@@ -89,6 +89,11 @@ export const SystemResourcesRawSchema = z
     memory_percent: NumberLike.optional(),
     memory_used_mb: NumberLike.optional(),
     memory_total_mb: NumberLike.optional(),
+    memory_available_mb: NumberLike.optional(),
+    memory_cache_mb: NumberLike.optional(),
+    swap_total_mb: NumberLike.optional(),
+    swap_used_mb: NumberLike.optional(),
+    swap_percent: NumberLike.optional(),
     disk_percent: NumberLike.optional(),
     disk_used_gb: NumberLike.optional(),
     disk_total_gb: NumberLike.optional(),
@@ -209,6 +214,11 @@ const FullStatusResourcesSchema = z
   .object({
     cpu_percent: NumberLike,
     memory_percent: NumberLike,
+    memory_available_mb: NumberLike.optional(),
+    memory_cache_mb: NumberLike.optional(),
+    swap_total_mb: NumberLike.optional(),
+    swap_used_mb: NumberLike.optional(),
+    swap_percent: NumberLike.optional(),
     disk_percent: NumberLike,
     temperature: NullableNumber,
   })

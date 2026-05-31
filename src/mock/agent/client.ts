@@ -118,11 +118,21 @@ export class MockAgentClient {
     const cpu = jitter(34, 8);
     cpuHistoryBuffer.push(cpu);
     if (cpuHistoryBuffer.length > 60) cpuHistoryBuffer.shift();
+    const totalMb = 4096;
+    const usedMb = jitter(1240, 80);
+    const cacheMb = jitter(820, 60);
+    const swapTotalMb = 2048;
+    const swapUsedMb = jitter(160, 30);
     return {
       cpu_percent: cpu,
       memory_percent: jitter(31, 4),
-      memory_used_mb: jitter(1240, 80),
-      memory_total_mb: 4096,
+      memory_used_mb: usedMb,
+      memory_total_mb: totalMb,
+      memory_available_mb: Math.max(0, totalMb - usedMb),
+      memory_cache_mb: cacheMb,
+      swap_total_mb: swapTotalMb,
+      swap_used_mb: swapUsedMb,
+      swap_percent: (swapUsedMb / swapTotalMb) * 100,
       disk_percent: jitter(42, 2),
       disk_used_gb: jitter(13.5, 0.5),
       disk_total_gb: 32,

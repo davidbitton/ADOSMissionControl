@@ -103,6 +103,18 @@ export interface SystemResources {
   memory_percent: number;
   memory_used_mb: number;
   memory_total_mb: number;
+  /** RAM available for new allocations without swapping (MemAvailable),
+   * not just free. Defaults to 0 on agents that predate the field. */
+  memory_available_mb: number;
+  /** RAM held by the page cache + reclaimable buffers. Defaults to 0
+   * on agents that predate the field. */
+  memory_cache_mb: number;
+  /** Total swap space configured. 0 when no swap is present. */
+  swap_total_mb: number;
+  /** Swap currently in use. */
+  swap_used_mb: number;
+  /** Swap utilisation as a percentage of swap_total_mb. */
+  swap_percent: number;
   disk_percent: number;
   disk_used_gb: number;
   disk_total_gb: number;

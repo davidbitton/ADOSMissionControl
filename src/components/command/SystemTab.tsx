@@ -10,6 +10,7 @@
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { AgentDisconnectedPage } from "./AgentDisconnectedPage";
 import { HardwareStatusPanel } from "./system/HardwareStatusPanel";
+import { MemoryPanel } from "./system/MemoryPanel";
 import { ServicesPanel } from "./system/ServicesPanel";
 import { FleetNetworkPanel } from "./system/FleetNetworkPanel";
 
@@ -21,6 +22,7 @@ export function SystemTab() {
   return (
     <div className="p-4 space-y-4 max-w-5xl overflow-y-auto">
       <HardwareStatusPanel />
+      <MemoryPanel />
       <ServicesPanel />
       <FleetNetworkPanel />
     </div>

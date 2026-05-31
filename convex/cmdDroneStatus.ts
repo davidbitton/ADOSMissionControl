@@ -47,6 +47,12 @@ export const pushStatus = internalMutation({
     // Absolute resource values
     memoryUsedMb: v.optional(v.number()),
     memoryTotalMb: v.optional(v.number()),
+    // Detailed memory breakdown: available, page-cache, and swap.
+    memoryAvailableMb: v.optional(v.number()),
+    memoryCacheMb: v.optional(v.number()),
+    swapTotalMb: v.optional(v.number()),
+    swapUsedMb: v.optional(v.number()),
+    swapPercent: v.optional(v.number()),
     diskUsedGb: v.optional(v.number()),
     diskTotalGb: v.optional(v.number()),
     cpuCores: v.optional(v.number()),

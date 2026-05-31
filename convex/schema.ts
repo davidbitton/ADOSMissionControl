@@ -636,6 +636,14 @@ fullName: v.optional(v.string()),
     // Absolute resource values
     memoryUsedMb: v.optional(v.number()),
     memoryTotalMb: v.optional(v.number()),
+    // Detailed memory breakdown: available (allocatable without swapping),
+    // page-cache, and swap usage. Optional so heartbeats from agents that
+    // predate the breakdown stay additive.
+    memoryAvailableMb: v.optional(v.number()),
+    memoryCacheMb: v.optional(v.number()),
+    swapTotalMb: v.optional(v.number()),
+    swapUsedMb: v.optional(v.number()),
+    swapPercent: v.optional(v.number()),
     diskUsedGb: v.optional(v.number()),
     diskTotalGb: v.optional(v.number()),
     cpuCores: v.optional(v.number()),
