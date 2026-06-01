@@ -136,6 +136,13 @@ interface RadioPayload {
   channelLocked: boolean | null;
   reacquireKills: number | null;
   validRxPacketsPerS: number | null;
+  adapterChipset?: string | null;
+  adapterInjectionOk?: boolean | null;
+  paired?: boolean;
+  pairedWithDeviceId?: string | null;
+  pairedAt?: string | null;
+  publicKeyFingerprint?: string | null;
+  autoPairEnabled?: boolean | null;
 }
 
 function nullableNumber(value: unknown): number | null | undefined {
@@ -221,6 +228,20 @@ function radioField(
   const channelLocked = nullableBoolean(row.channel_locked);
   const reacquireKills = nullableNumber(row.reacquire_kills);
   const validRxPacketsPerS = nullableNumber(row.valid_rx_packets_per_s);
+  // Selected WFB adapter verdict + pair-state surface. The verdict drives
+  // the stranded-radio warning (no injection-capable adapter found) and the
+  // pair block drives the pairing badge. Optional on the wire; older agents
+  // omit them. The nullable fields forward null when missing so the row
+  // stays additive. `paired` maps to a plain optional boolean (no null in
+  // its schema): it is forwarded only when the wire value is a real boolean
+  // so an absent or null key stays absent.
+  const adapterChipset = nullableString(row.adapter_chipset);
+  const adapterInjectionOk = nullableBoolean(row.adapter_injection_ok);
+  const paired = nullableBoolean(row.paired);
+  const pairedWithDeviceId = nullableString(row.paired_with_device_id);
+  const pairedAt = nullableString(row.paired_at);
+  const publicKeyFingerprint = nullableString(row.public_key_fingerprint);
+  const autoPairEnabled = nullableBoolean(row.auto_pair_enabled);
 
   return {
     state,
@@ -259,6 +280,19 @@ function radioField(
     reacquireKills: reacquireKills === undefined ? null : reacquireKills,
     validRxPacketsPerS:
       validRxPacketsPerS === undefined ? null : validRxPacketsPerS,
+    adapterChipset: adapterChipset === undefined ? null : adapterChipset,
+    adapterInjectionOk:
+      adapterInjectionOk === undefined ? null : adapterInjectionOk,
+    // `paired` is a plain optional boolean in the schema (no null union),
+    // so forward it only when the wire value is an actual boolean. A null
+    // or missing key stays absent rather than becoming null.
+    paired: typeof paired === "boolean" ? paired : undefined,
+    pairedWithDeviceId:
+      pairedWithDeviceId === undefined ? null : pairedWithDeviceId,
+    pairedAt: pairedAt === undefined ? null : pairedAt,
+    publicKeyFingerprint:
+      publicKeyFingerprint === undefined ? null : publicKeyFingerprint,
+    autoPairEnabled: autoPairEnabled === undefined ? null : autoPairEnabled,
   };
 }
 
@@ -418,6 +452,18 @@ http.route({
       // undefined when the agent omits it so the row remains additive.
       kernelRelease: stringField(body, "kernelRelease"),
       wfbModuleSource: stringField(body, "wfbModuleSource"),
+      // Overall radio-stack health + the top-level mirror of the selected
+      // WFB adapter verdict. The agent carries these at the heartbeat root
+      // (also nested inside the radio block); forward them so a remotely
+      // connected operator sees the stranded-radio warning and the radio
+      // module badge. radioStackState is a plain optional string; the
+      // adapter mirrors preserve the agent's explicit null ("no
+      // injection-capable adapter found") so null stays distinct from
+      // absent. Each stays undefined when the agent omits it so the row
+      // remains additive.
+      radioStackState: stringField(body, "radioStackState"),
+      wfbAdapterChipset: nullableString(body.wfbAdapterChipset),
+      wfbAdapterInjectionOk: nullableBoolean(body.wfbAdapterInjectionOk),
       installStatus: stringField(body, "installStatus"),
       installVersion: stringField(body, "installVersion"),
       failedSteps: stringArrayField(body, "failedSteps"),
