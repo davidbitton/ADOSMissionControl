@@ -13,6 +13,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
+import { useAction } from "convex/react";
 import {
   Database,
   Download,
@@ -20,16 +21,20 @@ import {
   CircleCheck,
   CircleAlert,
   ChevronDown,
+  CloudUpload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSurfaceGate } from "@/hooks/use-surface-gate";
 import { agentGateFallback } from "./shared/agent-gate-fallback";
 import { useToast } from "@/components/ui/toast";
 import { Select } from "@/components/ui/select";
+import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useBlackBoxStore } from "@/stores/blackbox-store";
 import { formatLogTime } from "./shared/LogViewer";
 import { HistoryChart } from "./blackbox/HistoryChart";
+import { PushedWindowsList } from "./blackbox/PushedWindowsList";
+import { getLogdWindowsRef, getLogdWindowRef } from "@/lib/community-api-logd";
 import type { LogLevel } from "@/lib/agent/agent-client/logging";
 
 const levelColors: Record<LogLevel, string> = {
@@ -59,6 +64,7 @@ export function BlackBoxTab() {
   const gate = useSurfaceGate("agent-online");
   const { toast } = useToast();
   const cloudMode = useAgentConnectionStore((s) => s.cloudMode);
+  const deviceId = useAgentConnectionStore((s) => s.cloudDeviceId);
 
   const sessions = useBlackBoxStore((s) => s.sessions);
   const selectedSessionId = useBlackBoxStore((s) => s.selectedSessionId);
@@ -73,13 +79,24 @@ export function BlackBoxTab() {
   const loadingRows = useBlackBoxStore((s) => s.loadingRows);
   const loadingMore = useBlackBoxStore((s) => s.loadingMore);
   const exporting = useBlackBoxStore((s) => s.exporting);
+  const pushState = useBlackBoxStore((s) => s.pushState);
 
   const setSelectedSession = useBlackBoxStore((s) => s.setSelectedSession);
   const setFilters = useBlackBoxStore((s) => s.setFilters);
   const fetchMore = useBlackBoxStore((s) => s.fetchMore);
   const refresh = useBlackBoxStore((s) => s.refresh);
   const exportWindow = useBlackBoxStore((s) => s.exportWindow);
+  const pushWindow = useBlackBoxStore((s) => s.pushWindow);
   const clear = useBlackBoxStore((s) => s.clear);
+
+  // Cloud-read of windows the operator has already exported. Owner-gated
+  // server-side and skipped unless this drone has a cloud device id; degrades
+  // to undefined (then an empty list) when Convex or the function is absent.
+  const pushedWindows = useConvexSkipQuery(getLogdWindowsRef, {
+    args: { deviceId: deviceId ?? "" },
+    enabled: !!deviceId,
+  });
+  const getWindowUrl = useAction(getLogdWindowRef);
 
   // Load on mount; clear on unmount so a freshly-focused agent never shows
   // the previous one's review data.
@@ -133,8 +150,43 @@ export function BlackBoxTab() {
     toast(t("exportStarted"), "success");
   }
 
+  async function handlePush() {
+    const result = await pushWindow();
+    if (!result) {
+      const err = useBlackBoxStore.getState().pushError;
+      toast(`${t("pushFailed")}${err ? `: ${err}` : ""}`, "warning");
+      return;
+    }
+    toast(
+      result.deduped ? t("pushAlreadyStored") : t("pushStarted"),
+      "success",
+    );
+  }
+
+  async function handleDownloadPushed(id: string): Promise<string | null> {
+    try {
+      const res = await getWindowUrl({ id });
+      return res?.url ?? null;
+    } catch {
+      toast(t("pushedDownloadFailed"), "warning");
+      return null;
+    }
+  }
+
   const healthy = health?.ok && health.writer_alive && health.integrity;
   const sourceLabel = health?.source ?? null;
+
+  // Push is explicit + account-gated. It needs a cloud device id (the agent
+  // must be cloud-paired) and a reachable LAN store. A LAN-only / local-mode
+  // drone with no cloud id is the correct default, not an error — the button
+  // stays visible but disabled with a "pair to push" tooltip.
+  const canPush = !!deviceId && !cloudMode && available;
+  const pushTooltip = !deviceId
+    ? t("pushNeedsPairing")
+    : cloudMode
+      ? t("pushNeedsLocal")
+      : t("push");
+  const windows = pushedWindows ?? [];
 
   // Cloud mode + no LAN reader, or an older agent without a durable store:
   // show a clear empty state instead of an inert blank surface.
@@ -189,6 +241,15 @@ export function BlackBoxTab() {
         >
           <Download size={11} />
           {exporting ? t("exporting") : t("export")}
+        </button>
+        <button
+          onClick={() => void handlePush()}
+          disabled={!canPush || pushState === "pushing"}
+          title={pushTooltip}
+          className="flex items-center gap-1 px-2 py-1 text-[10px] text-text-secondary hover:text-text-primary cursor-pointer disabled:opacity-40 disabled:cursor-default"
+        >
+          <CloudUpload size={11} />
+          {pushState === "pushing" ? t("pushing") : t("push")}
         </button>
       </div>
 
@@ -309,6 +370,15 @@ export function BlackBoxTab() {
                 )}
               </div>
             </div>
+
+            {/* Windows already exported to the paired cloud account. Only
+                shown when this drone has a cloud id and has windows. */}
+            {deviceId && windows.length > 0 && (
+              <PushedWindowsList
+                windows={windows}
+                onDownload={handleDownloadPushed}
+              />
+            )}
           </>
         )}
       </div>

@@ -657,4 +657,91 @@ http.route({
   }),
 });
 
+// ── Explicit log-window export: agent uploads one chosen window ──
+// One authenticated binary POST. Window metadata travels as headers;
+// the body is the raw exported-window blob. Auth mirrors /agent/status
+// (device API key in X-ADOS-Key, validated against the paired drone).
+// The server recomputes the content hash from the stored bytes inside
+// ingestWindow — the agent never sends a hash claim used for storage.
+
+http.route({
+  path: "/agent/logd/window",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const apiKey = request.headers.get("X-ADOS-Key") ?? undefined;
+    const h = request.headers;
+    const deviceId = h.get("X-ADOS-Device") ?? undefined;
+    const sessionId = h.get("X-ADOS-Session") ?? "";
+    const kind = h.get("X-ADOS-Kind") ?? undefined;
+    const format = h.get("X-ADOS-Format") ?? undefined;
+    const windowStartUs = Number(h.get("X-ADOS-Window-Start-Us"));
+    const windowEndUs = Number(h.get("X-ADOS-Window-End-Us"));
+    const rowCount = Number(h.get("X-ADOS-Row-Count"));
+
+    if (
+      !deviceId
+      || !apiKey
+      || !kind
+      || !format
+      || !Number.isFinite(windowStartUs)
+      || !Number.isFinite(windowEndUs)
+      || !Number.isFinite(rowCount)
+    ) {
+      return new Response(
+        JSON.stringify({ error: "missing window metadata" }),
+        { status: 400, headers: jsonHeaders }
+      );
+    }
+
+    // Validate API key matches the paired drone
+    const drone = await ctx.runQuery(internal.cmdDrones.getDroneByDeviceId, { deviceId });
+    if (!drone || drone.apiKey !== apiKey) {
+      return new Response(
+        JSON.stringify({ error: "Invalid device or API key" }),
+        { status: 401, headers: jsonHeaders }
+      );
+    }
+
+    const blob = await request.blob();
+    const MAX_WINDOW_BYTES = 32 * 1024 * 1024;
+    if (blob.size === 0 || blob.size > MAX_WINDOW_BYTES) {
+      return new Response(
+        JSON.stringify({ error: "window too large or empty" }),
+        { status: 413, headers: jsonHeaders }
+      );
+    }
+
+    const storageId = await ctx.storage.store(blob);
+    try {
+      const result = await ctx.runAction(internal.cmdLogdWindows.ingestWindow, {
+        deviceId,
+        sessionId,
+        kind,
+        windowStartUs,
+        windowEndUs,
+        format,
+        rowCount,
+        storageId,
+      });
+      return new Response(
+        JSON.stringify({
+          status: result.status,
+          windowId: result.windowId,
+          contentHash: result.contentHash,
+        }),
+        { status: 200, headers: jsonHeaders }
+      );
+    } catch (err) {
+      // ingestWindow deletes the blob on every validation failure, so a
+      // rejected upload never orphans storage. Surface a 400 with the
+      // kernel message for the operator.
+      const message = err instanceof Error ? err.message : "ingest failed";
+      return new Response(
+        JSON.stringify({ error: message }),
+        { status: 400, headers: jsonHeaders }
+      );
+    }
+  }),
+});
+
 export default http;

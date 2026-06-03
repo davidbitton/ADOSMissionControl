@@ -1299,6 +1299,34 @@ fullName: v.optional(v.string()),
   })
     .index("by_user", ["userId"]),
 
+  // Explicitly exported on-device log windows. The agent's durable
+  // local log store stays the source of truth; an operator can push a
+  // chosen window (a session, or a closed time range, for one record
+  // kind) to the paired cloud account as a revocable export. One row
+  // per stored blob. Dedup is by (deviceId, contentHash) where
+  // contentHash is the SHA-256 the server recomputes from the stored
+  // bytes (never a client claim), so re-pushing the same deterministic
+  // window is a no-op that reuses the existing row. userId is
+  // denormalized from the paired device record at insert so account
+  // cleanup can cascade without a join.
+  logd_windows: defineTable({
+    userId: v.string(),
+    deviceId: v.string(),
+    sessionId: v.string(),       // "" when the window had no session
+    kind: v.string(),            // logs | metrics | events | hw | mixed
+    windowStartUs: v.number(),
+    windowEndUs: v.number(),
+    contentHash: v.string(),     // server-recomputed sha256(bytes), hex
+    format: v.string(),          // jsonl.zst | jsonl
+    rowCount: v.number(),
+    sizeBytes: v.number(),
+    storageId: v.id("_storage"),
+    pushedAt: v.number(),        // epoch ms
+  })
+    .index("by_device_hash", ["deviceId", "contentHash"])
+    .index("by_device_pushedAt", ["deviceId", "pushedAt"])
+    .index("by_user", ["userId"]),
+
   // ── Plugin Registry tables (mirror of website-side catalog) ────
   // Public-read catalog mirror so self-hosted GCS instances can list
   // and resolve plugins independently of the central web app. Writes

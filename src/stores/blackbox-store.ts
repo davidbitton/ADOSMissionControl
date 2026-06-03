@@ -14,10 +14,14 @@ import type {
   AggregatePoint,
   HealthzResponse,
   LoggingRow,
+  PushResult,
   SessionRow,
   StatsResponse,
 } from "@/lib/agent/agent-client/logging";
 import { useAgentConnectionStore } from "./agent-connection-store";
+
+/** Lifecycle of an explicit, operator-triggered cloud push. */
+export type PushState = "idle" | "pushing" | "done" | "error";
 
 /** Filters applied to the log table. `level` is a minimum level. */
 export interface BlackBoxFilters {
@@ -48,6 +52,11 @@ interface BlackBoxState {
   loadingMore: boolean;
   exporting: boolean;
   lastUpdatedAt: number | null;
+  /** State of an explicit cloud push. Local-first: nothing pushes unless the
+   * operator triggers it; a never-pushed agent is correct, not broken. */
+  pushState: PushState;
+  lastPushResult: PushResult | null;
+  pushError: string | null;
 }
 
 interface BlackBoxActions {
@@ -64,6 +73,10 @@ interface BlackBoxActions {
    * a filename + blob the caller hands to the browser, or null when the
    * surface is unavailable. */
   exportWindow: () => Promise<{ filename: string; blob: Blob } | null>;
+  /** Explicitly push the current selection + filters to the paired cloud
+   * account. Operator-only — never called from a filter / selection / refresh
+   * path. Returns the ack on success, null on failure (with `pushError` set). */
+  pushWindow: () => Promise<PushResult | null>;
   clear: () => void;
 }
 
@@ -86,6 +99,9 @@ const initialState: BlackBoxState = {
   loadingMore: false,
   exporting: false,
   lastUpdatedAt: null,
+  pushState: "idle",
+  lastPushResult: null,
+  pushError: null,
 };
 
 export const useBlackBoxStore = create<BlackBoxStore>((set, get) => ({
@@ -237,6 +253,31 @@ export const useBlackBoxStore = create<BlackBoxStore>((set, get) => ({
       return { filename: `ados-blackbox${label}-${stamp}.${ext}`, blob };
     } catch {
       set({ exporting: false });
+      return null;
+    }
+  },
+
+  async pushWindow() {
+    const { client } = useAgentConnectionStore.getState();
+    if (!client?.logging) {
+      set({ pushState: "error", pushError: "push_unavailable" });
+      return null;
+    }
+    const { selectedSessionId, filters } = get();
+    set({ pushState: "pushing", pushError: null });
+    try {
+      const result = await client.logging.pushWindow({
+        session: selectedSessionId ?? undefined,
+        level: filters.level,
+        text: filters.text,
+        source: filters.source ? [filters.source] : undefined,
+        format: "jsonl.zst",
+      });
+      set({ pushState: "done", lastPushResult: result, pushError: null });
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      set({ pushState: "error", pushError: message });
       return null;
     }
   },

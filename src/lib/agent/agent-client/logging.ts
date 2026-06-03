@@ -22,6 +22,8 @@
  * @license GPL-3.0-only
  */
 
+// Exempt from 300 LOC soft rule: self-contained agent protocol client.
+
 import type { RequestContext } from "./transport";
 
 // ── Row shapes ────────────────────────────────────────────────────────
@@ -147,6 +149,36 @@ export type ExportFormat = "jsonl" | "jsonl.zst";
 
 export interface ExportParams extends QueryParams {
   format?: ExportFormat;
+}
+
+/** Selector for an explicit, operator-triggered cloud export of a chosen
+ * window. Same vocabulary as a query: a session and/or a closed time range
+ * scope the rows; the format defaults to `jsonl.zst`. */
+export interface PushParams {
+  from?: string;
+  to?: string;
+  kind?: LoggingKind;
+  source?: string[];
+  level?: string;
+  text?: string;
+  session?: string;
+  format?: ExportFormat;
+}
+
+/** The agent's canonical acknowledgement for one pushed window. */
+export interface PushResult {
+  /** Cloud record id for the stored window. */
+  window_id: string;
+  /** Server-recomputed sha256 of the uploaded bytes, hex. */
+  sha256: string;
+  /** Byte size of the uploaded window. */
+  bytes: number;
+  /** Row count in the window. */
+  rows: number;
+  /** True when the same content was already stored (no new copy made). */
+  deduped: boolean;
+  /** True when the on-device rows were marked as exported. */
+  synced: boolean;
 }
 
 export interface SessionListParams {
@@ -666,6 +698,59 @@ export class LoggingService {
     throw new Error(
       `export unavailable: ${lastErr ? lastErr.message : "no tier answered"}`,
     );
+  }
+
+  // ── push ───────────────────────────────────────────────────────────────
+
+  /** Explicitly export a chosen window from the durable store to the paired
+   * cloud account. Unlike the read surfaces, push is a WRITE and has exactly
+   * ONE path: the agent's REST process at `:8080/api/logs/push`. There is no
+   * tier cascade and the dedicated query port is never used, because the
+   * agent process is the only thing that owns the writer-control socket that
+   * flips a row as exported. The browser must never reach the query port for
+   * a write. Cloud (https) origins short-circuit so a remote session degrades
+   * to "push unavailable" rather than posting against the wrong host. */
+  async pushWindow(params: PushParams = {}): Promise<PushResult> {
+    let origin: string;
+    try {
+      const u = new URL(this.ctx.baseUrl);
+      if (u.protocol === "https:") throw new Error("cloud origin");
+      origin = `${u.protocol}//${u.hostname}:${FASTAPI_PORT}`;
+    } catch {
+      throw new Error("push unavailable: unusable base url");
+    }
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (this.ctx.apiKey) headers["X-ADOS-Key"] = this.ctx.apiKey;
+    const body = JSON.stringify({
+      from: params.from,
+      to: params.to,
+      kind: params.kind,
+      source: params.source,
+      level: params.level,
+      text: params.text,
+      session: params.session,
+      format: params.format ?? "jsonl.zst",
+    });
+    const res = await fetch(`${origin}/api/logs/push`, {
+      method: "POST",
+      headers,
+      body,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(`push failed ${res.status}: ${detail}`);
+    }
+    const j = (await res.json()) as Record<string, unknown>;
+    return {
+      window_id: String(j.window_id ?? ""),
+      sha256: String(j.sha256 ?? ""),
+      bytes: Number(j.bytes ?? 0),
+      rows: Number(j.rows ?? 0),
+      deduped: Boolean(j.deduped),
+      synced: Boolean(j.synced),
+    };
   }
 
   // ── stats / healthz ────────────────────────────────────────────────────

@@ -4152,7 +4152,18 @@
     "rowsPerSec": "rows/s",
     "unavailable": "No durable store on this agent",
     "cloudUnavailable": "Connect on the local network to read the durable store",
-    "unavailableHint": "The durable log and telemetry store is read over the local network. Older agents fall back to the live log view."
+    "unavailableHint": "The durable log and telemetry store is read over the local network. Older agents fall back to the live log view.",
+    "push": "Push to cloud",
+    "pushing": "Pushing...",
+    "pushStarted": "Window exported to the cloud account",
+    "pushAlreadyStored": "Window already stored in the cloud account",
+    "pushFailed": "Push failed",
+    "pushNeedsPairing": "Pair this drone to a cloud account to push",
+    "pushNeedsLocal": "Connect on the local network to push the durable store",
+    "pushedWindows": "Exported windows",
+    "pushedCloudBadge": "Cloud",
+    "pushedDownload": "Download",
+    "pushedDownloadFailed": "Could not get a download link"
   },
   "operatingRegion": {
     "title": "Operating region",
