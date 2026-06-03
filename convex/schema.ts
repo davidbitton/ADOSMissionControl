@@ -887,6 +887,12 @@ fullName: v.optional(v.string()),
       // wfbAdapterUsb* fields). Optional + nullable; older agents omit them.
       adapterUsbDegraded: v.optional(v.union(v.boolean(), v.null())),
       adapterUsbSpeedMbps: v.optional(v.union(v.number(), v.null())),
+      // PHY at the muted txpower floor: the adapter injects frames yet
+      // radiates nothing (txpower readback collapses toward the floor,
+      // carrier down). Distinct from adapterUsbDegraded (slow USB link) and
+      // adapterInjectionOk (no injection-capable adapter). Optional +
+      // nullable; older agents omit it.
+      phyMuted: v.optional(v.union(v.boolean(), v.null())),
       // Pair-state surface added in agent v0.16. Old rows from
       // pre-0.16 heartbeats lack these fields; the cloud relay
       // remap leaves them undefined and the GCS treats them as

@@ -149,6 +149,11 @@ export function RadioNetworkHealthPanel() {
     lastRfEvent != null && lastRfEvent.severity === "error";
   const rfUnverified = liveUnverified || eventUnverified;
 
+  // PHY muted: the adapter is at the muted txpower floor, injecting frames
+  // yet radiating nothing. The agent advances tx_bytes so the link reads
+  // alive while no RF leaves the antenna. Surface it as its own loud pill.
+  const phyMuted = radio?.phyMuted === true;
+
   // Onboard-WiFi self-heal recency is derived in the store (it reads the
   // freshness clock there, keeping this render body pure).
 
@@ -211,6 +216,13 @@ export function RadioNetworkHealthPanel() {
           label="RF link"
           value={rfUnverified ? "Unverified" : txActive ? "TX + reception" : "Idle"}
           tone={rfUnverified ? "error" : txActive ? "success" : "muted"}
+        />
+        <Indicator
+          label="PHY status"
+          value={
+            phyMuted ? "Muted (no RF)" : txActive ? "Transmitting" : "Idle"
+          }
+          tone={phyMuted ? "error" : txActive ? "success" : "muted"}
         />
         <Indicator label="Adapter" value={adapterValue} tone={adapterTone} />
         <Indicator label="Radio stack" value={stackValue} tone={stackTone} />

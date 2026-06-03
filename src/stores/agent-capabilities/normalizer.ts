@@ -229,6 +229,10 @@ export function normalizeRadio(raw: unknown): RadioState | null {
           ? r.wfbAdapterUsbDegraded
           : null,
     adapterUsbSpeedMbps: num(r.adapterUsbSpeedMbps ?? r.wfbAdapterUsbSpeedMbps),
+    // PHY at the muted txpower floor: injects frames yet radiates nothing.
+    // Optional on the wire; null when absent so the UI distinguishes "no
+    // reading" from a real false. Defensive boolean pass-through like txActive.
+    phyMuted: typeof r.phyMuted === "boolean" ? r.phyMuted : null,
     // Pair-state fields are optional on the wire (older agents omit
     // them). Treat absent / null as "unpaired, auto-pair unknown" so
     // the UI never confuses a missing field with an explicit false.

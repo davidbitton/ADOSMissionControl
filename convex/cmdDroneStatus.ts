@@ -211,6 +211,13 @@ export const pushStatus = internalMutation({
       // older agents omit them.
       adapterChipset: v.optional(v.union(v.string(), v.null())),
       adapterInjectionOk: v.optional(v.union(v.boolean(), v.null())),
+      // Selected adapter's USB link health + the muted-PHY flag. A v.object()
+      // rejects undeclared fields, so these must be allowed for the cloud relay
+      // to accept the radio block (the agent emits them; they were previously
+      // dropped here, silently failing the heartbeat when present).
+      adapterUsbSpeedMbps: v.optional(v.union(v.number(), v.null())),
+      adapterUsbDegraded: v.optional(v.union(v.boolean(), v.null())),
+      phyMuted: v.optional(v.union(v.boolean(), v.null())),
       paired: v.optional(v.boolean()),
       pairedWithDeviceId: v.optional(v.union(v.string(), v.null())),
       pairedAt: v.optional(v.union(v.string(), v.null())),

@@ -138,6 +138,7 @@ describe("agent-capabilities-store radio", () => {
         adapterInjectionOk: null,
         adapterUsbDegraded: null,
         adapterUsbSpeedMbps: null,
+        phyMuted: null,
         paired: false,
         pairedWithDeviceId: null,
         pairedAt: null,

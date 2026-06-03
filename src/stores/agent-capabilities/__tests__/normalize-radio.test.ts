@@ -200,3 +200,25 @@ describe("normalizeRadio adapter injection status", () => {
     expect(radio!.adapterInjectionOk).toBe(false);
   });
 });
+
+describe("normalizeRadio PHY-muted flag", () => {
+  it("parses an explicit muted PHY", () => {
+    const radio = normalizeRadio({ state: "connected", phyMuted: true });
+    expect(radio!.phyMuted).toBe(true);
+  });
+
+  it("keeps an explicit false distinct from absent", () => {
+    const radio = normalizeRadio({ state: "connected", phyMuted: false });
+    expect(radio!.phyMuted).toBe(false);
+  });
+
+  it("defaults to null when absent (older agents)", () => {
+    const radio = normalizeRadio({ state: "connected" });
+    expect(radio!.phyMuted).toBeNull();
+  });
+
+  it("coerces a non-boolean to null", () => {
+    const radio = normalizeRadio({ state: "connected", phyMuted: "yes" });
+    expect(radio!.phyMuted).toBeNull();
+  });
+});

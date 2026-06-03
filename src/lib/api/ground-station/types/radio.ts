@@ -145,6 +145,13 @@ export interface RadioState {
   pairedAt: string | null;
   publicKeyFingerprint: string | null;
   autoPairEnabled: boolean;
+  // PHY at the muted txpower floor: the adapter injects frames yet
+  // radiates nothing (txpower readback collapses toward the floor, carrier
+  // down). The agent advances tx_bytes, so the link looks alive while no RF
+  // leaves the antenna. Distinct from `adapterUsbDegraded` (a slow USB
+  // enumeration) and `adapterInjectionOk` (no injection-capable adapter
+  // found at all). Null on older agents that don't report it.
+  phyMuted: boolean | null;
 }
 
 /** Response shape from PUT /api/wfb/tx-power. */

@@ -144,6 +144,7 @@ interface RadioPayload {
   adapterInjectionOk?: boolean | null;
   adapterUsbDegraded?: boolean | null;
   adapterUsbSpeedMbps?: number | null;
+  phyMuted?: boolean | null;
   paired?: boolean;
   pairedWithDeviceId?: string | null;
   pairedAt?: string | null;
@@ -251,6 +252,7 @@ function radioField(
   const adapterInjectionOk = nullableBoolean(row.adapter_injection_ok);
   const adapterUsbDegraded = nullableBoolean(row.adapter_usb_degraded);
   const adapterUsbSpeedMbps = nullableNumber(row.adapter_usb_speed_mbps);
+  const phyMuted = nullableBoolean(row.phy_muted);
   const paired = nullableBoolean(row.paired);
   const pairedWithDeviceId = nullableString(row.paired_with_device_id);
   const pairedAt = nullableString(row.paired_at);
@@ -305,6 +307,7 @@ function radioField(
       adapterUsbDegraded === undefined ? null : adapterUsbDegraded,
     adapterUsbSpeedMbps:
       adapterUsbSpeedMbps === undefined ? null : adapterUsbSpeedMbps,
+    phyMuted: phyMuted === undefined ? null : phyMuted,
     // `paired` is a plain optional boolean in the schema (no null union),
     // so forward it only when the wire value is an actual boolean. A null
     // or missing key stays absent rather than becoming null.
