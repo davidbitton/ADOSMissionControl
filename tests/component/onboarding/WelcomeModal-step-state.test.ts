@@ -52,41 +52,41 @@ describe("computeDotStep", () => {
     expect(computeDotStep(6, false)).toBe(6);
   });
 
-  it("collapses step 6 down to dot index 5 when the download step is skipped", () => {
-    expect(computeDotStep(6, true)).toBe(5);
+  it("collapses step 7 down to dot index 6 when the download step is skipped", () => {
+    expect(computeDotStep(7, true)).toBe(6);
   });
 
-  it("does not remap steps at or below 5 when the download step is skipped", () => {
+  it("does not remap steps at or below the download step when it is skipped", () => {
     expect(computeDotStep(0, true)).toBe(0);
-    expect(computeDotStep(4, true)).toBe(4);
     expect(computeDotStep(5, true)).toBe(5);
+    expect(computeDotStep(6, true)).toBe(6);
   });
 });
 
 describe("computeTotalSteps", () => {
-  it("returns 7 in browser mode", () => {
-    expect(computeTotalSteps(false)).toBe(7);
+  it("returns 8 in browser mode", () => {
+    expect(computeTotalSteps(false)).toBe(8);
   });
 
-  it("returns 6 in Electron mode (no desktop download step)", () => {
-    expect(computeTotalSteps(true)).toBe(6);
+  it("returns 7 in Electron mode (no desktop download step)", () => {
+    expect(computeTotalSteps(true)).toBe(7);
   });
 });
 
 describe("computeAfterTheme and computeBeforeReady", () => {
-  it("targets step 5 (download) after theme in browser mode", () => {
-    expect(computeAfterTheme(false)).toBe(5);
+  it("targets step 6 (download) after theme in browser mode", () => {
+    expect(computeAfterTheme(false)).toBe(6);
   });
 
-  it("targets step 6 (ready) after theme in Electron mode", () => {
-    expect(computeAfterTheme(true)).toBe(6);
+  it("targets step 7 (ready) after theme in Electron mode", () => {
+    expect(computeAfterTheme(true)).toBe(7);
   });
 
   it("backs from ready into the download step in browser mode", () => {
-    expect(computeBeforeReady(false)).toBe(5);
+    expect(computeBeforeReady(false)).toBe(6);
   });
 
   it("backs from ready into the theme step in Electron mode", () => {
-    expect(computeBeforeReady(true)).toBe(4);
+    expect(computeBeforeReady(true)).toBe(5);
   });
 });

@@ -33,6 +33,10 @@ vi.mock("@/components/command/system/RadioNetworkHealthPanel", () => ({
   RadioNetworkHealthPanel: () => <div data-testid="radio-network-health-panel" />,
 }));
 
+vi.mock("@/components/command/system/RegulatoryRegionPanel", () => ({
+  RegulatoryRegionPanel: () => <div data-testid="regulatory-region-panel" />,
+}));
+
 import { SystemTab } from "@/components/command/SystemTab";
 
 describe("SystemTab", () => {
