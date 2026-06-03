@@ -69,6 +69,11 @@ export interface LocalNode {
   bindState?: AgentBindState;
   /** Radio link snapshot captured at pair time. Optional. */
   radio?: AgentRadioSnapshot;
+  /** Operator-pinned operating region (ISO 3166-1 alpha-2, e.g. "US") for
+   * this node, or null for the unrestricted default. Remembered so a
+   * re-pair / re-flash of the same node can re-apply the operator's choice.
+   * Undefined for entries paired before this field existed. */
+  region?: string | null;
 }
 
 interface LocalNodesState {
@@ -76,6 +81,9 @@ interface LocalNodesState {
   addNode: (node: LocalNode) => void;
   removeNode: (deviceId: string) => void;
   renameNode: (deviceId: string, name: string) => void;
+  /** Record the operator-pinned operating region for a node (null =
+   * unrestricted) so a re-pair / re-flash re-applies it. */
+  setNodeRegion: (deviceId: string, region: string | null) => void;
   touchLastSeen: (deviceId: string) => void;
   clear: () => void;
 }
@@ -106,6 +114,12 @@ export const useLocalNodesStore = create<LocalNodesState>()(
             n.deviceId === deviceId ? { ...n, name } : n,
           ),
         })),
+      setNodeRegion: (deviceId, region) =>
+        set((state) => ({
+          nodes: state.nodes.map((n) =>
+            n.deviceId === deviceId ? { ...n, region } : n,
+          ),
+        })),
       touchLastSeen: (deviceId) =>
         set((state) => ({
           nodes: state.nodes.map((n) =>
@@ -116,9 +130,10 @@ export const useLocalNodesStore = create<LocalNodesState>()(
     }),
     {
       name: "altcmd:local-nodes",
-      version: 3,
-      // v1→v2 added ipv4; v2→v3 added optional bindState + radio. Both are
-      // optional additions, so migration is an identity passthrough.
+      version: 4,
+      // v1→v2 added ipv4; v2→v3 added optional bindState + radio; v3→v4 added
+      // optional region. All optional additions, so migration is an identity
+      // passthrough.
       migrate: (persisted, version) => {
         void version;
         return persisted as LocalNodesState;

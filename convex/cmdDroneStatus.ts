@@ -172,6 +172,13 @@ export const pushStatus = internalMutation({
       homeChannel: v.optional(v.union(v.number(), v.null())),
       band: v.optional(v.union(v.string(), v.null())),
       regDomain: v.optional(v.union(v.string(), v.null())),
+      // Operating-region posture. regPosture "unrestricted" | "region";
+      // pinnedRegion is the pinned ISO 3166-1 alpha-2 code; regVerified is
+      // true once a pinned region is confirmed effective. Optional +
+      // nullable: older agents omit them.
+      regPosture: v.optional(v.union(v.string(), v.null())),
+      pinnedRegion: v.optional(v.union(v.string(), v.null())),
+      regVerified: v.optional(v.union(v.boolean(), v.null())),
       monitorActive: v.optional(v.union(v.boolean(), v.null())),
       txActive: v.optional(v.union(v.boolean(), v.null())),
       peerLink: v.optional(v.union(v.string(), v.null())),

@@ -100,17 +100,25 @@ export function RadioNetworkHealthPanel() {
 
   // ── Live indicators ──────────────────────────────────────────────────
 
-  // Regulatory domain + whether the link is pinned to its home channel.
+  // Operating region + whether the link is pinned to its home channel.
+  // The agent ships UNRESTRICTED out of the box (no region pinned); pinning
+  // a region restores the strict regulatory gate. Prefer the explicit
+  // posture fields, falling back to the legacy regDomain so an older agent
+  // (regDomain only) still renders the right state.
   const regDomain = radio?.regDomain ?? null;
+  const pinnedRegion = radio?.pinnedRegion ?? regDomain;
+  const regUnrestricted =
+    radio?.regPosture === "unrestricted" ||
+    (radio?.regPosture == null && !pinnedRegion);
   const homeChannel = radio?.homeChannel ?? null;
   const channel = radio?.channel ?? null;
   const pinned =
     homeChannel != null && channel != null && homeChannel === channel;
-  const regValue = regDomain
-    ? pinned
-      ? `${regDomain} (pinned)`
-      : regDomain
-    : "World (default)";
+  const regValue = regUnrestricted
+    ? "Unrestricted"
+    : pinned
+      ? `${pinnedRegion} (pinned)`
+      : (pinnedRegion ?? "Unrestricted");
 
   // Channel + lock state.
   const freq = radio?.freqMhz ?? null;
@@ -189,9 +197,9 @@ export function RadioNetworkHealthPanel() {
       {/* Live indicators */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <Indicator
-          label="Regulatory domain"
+          label="Operating region"
           value={regValue}
-          tone={pinned ? "success" : "muted"}
+          tone={regUnrestricted ? "warning" : "success"}
         />
         <Indicator label="Channel / lock" value={channelValue} tone={channelTone} />
         <Indicator

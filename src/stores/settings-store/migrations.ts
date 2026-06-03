@@ -193,5 +193,9 @@ export function migrateSettings(
     // once so the persisted user choice can take over going forward.
     state.demoMode = false;
   }
+  if (version < 35) {
+    // v35: default operating region for paired drones (null = unrestricted).
+    state.operatorRegion = null;
+  }
   return state as unknown as SettingsStoreState;
 }

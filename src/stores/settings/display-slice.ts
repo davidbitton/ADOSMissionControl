@@ -25,6 +25,10 @@ export const displayDefaults: Partial<SettingsStoreState> = {
   disclaimerAcceptedAt: null,
   disclaimerVersion: 0,
   jurisdiction: null,
+  // Default operating region for paired drones. Null = unrestricted, the
+  // out-of-the-box posture; the operator opts into a region in onboarding
+  // or per-node on the System tab.
+  operatorRegion: null,
   // First-install default seeds from env + URL. After hydration, the
   // persisted user toggle wins — the rehydrate hook no longer overrides it.
   demoMode: isDemoMode(),
@@ -87,6 +91,7 @@ export const createDisplayActions: SettingsSliceFactory<
     | "setOnboarded"
     | "setDisclaimerAccepted"
     | "setJurisdiction"
+    | "setOperatorRegion"
     | "setDemoMode"
     | "setParamColumn"
     | "setAudioEnabled"
@@ -149,6 +154,7 @@ export const createDisplayActions: SettingsSliceFactory<
       disclaimerVersion: version,
     }),
   setJurisdiction: (jurisdiction) => set({ jurisdiction }),
+  setOperatorRegion: (operatorRegion) => set({ operatorRegion }),
   setDemoMode: (demoMode) => set({ demoMode }),
   setParamColumn: (col, visible) =>
     set((s) => ({ paramColumns: { ...s.paramColumns, [col]: visible } })),

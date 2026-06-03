@@ -35,9 +35,15 @@ import { LanguageStep } from "./steps/LanguageStep";
 import { IntroStep } from "./steps/IntroStep";
 import { DisclaimerStep } from "./steps/DisclaimerStep";
 import { PreferencesStep } from "./steps/PreferencesStep";
+import { RegionStep } from "./steps/RegionStep";
 import { ThemeStep } from "./steps/ThemeStep";
 import { DownloadStep } from "./steps/DownloadStep";
 import { ReadyStep } from "./steps/ReadyStep";
+import {
+  OTHER_REGION_VALUE,
+  UNRESTRICTED_VALUE,
+  normalizeRegionCode,
+} from "@/lib/operating-region";
 
 // Re-export DisclaimerGate so existing import sites
 // (`@/components/onboarding/WelcomeModal`) keep working.
@@ -48,6 +54,7 @@ export function WelcomeModal() {
   const hasHydrated = useSettingsStore((s) => s._hasHydrated);
   const setOnboarded = useSettingsStore((s) => s.setOnboarded);
   const setJurisdictionStored = useSettingsStore((s) => s.setJurisdiction);
+  const setOperatorRegionStored = useSettingsStore((s) => s.setOperatorRegion);
   const setUnitsStored = useSettingsStore((s) => s.setUnits);
   const setDemoModeStored = useSettingsStore((s) => s.setDemoMode);
   const setAudioEnabledStored = useSettingsStore((s) => s.setAudioEnabled);
@@ -82,7 +89,12 @@ export function WelcomeModal() {
   const [locationPermission, setLocationPermission] = useState<GeoPermission>("prompt");
   const [locationChecking, setLocationChecking] = useState(() => isSupported);
 
-  // Step 4: theme order (preview slot first, then library)
+  // Step 4: operating region (default Unrestricted). `regionSelection` is
+  // the picker sentinel/code; `regionOtherCode` holds a free-text ISO code.
+  const [regionSelection, setRegionSelection] = useState<string>(UNRESTRICTED_VALUE);
+  const [regionOtherCode, setRegionOtherCode] = useState<string>("");
+
+  // Step 5: theme order (preview slot first, then library)
   const [themeOrder, setThemeOrder] = useState<ThemeMode[]>(() => {
     const values = THEME_CARDS.map((theme) => theme.value);
     if (!values.includes(themeMode)) return values;
@@ -135,6 +147,15 @@ export function WelcomeModal() {
 
   const handleGetStarted = () => {
     if (jurisdiction) setJurisdictionStored(jurisdiction);
+    // Resolve the chosen default operating region. Unrestricted (the
+    // default) and an invalid free-text code both persist as null.
+    const region =
+      regionSelection === UNRESTRICTED_VALUE
+        ? null
+        : regionSelection === OTHER_REGION_VALUE
+          ? normalizeRegionCode(regionOtherCode)
+          : regionSelection;
+    setOperatorRegionStored(region);
     setUnitsStored(units);
     setDemoModeStored(demoMode);
     setAudioEnabledStored(audioEnabled);
@@ -258,9 +279,23 @@ export function WelcomeModal() {
           />
         </div>
 
-        {/* Step 4: Theme */}
+        {/* Step 4: Operating region */}
+        <div className={`${baseStepClass} ${stepX(4)}`}>
+          <RegionStep
+            selection={regionSelection}
+            otherCode={regionOtherCode}
+            setSelection={setRegionSelection}
+            setOtherCode={setRegionOtherCode}
+            next={() => advance(5)}
+            back={() => back(3)}
+            dotStep={dotStep}
+            totalSteps={totalSteps}
+          />
+        </div>
+
+        {/* Step 5: Theme */}
         <div
-          className={`absolute inset-0 flex flex-col items-center p-4 sm:p-6 md:p-8 pt-14 sm:pt-16 overflow-y-auto transition-transform duration-300 ease-in-out ${stepX(4)}`}
+          className={`absolute inset-0 flex flex-col items-center p-4 sm:p-6 md:p-8 pt-14 sm:pt-16 overflow-y-auto transition-transform duration-300 ease-in-out ${stepX(5)}`}
         >
           <ThemeStep
             themeOrder={themeOrder}
@@ -268,26 +303,26 @@ export function WelcomeModal() {
             onThemeTileClick={handleThemeTileClick}
             onAccentChange={setAccentColor}
             next={() => advance(afterTheme)}
-            back={() => back(3)}
+            back={() => back(4)}
             dotStep={dotStep}
             totalSteps={totalSteps}
           />
         </div>
 
-        {/* Step 5: Desktop Download (skipped in Electron) */}
+        {/* Step 6: Desktop Download (skipped in Electron) */}
         {!skipDownloadStep && (
-          <div className={`${baseStepClass} ${stepX(5)}`}>
+          <div className={`${baseStepClass} ${stepX(6)}`}>
             <DownloadStep
-              next={() => advance(6)}
-              back={() => back(4)}
+              next={() => advance(7)}
+              back={() => back(5)}
               dotStep={dotStep}
               totalSteps={totalSteps}
             />
           </div>
         )}
 
-        {/* Step 6: Ready */}
-        <div className={`${baseStepClass} ${stepX(6)}`}>
+        {/* Step 7: Ready */}
+        <div className={`${baseStepClass} ${stepX(7)}`}>
           <ReadyStep
             onFinish={handleGetStarted}
             back={() => back(beforeReady)}

@@ -141,8 +141,14 @@ export function ChannelStateCard({
           <StatRow label={t("band")} value={bandLabel(t, band)} />
         ) : null}
         {regDomain != null ? (
-          <StatRow label={t("regdomain")} value={regDomain} />
-        ) : null}
+          <StatRow label={t("operatingRegion")} value={regDomain} />
+        ) : (
+          <StatRow
+            label={t("operatingRegion")}
+            value={t("operatingRegionUnrestricted")}
+            valueClass="text-status-warning"
+          />
+        )}
         {showTxState ? (
           <StatRow
             label={t("monitorMode")}

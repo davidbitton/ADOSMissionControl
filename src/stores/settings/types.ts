@@ -33,6 +33,12 @@ export interface SettingsStoreState {
   disclaimerAcceptedAt: number | null;
   disclaimerVersion: number;
   jurisdiction: Jurisdiction | null;
+  /** GCS-wide default operating region (ISO 3166-1 alpha-2, e.g. "US"), or
+   * null for the unrestricted default. Separate from the display-only
+   * `jurisdiction` (which sets units + regulatory display labels). When a
+   * drone is paired, the per-node region control offers this as the
+   * suggested default. Null = unrestricted. */
+  operatorRegion: string | null;
   demoMode: boolean;
   _hasHydrated: boolean;
   paramColumns: ParamColumnVisibility;
@@ -106,6 +112,7 @@ export interface SettingsStoreState {
   setOnboarded: (onboarded: boolean) => void;
   setDisclaimerAccepted: (version: number) => void;
   setJurisdiction: (jurisdiction: Jurisdiction | null) => void;
+  setOperatorRegion: (region: string | null) => void;
   setDemoMode: (demoMode: boolean) => void;
   setParamColumn: (col: ParamColumnId, visible: boolean) => void;
   setAudioEnabled: (enabled: boolean) => void;

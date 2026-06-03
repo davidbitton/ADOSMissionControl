@@ -154,11 +154,25 @@
       "welcome": "Welcome",
       "preferences": "Preferences",
       "download": "Desktop App",
-      "ready": "Ready"
+      "ready": "Ready",
+      "region": "Region"
     },
     "themeSync": {
       "syncedToCount": "Theme synced to {count} drone(s)",
       "syncFailedCount": "Could not reach {count} drone(s)"
+    },
+    "region": {
+      "title": "Operating region",
+      "subtitle": "How your drones handle radio regulations. You can change this any time, per drone.",
+      "pickerLabel": "Region",
+      "optionUnrestricted": "Unrestricted (default)",
+      "optionUnrestrictedHint": "Radio works out of the box anywhere. You are responsible for legal RF operation in your jurisdiction.",
+      "optionOther": "Other country code",
+      "optionOtherHint": "Enter a two-letter ISO country code.",
+      "otherFieldLabel": "ISO country code",
+      "otherFieldPlaceholder": "e.g. FR",
+      "unrestrictedNote": "Operator responsible for local RF compliance.",
+      "perDroneNote": "This is the default applied when a drone is paired. Each drone can be set individually on its System tab."
     }
   },
   "common": {
@@ -3002,7 +3016,9 @@
         "unii1": "U-NII-1 (5.15-5.25 GHz)",
         "unii3": "U-NII-3 (5.725-5.85 GHz)",
         "all": "All bands"
-      }
+      },
+      "operatingRegion": "Operating region",
+      "operatingRegionUnrestricted": "Unrestricted (no region pinned)"
     },
     "videoLink": {
       "title": "Video Link",
@@ -4137,5 +4153,31 @@
     "unavailable": "No durable store on this agent",
     "cloudUnavailable": "Connect on the local network to read the durable store",
     "unavailableHint": "The durable log and telemetry store is read over the local network. Older agents fall back to the live log view."
+  },
+  "operatingRegion": {
+    "title": "Operating region",
+    "unrestrictedBadge": "Unrestricted",
+    "unrestrictedCaveat": "No operating region is pinned. The radio transmits on the configured channel without a verified regulatory domain. The operator is responsible for legal RF compliance in their jurisdiction.",
+    "regionEnforced": "Region: {region}",
+    "livePosture": "Current posture",
+    "liveUnrestricted": "Unrestricted (no region pinned)",
+    "livePinned": "Region enforced: {region}",
+    "regionUnverified": "Pending verification",
+    "pickerLabel": "Set operating region",
+    "optionUnrestricted": "Unrestricted (default)",
+    "optionUnrestrictedHint": "Radio works on the configured channel without a pinned region. Operator responsible for local RF compliance.",
+    "optionOther": "Other country code",
+    "optionOtherHint": "Enter a two-letter ISO country code.",
+    "otherFieldLabel": "ISO code",
+    "otherFieldPlaceholder": "e.g. FR",
+    "otherInvalid": "Enter a valid two-letter ISO country code.",
+    "applyButton": "Apply",
+    "applying": "Applying…",
+    "applied": "Operating region updated. The radio re-reads it on restart.",
+    "applyFailed": "Could not update the operating region.",
+    "applyHintUnrestricted": "The radio transmits on the configured channel without a pinned region. The agent re-reads this on its next restart.",
+    "applyHintRegion": "Pinning a region enables the strict regulatory gate and the region’s legal power limit. The agent re-reads this on its next restart.",
+    "readOnlyCloud": "Read-only over the cloud relay. Connect to this node over the LAN to change its operating region.",
+    "readOnlyNoAgent": "Connect to this node to change its operating region."
   }
 }

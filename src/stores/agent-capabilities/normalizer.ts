@@ -144,6 +144,19 @@ export function normalizeRadio(raw: unknown): RadioState | null {
       typeof r.regDomain === "string" && r.regDomain.length > 0
         ? r.regDomain
         : null,
+    // Operating-region posture. "unrestricted" | "region" only; any other
+    // string (or absent field) normalizes to null so an older agent that
+    // omits it renders the unrestricted default without a bad badge.
+    regPosture:
+      r.regPosture === "unrestricted" || r.regPosture === "region"
+        ? r.regPosture
+        : null,
+    pinnedRegion:
+      typeof r.pinnedRegion === "string" && r.pinnedRegion.length > 0
+        ? r.pinnedRegion
+        : null,
+    regVerified:
+      typeof r.regVerified === "boolean" ? r.regVerified : null,
     monitorActive:
       typeof r.monitorActive === "boolean" ? r.monitorActive : null,
     txActive: typeof r.txActive === "boolean" ? r.txActive : null,

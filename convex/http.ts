@@ -120,6 +120,9 @@ interface RadioPayload {
   homeChannel: number | null;
   band: string | null;
   regDomain: string | null;
+  regPosture: string | null;
+  pinnedRegion: string | null;
+  regVerified: boolean | null;
   monitorActive: boolean | null;
   txActive: boolean | null;
   peerLink: string | null;
@@ -210,6 +213,11 @@ function radioField(
   const homeChannel = nullableNumber(row.home_channel);
   const band = nullableString(row.band);
   const regDomain = nullableString(row.reg_domain);
+  // Operating-region posture. Optional on the wire; older agents omit them
+  // and we forward null so the row stays additive.
+  const regPosture = nullableString(row.reg_posture);
+  const pinnedRegion = nullableString(row.pinned_region);
+  const regVerified = nullableBoolean(row.reg_verified);
   const monitorActive = nullableBoolean(row.monitor_active);
   const txActive = nullableBoolean(row.tx_active);
   const peerLink = nullableString(row.peer_link);
@@ -267,6 +275,9 @@ function radioField(
     homeChannel: homeChannel === undefined ? null : homeChannel,
     band: band === undefined ? null : band,
     regDomain: regDomain === undefined ? null : regDomain,
+    regPosture: regPosture === undefined ? null : regPosture,
+    pinnedRegion: pinnedRegion === undefined ? null : pinnedRegion,
+    regVerified: regVerified === undefined ? null : regVerified,
     monitorActive: monitorActive === undefined ? null : monitorActive,
     txActive: txActive === undefined ? null : txActive,
     peerLink: peerLink === undefined ? null : peerLink,

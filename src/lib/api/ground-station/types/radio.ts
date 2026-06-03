@@ -65,6 +65,18 @@ export interface RadioState {
   // Regulatory domain country code when one is set (e.g. "US"). Null
   // when the agent runs on the default world domain.
   regDomain: string | null;
+  // Operating-region posture. `regPosture` is "unrestricted" when the
+  // radio transmits without a pinned region (the operator is responsible
+  // for local RF compliance) or "region" when an operating region is
+  // pinned and the strict regulatory gate + legal power limit are in
+  // force. `pinnedRegion` is the ISO 3166-1 alpha-2 code of the pinned
+  // region (null under unrestricted). `regVerified` is true when a pinned
+  // region has been confirmed effective at the driver/PHY layer, false
+  // when pinned-but-not-yet-verified, and null when not applicable or not
+  // reported. All three null on older agents that don't report them.
+  regPosture: string | null;
+  pinnedRegion: string | null;
+  regVerified: boolean | null;
   // True when the radio interface is confirmed in monitor mode. Null on
   // older agents that don't assert it.
   monitorActive: boolean | null;
