@@ -189,6 +189,10 @@ export function getMockCapabilities(
       lastRepairAt: null,
       repairsInWindow: 1,
     },
+    // On the WiFi heartbeat reach-back exercises the amber degraded banner.
+    mgmtLinkMode: "wifi_heartbeat",
+    mgmtFailoverIface: "wlan0",
+    mgmtFailoverReason: "primary_carrier_down",
     tier: 4,
     cameras: [
       { name: "USB Camera", type: "usb", device: "/dev/video0", resolution: "1920x1080", fps: 30, streaming: true },

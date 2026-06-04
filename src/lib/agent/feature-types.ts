@@ -454,6 +454,16 @@ export interface AgentCapabilities {
   /** Operator management-link health from the agent's link guardian.
    * Undefined on agents that predate the guardian. */
   managementLink?: ManagementLink;
+  /** Management-link reach-back mode from the agent's failover reconciler:
+   * "primary" (wired link up) | "wifi_heartbeat" (degraded, status-only over
+   * onboard WiFi — video and full telemetry do not flow) | "none" (no
+   * reach-back). Undefined on agents that predate the reconciler; an
+   * unrecognized value normalizes to undefined. */
+  mgmtLinkMode?: "primary" | "wifi_heartbeat" | "none";
+  /** The interface carrying the heartbeat reach-back when failed over. */
+  mgmtFailoverIface?: string | null;
+  /** Why the box failed over (e.g. "primary_carrier_down"). */
+  mgmtFailoverReason?: string | null;
 }
 
 // ── Model Registry (from registry.json) ──────────────────

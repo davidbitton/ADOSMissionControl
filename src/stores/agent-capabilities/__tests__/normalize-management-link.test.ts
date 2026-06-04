@@ -55,3 +55,30 @@ describe("normalizeCapabilities managementLink clamp", () => {
     ).toBeUndefined();
   });
 });
+
+describe("normalizeCapabilities mgmtLinkMode (reach-back) clamp", () => {
+  it("keeps each known reach-back mode", () => {
+    for (const mode of ["primary", "wifi_heartbeat", "none"] as const) {
+      const caps = normalizeCapabilities({ tier: 4, mgmtLinkMode: mode });
+      expect(caps.mgmtLinkMode).toBe(mode);
+    }
+  });
+
+  it("carries the failover interface + reason as strings", () => {
+    const caps = normalizeCapabilities({
+      tier: 4,
+      mgmtLinkMode: "wifi_heartbeat",
+      mgmtFailoverIface: "wlan0",
+      mgmtFailoverReason: "primary_carrier_down",
+    });
+    expect(caps.mgmtFailoverIface).toBe("wlan0");
+    expect(caps.mgmtFailoverReason).toBe("primary_carrier_down");
+  });
+
+  it("normalizes an unknown / absent mode to undefined (implies primary)", () => {
+    expect(
+      normalizeCapabilities({ tier: 4, mgmtLinkMode: "weird" }).mgmtLinkMode,
+    ).toBeUndefined();
+    expect(normalizeCapabilities({ tier: 4 }).mgmtLinkMode).toBeUndefined();
+  });
+});

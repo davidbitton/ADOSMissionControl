@@ -420,6 +420,9 @@ export interface HeartbeatExtras {
   radioStackState: string | undefined;
   macStability: AgentCapabilities["macStability"];
   managementLink: AgentCapabilities["managementLink"];
+  mgmtLinkMode: string | undefined;
+  mgmtFailoverIface: string | null;
+  mgmtFailoverReason: string | null;
   peerDeviceId: string | null;
   peerRole: string | null;
   peerChannel: number | null;
@@ -603,6 +606,12 @@ export function buildHeartbeatExtras(
     typeof (mgmtRaw as { state?: unknown }).state === "string"
       ? (mgmtRaw as AgentCapabilities["managementLink"])
       : undefined;
+  // Management-link reach-back mode (clamped to the known set in the
+  // normalizer); the failover interface + reason are plain nullable strings.
+  const mgmtLinkMode =
+    typeof cloudStatus.mgmtLinkMode === "string"
+      ? cloudStatus.mgmtLinkMode
+      : undefined;
 
   const peerSeenRaw = cloudStatus.peerSeenAtUnix;
   const peerSeenAtUnix =
@@ -639,6 +648,9 @@ export function buildHeartbeatExtras(
     radioStackState,
     macStability,
     managementLink,
+    mgmtLinkMode,
+    mgmtFailoverIface: pickStringOrNull(cloudStatus.mgmtFailoverIface),
+    mgmtFailoverReason: pickStringOrNull(cloudStatus.mgmtFailoverReason),
     peerDeviceId: pickStringOrNull(cloudStatus.peerDeviceId),
     peerRole: pickStringOrNull(cloudStatus.peerRole),
     peerChannel,

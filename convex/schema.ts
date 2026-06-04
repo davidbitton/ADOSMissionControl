@@ -638,6 +638,13 @@ fullName: v.optional(v.string()),
     // extends additively without a migration. Absent on agents that predate the
     // guardian; the GCS renders "unknown".
     managementLink: v.optional(v.any()),
+    // Management-link reach-back mode from the agent's failover reconciler:
+    // "primary" | "wifi_heartbeat" (degraded, status-only over onboard WiFi) |
+    // "none". With the interface + reason when failed over. Absent on agents
+    // that predate the reconciler; the GCS treats absence as "primary".
+    mgmtLinkMode: v.optional(v.string()),
+    mgmtFailoverIface: v.optional(v.union(v.string(), v.null())),
+    mgmtFailoverReason: v.optional(v.union(v.string(), v.null())),
     // Install-health summary from the agent's self-check at last boot.
     // One of "ok" | "degraded" | "failed" | "unknown". When degraded or
     // failed, `failedSteps` lists the install steps that did not pass.

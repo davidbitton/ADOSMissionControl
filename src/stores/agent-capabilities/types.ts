@@ -116,6 +116,11 @@ export interface AgentCapabilitiesState {
   /** Operator management-link health from the agent's link guardian.
    * Undefined on agents that predate the guardian. */
   managementLink?: AgentCapabilities["managementLink"];
+  /** Management-link reach-back mode + failover interface/reason. Undefined
+   * on agents that predate the failover reconciler. */
+  mgmtLinkMode?: AgentCapabilities["mgmtLinkMode"];
+  mgmtFailoverIface?: AgentCapabilities["mgmtFailoverIface"];
+  mgmtFailoverReason?: AgentCapabilities["mgmtFailoverReason"];
   /** Pipeline restarts since the last healthy interval. Resets to
    * zero once video stays up for the agent's healthy cool-down.
    * Default 0 until the agent reports otherwise. */

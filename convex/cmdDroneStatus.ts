@@ -48,6 +48,11 @@ export const pushStatus = internalMutation({
     // lastRepairAt, repairsInWindow}). Stored free-form so the shape extends
     // additively. Older agents omit it; the GCS defaults to undefined.
     managementLink: v.optional(v.any()),
+    // Management-link reach-back mode + failover interface/reason. Older agents
+    // omit these; the GCS treats absence as "primary".
+    mgmtLinkMode: v.optional(v.string()),
+    mgmtFailoverIface: v.optional(v.union(v.string(), v.null())),
+    mgmtFailoverReason: v.optional(v.union(v.string(), v.null())),
     installStatus: v.optional(v.string()),
     installVersion: v.optional(v.string()),
     failedSteps: v.optional(v.array(v.string())),

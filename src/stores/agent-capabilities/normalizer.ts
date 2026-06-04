@@ -445,6 +445,27 @@ export function normalizeCapabilities(raw: unknown): AgentCapabilities {
       ? (managementLinkCandidate as AgentCapabilities["managementLink"])
       : undefined;
 
+  // Management-link reach-back mode: clamp to the known set; an unknown value
+  // (or absence) normalizes to undefined so the GCS treats it as the implicit
+  // "primary". The failover interface + reason ride along as nullable strings.
+  const mgmtLinkModeCandidate = (raw as { mgmtLinkMode?: unknown }).mgmtLinkMode;
+  const mgmtLinkMode: AgentCapabilities["mgmtLinkMode"] =
+    mgmtLinkModeCandidate === "primary" ||
+    mgmtLinkModeCandidate === "wifi_heartbeat" ||
+    mgmtLinkModeCandidate === "none"
+      ? mgmtLinkModeCandidate
+      : undefined;
+  const mgmtFailoverIfaceRaw = (raw as { mgmtFailoverIface?: unknown })
+    .mgmtFailoverIface;
+  const mgmtFailoverIface =
+    typeof mgmtFailoverIfaceRaw === "string" ? mgmtFailoverIfaceRaw : undefined;
+  const mgmtFailoverReasonRaw = (raw as { mgmtFailoverReason?: unknown })
+    .mgmtFailoverReason;
+  const mgmtFailoverReason =
+    typeof mgmtFailoverReasonRaw === "string"
+      ? mgmtFailoverReasonRaw
+      : undefined;
+
   const videoPipelineCandidate = (raw as { videoPipeline?: unknown })
     .videoPipeline;
   const videoPipeline =
@@ -563,6 +584,9 @@ export function normalizeCapabilities(raw: unknown): AgentCapabilities {
     radioStackState,
     macStability,
     managementLink,
+    mgmtLinkMode,
+    mgmtFailoverIface,
+    mgmtFailoverReason,
     videoPipeline,
     navigation,
     peerDeviceId,

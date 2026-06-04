@@ -86,6 +86,10 @@ export function RadioNetworkHealthPanel() {
   const radioStackState = useAgentCapabilitiesStore((s) => s.radioStackState);
   const macStability = useAgentCapabilitiesStore((s) => s.macStability);
   const managementLink = useAgentCapabilitiesStore((s) => s.managementLink);
+  const mgmtLinkMode = useAgentCapabilitiesStore((s) => s.mgmtLinkMode);
+  const mgmtFailoverIface = useAgentCapabilitiesStore(
+    (s) => s.mgmtFailoverIface,
+  );
 
   const recentEvents = useRadioNetworkHealthStore((s) => s.recentEvents);
   const wifiReassocRecent = useRadioNetworkHealthStore(
@@ -109,7 +113,8 @@ export function RadioNetworkHealthPanel() {
   const hasRadioSurface =
     radio !== null ||
     radioStackState !== undefined ||
-    managementLink !== undefined;
+    managementLink !== undefined ||
+    mgmtLinkMode !== undefined;
   if (!hasRadioSurface) return null;
 
   // ── Live indicators ──────────────────────────────────────────────────
@@ -222,6 +227,25 @@ export function RadioNetworkHealthPanel() {
         }${managementLink.iface ? ` (${managementLink.iface})` : ""}.`
       : null;
 
+  // Reach-back: when the wired primary is down the box falls back to a
+  // status-only WiFi heartbeat. Surface it as a degraded posture (video + full
+  // telemetry do not flow over it), distinct from a healthy link. "primary" is
+  // the normal state and shows no pill.
+  const reachbackValue =
+    mgmtLinkMode === "wifi_heartbeat"
+      ? `WiFi heartbeat${mgmtFailoverIface ? ` (${mgmtFailoverIface})` : ""}`
+      : mgmtLinkMode === "none"
+        ? "No reach-back"
+        : null;
+  const reachbackTone: "warning" | "error" =
+    mgmtLinkMode === "none" ? "error" : "warning";
+  const reachbackNote =
+    mgmtLinkMode === "wifi_heartbeat"
+      ? "Wired link down. Reachable over the onboard WiFi heartbeat only; video and full telemetry are unavailable until the wired link returns."
+      : mgmtLinkMode === "none"
+        ? "Wired link down and no WiFi reach-back. The box may be unreachable until the wired link returns."
+        : null;
+
   return (
     <section className="rounded border border-border-default bg-bg-secondary p-5">
       <div className="mb-3 flex items-center gap-2">
@@ -273,10 +297,29 @@ export function RadioNetworkHealthPanel() {
             tone={mgmtTone}
           />
         ) : null}
+        {reachbackValue ? (
+          <Indicator
+            label="Reach-back"
+            value={reachbackValue}
+            tone={reachbackTone}
+          />
+        ) : null}
       </div>
 
       {mgmtRepairNote ? (
         <p className="mt-2 text-xs text-status-warning">{mgmtRepairNote}</p>
+      ) : null}
+      {reachbackNote ? (
+        <p
+          className={cn(
+            "mt-2 text-xs",
+            mgmtLinkMode === "none"
+              ? "text-status-error"
+              : "text-status-warning",
+          )}
+        >
+          {reachbackNote}
+        </p>
       ) : null}
 
       {/* Recent activity */}

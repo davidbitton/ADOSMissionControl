@@ -375,6 +375,11 @@ http.route({
         body.managementLink !== null
           ? body.managementLink
           : undefined,
+      // Management-link reach-back mode + failover interface/reason. Each stays
+      // undefined when the agent omits it so the row stays additive.
+      mgmtLinkMode: stringField(body, "mgmtLinkMode"),
+      mgmtFailoverIface: nullableString(body.mgmtFailoverIface),
+      mgmtFailoverReason: nullableString(body.mgmtFailoverReason),
       wfbAdapterChipset: nullableString(body.wfbAdapterChipset),
       wfbAdapterInjectionOk: nullableBoolean(body.wfbAdapterInjectionOk),
       wfbAdapterUsbDegraded: nullableBoolean(body.wfbAdapterUsbDegraded),

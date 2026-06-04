@@ -315,6 +315,11 @@ export function CloudStatusBridge() {
           payload.macStability = extras.macStability;
         if (extras.managementLink !== undefined)
           payload.managementLink = extras.managementLink;
+        if (extras.mgmtLinkMode !== undefined) {
+          payload.mgmtLinkMode = extras.mgmtLinkMode;
+          payload.mgmtFailoverIface = extras.mgmtFailoverIface;
+          payload.mgmtFailoverReason = extras.mgmtFailoverReason;
+        }
         if (extras.radioRaw !== undefined) payload.radio = extras.radioRaw;
         if (extras.videoPipeline !== undefined) payload.videoPipeline = extras.videoPipeline;
         payload.peerDeviceId = extras.peerDeviceId;
@@ -359,6 +364,20 @@ export function CloudStatusBridge() {
         extras.managementLink !== undefined
           ? extras.managementLink
           : capState.managementLink;
+      // The reach-back trio updates as a unit when the agent reports the mode;
+      // a tick that omits it (stale sidecar) keeps the prior state.
+      const reMergedMgmtLinkMode =
+        extras.mgmtLinkMode !== undefined
+          ? extras.mgmtLinkMode
+          : capState.mgmtLinkMode;
+      const reMergedMgmtFailoverIface =
+        extras.mgmtLinkMode !== undefined
+          ? extras.mgmtFailoverIface
+          : capState.mgmtFailoverIface;
+      const reMergedMgmtFailoverReason =
+        extras.mgmtLinkMode !== undefined
+          ? extras.mgmtFailoverReason
+          : capState.mgmtFailoverReason;
       useAgentCapabilitiesStore.getState().setCapabilities({
         tier: capState.tier,
         cameras: capState.cameras,
@@ -373,6 +392,9 @@ export function CloudStatusBridge() {
         radioStackState: reMergedRadioStackState,
         macStability: reMergedMacStability,
         managementLink: reMergedManagementLink,
+        mgmtLinkMode: reMergedMgmtLinkMode,
+        mgmtFailoverIface: reMergedMgmtFailoverIface,
+        mgmtFailoverReason: reMergedMgmtFailoverReason,
         display: mergedDisplay,
         // Effective primary local-display path. Latest heartbeat wins;
         // a sparse tick falls back to whatever the store already had so
