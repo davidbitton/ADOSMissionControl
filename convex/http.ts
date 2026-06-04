@@ -380,6 +380,11 @@ http.route({
       mgmtLinkMode: stringField(body, "mgmtLinkMode"),
       mgmtFailoverIface: nullableString(body.mgmtFailoverIface),
       mgmtFailoverReason: nullableString(body.mgmtFailoverReason),
+      // USB-rehome self-heal state + attempt count + last outcome. Each stays
+      // undefined when the agent omits it so the row stays additive.
+      usbRehomeState: stringField(body, "usbRehomeState"),
+      usbRehomeAttempts: nullableNumber(body.usbRehomeAttempts),
+      usbRehomeLastResult: nullableString(body.usbRehomeLastResult),
       wfbAdapterChipset: nullableString(body.wfbAdapterChipset),
       wfbAdapterInjectionOk: nullableBoolean(body.wfbAdapterInjectionOk),
       wfbAdapterUsbDegraded: nullableBoolean(body.wfbAdapterUsbDegraded),

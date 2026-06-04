@@ -464,6 +464,15 @@ export interface AgentCapabilities {
   mgmtFailoverIface?: string | null;
   /** Why the box failed over (e.g. "primary_carrier_down"). */
   mgmtFailoverReason?: string | null;
+  /** USB-rehome self-heal state for a WFB adapter on a slow USB port:
+   * "idle" | "rehoming" (unbind/rebind in progress) | "exhausted" (gave up
+   * after the attempt budget) | "guard_blocked" (held back to protect the
+   * management link). Undefined on agents that predate the self-heal. */
+  usbRehomeState?: "idle" | "rehoming" | "exhausted" | "guard_blocked";
+  /** Rehome attempts in the current episode. */
+  usbRehomeAttempts?: number | null;
+  /** The last rehome outcome (e.g. "success", "retry", "exhausted"). */
+  usbRehomeLastResult?: string | null;
 }
 
 // ── Model Registry (from registry.json) ──────────────────

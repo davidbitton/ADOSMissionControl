@@ -60,6 +60,9 @@ const INITIAL_STATE: AgentCapabilitiesState = {
   mgmtLinkMode: undefined,
   mgmtFailoverIface: undefined,
   mgmtFailoverReason: undefined,
+  usbRehomeState: undefined,
+  usbRehomeAttempts: undefined,
+  usbRehomeLastResult: undefined,
   videoRestartAttempts: 0,
   pairingCodeExpiresAt: null,
   mavlinkWsUrlPrev: null,
@@ -182,6 +185,18 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>(
           normalized.mgmtFailoverReason === undefined
             ? state.mgmtFailoverReason
             : normalized.mgmtFailoverReason,
+        usbRehomeState:
+          normalized.usbRehomeState === undefined
+            ? state.usbRehomeState
+            : normalized.usbRehomeState,
+        usbRehomeAttempts:
+          normalized.usbRehomeAttempts === undefined
+            ? state.usbRehomeAttempts
+            : normalized.usbRehomeAttempts,
+        usbRehomeLastResult:
+          normalized.usbRehomeLastResult === undefined
+            ? state.usbRehomeLastResult
+            : normalized.usbRehomeLastResult,
         // Forward-permissive merges: keep the prior value when the
         // payload omits the field. CloudStatusBridge always sets these
         // explicitly, so prior values only carry over when an

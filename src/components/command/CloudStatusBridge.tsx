@@ -320,6 +320,11 @@ export function CloudStatusBridge() {
           payload.mgmtFailoverIface = extras.mgmtFailoverIface;
           payload.mgmtFailoverReason = extras.mgmtFailoverReason;
         }
+        if (extras.usbRehomeState !== undefined) {
+          payload.usbRehomeState = extras.usbRehomeState;
+          payload.usbRehomeAttempts = extras.usbRehomeAttempts;
+          payload.usbRehomeLastResult = extras.usbRehomeLastResult;
+        }
         if (extras.radioRaw !== undefined) payload.radio = extras.radioRaw;
         if (extras.videoPipeline !== undefined) payload.videoPipeline = extras.videoPipeline;
         payload.peerDeviceId = extras.peerDeviceId;
@@ -378,6 +383,19 @@ export function CloudStatusBridge() {
         extras.mgmtLinkMode !== undefined
           ? extras.mgmtFailoverReason
           : capState.mgmtFailoverReason;
+      // The rehome trio updates as a unit when the agent reports the state.
+      const reMergedUsbRehomeState =
+        extras.usbRehomeState !== undefined
+          ? extras.usbRehomeState
+          : capState.usbRehomeState;
+      const reMergedUsbRehomeAttempts =
+        extras.usbRehomeState !== undefined
+          ? extras.usbRehomeAttempts
+          : capState.usbRehomeAttempts;
+      const reMergedUsbRehomeLastResult =
+        extras.usbRehomeState !== undefined
+          ? extras.usbRehomeLastResult
+          : capState.usbRehomeLastResult;
       useAgentCapabilitiesStore.getState().setCapabilities({
         tier: capState.tier,
         cameras: capState.cameras,
@@ -395,6 +413,9 @@ export function CloudStatusBridge() {
         mgmtLinkMode: reMergedMgmtLinkMode,
         mgmtFailoverIface: reMergedMgmtFailoverIface,
         mgmtFailoverReason: reMergedMgmtFailoverReason,
+        usbRehomeState: reMergedUsbRehomeState,
+        usbRehomeAttempts: reMergedUsbRehomeAttempts,
+        usbRehomeLastResult: reMergedUsbRehomeLastResult,
         display: mergedDisplay,
         // Effective primary local-display path. Latest heartbeat wins;
         // a sparse tick falls back to whatever the store already had so

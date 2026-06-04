@@ -466,6 +466,31 @@ export function normalizeCapabilities(raw: unknown): AgentCapabilities {
       ? mgmtFailoverReasonRaw
       : undefined;
 
+  // USB-rehome state: clamp to the known set; absent / unknown → undefined so
+  // the indicator stays hidden. The attempt count + last result ride along.
+  const usbRehomeStateCandidate = (raw as { usbRehomeState?: unknown })
+    .usbRehomeState;
+  const usbRehomeState: AgentCapabilities["usbRehomeState"] =
+    usbRehomeStateCandidate === "idle" ||
+    usbRehomeStateCandidate === "rehoming" ||
+    usbRehomeStateCandidate === "exhausted" ||
+    usbRehomeStateCandidate === "guard_blocked"
+      ? usbRehomeStateCandidate
+      : undefined;
+  const usbRehomeAttemptsRaw = (raw as { usbRehomeAttempts?: unknown })
+    .usbRehomeAttempts;
+  const usbRehomeAttempts =
+    typeof usbRehomeAttemptsRaw === "number" &&
+    Number.isFinite(usbRehomeAttemptsRaw)
+      ? usbRehomeAttemptsRaw
+      : undefined;
+  const usbRehomeLastResultRaw = (raw as { usbRehomeLastResult?: unknown })
+    .usbRehomeLastResult;
+  const usbRehomeLastResult =
+    typeof usbRehomeLastResultRaw === "string"
+      ? usbRehomeLastResultRaw
+      : undefined;
+
   const videoPipelineCandidate = (raw as { videoPipeline?: unknown })
     .videoPipeline;
   const videoPipeline =
@@ -587,6 +612,9 @@ export function normalizeCapabilities(raw: unknown): AgentCapabilities {
     mgmtLinkMode,
     mgmtFailoverIface,
     mgmtFailoverReason,
+    usbRehomeState,
+    usbRehomeAttempts,
+    usbRehomeLastResult,
     videoPipeline,
     navigation,
     peerDeviceId,

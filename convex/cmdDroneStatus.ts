@@ -53,6 +53,11 @@ export const pushStatus = internalMutation({
     mgmtLinkMode: v.optional(v.string()),
     mgmtFailoverIface: v.optional(v.union(v.string(), v.null())),
     mgmtFailoverReason: v.optional(v.union(v.string(), v.null())),
+    // USB-rehome self-heal state + attempt count + last outcome. Older agents
+    // omit these.
+    usbRehomeState: v.optional(v.string()),
+    usbRehomeAttempts: v.optional(v.union(v.number(), v.null())),
+    usbRehomeLastResult: v.optional(v.union(v.string(), v.null())),
     installStatus: v.optional(v.string()),
     installVersion: v.optional(v.string()),
     failedSteps: v.optional(v.array(v.string())),

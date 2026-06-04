@@ -193,6 +193,10 @@ export function getMockCapabilities(
     mgmtLinkMode: "wifi_heartbeat",
     mgmtFailoverIface: "wlan0",
     mgmtFailoverReason: "primary_carrier_down",
+    // Mid-rehome exercises the USB-rehome indicator.
+    usbRehomeState: "rehoming",
+    usbRehomeAttempts: 1,
+    usbRehomeLastResult: "retry",
     tier: 4,
     cameras: [
       { name: "USB Camera", type: "usb", device: "/dev/video0", resolution: "1920x1080", fps: 30, streaming: true },

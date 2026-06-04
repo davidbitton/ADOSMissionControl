@@ -121,6 +121,11 @@ export interface AgentCapabilitiesState {
   mgmtLinkMode?: AgentCapabilities["mgmtLinkMode"];
   mgmtFailoverIface?: AgentCapabilities["mgmtFailoverIface"];
   mgmtFailoverReason?: AgentCapabilities["mgmtFailoverReason"];
+  /** USB-rehome self-heal state + attempt count + last result. Undefined on
+   * agents that predate the self-heal. */
+  usbRehomeState?: AgentCapabilities["usbRehomeState"];
+  usbRehomeAttempts?: AgentCapabilities["usbRehomeAttempts"];
+  usbRehomeLastResult?: AgentCapabilities["usbRehomeLastResult"];
   /** Pipeline restarts since the last healthy interval. Resets to
    * zero once video stays up for the agent's healthy cool-down.
    * Default 0 until the agent reports otherwise. */

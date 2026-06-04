@@ -645,6 +645,12 @@ fullName: v.optional(v.string()),
     mgmtLinkMode: v.optional(v.string()),
     mgmtFailoverIface: v.optional(v.union(v.string(), v.null())),
     mgmtFailoverReason: v.optional(v.union(v.string(), v.null())),
+    // USB-rehome self-heal state for a slow-port WFB adapter: "idle" |
+    // "rehoming" | "exhausted" | "guard_blocked", with the attempt count + last
+    // outcome. Absent on agents that predate the self-heal.
+    usbRehomeState: v.optional(v.string()),
+    usbRehomeAttempts: v.optional(v.union(v.number(), v.null())),
+    usbRehomeLastResult: v.optional(v.union(v.string(), v.null())),
     // Install-health summary from the agent's self-check at last boot.
     // One of "ok" | "degraded" | "failed" | "unknown". When degraded or
     // failed, `failedSteps` lists the install steps that did not pass.

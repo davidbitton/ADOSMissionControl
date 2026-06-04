@@ -423,6 +423,9 @@ export interface HeartbeatExtras {
   mgmtLinkMode: string | undefined;
   mgmtFailoverIface: string | null;
   mgmtFailoverReason: string | null;
+  usbRehomeState: string | undefined;
+  usbRehomeAttempts: number | null;
+  usbRehomeLastResult: string | null;
   peerDeviceId: string | null;
   peerRole: string | null;
   peerChannel: number | null;
@@ -612,6 +615,18 @@ export function buildHeartbeatExtras(
     typeof cloudStatus.mgmtLinkMode === "string"
       ? cloudStatus.mgmtLinkMode
       : undefined;
+  // USB-rehome state (clamped to the known set in the normalizer); the attempt
+  // count + last result are a plain number / nullable string.
+  const usbRehomeState =
+    typeof cloudStatus.usbRehomeState === "string"
+      ? cloudStatus.usbRehomeState
+      : undefined;
+  const usbRehomeAttemptsRaw = cloudStatus.usbRehomeAttempts;
+  const usbRehomeAttempts =
+    typeof usbRehomeAttemptsRaw === "number" &&
+    Number.isFinite(usbRehomeAttemptsRaw)
+      ? usbRehomeAttemptsRaw
+      : null;
 
   const peerSeenRaw = cloudStatus.peerSeenAtUnix;
   const peerSeenAtUnix =
@@ -651,6 +666,9 @@ export function buildHeartbeatExtras(
     mgmtLinkMode,
     mgmtFailoverIface: pickStringOrNull(cloudStatus.mgmtFailoverIface),
     mgmtFailoverReason: pickStringOrNull(cloudStatus.mgmtFailoverReason),
+    usbRehomeState,
+    usbRehomeAttempts,
+    usbRehomeLastResult: pickStringOrNull(cloudStatus.usbRehomeLastResult),
     peerDeviceId: pickStringOrNull(cloudStatus.peerDeviceId),
     peerRole: pickStringOrNull(cloudStatus.peerRole),
     peerChannel,

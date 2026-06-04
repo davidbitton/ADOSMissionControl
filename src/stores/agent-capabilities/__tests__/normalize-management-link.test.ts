@@ -82,3 +82,30 @@ describe("normalizeCapabilities mgmtLinkMode (reach-back) clamp", () => {
     expect(normalizeCapabilities({ tier: 4 }).mgmtLinkMode).toBeUndefined();
   });
 });
+
+describe("normalizeCapabilities usbRehomeState clamp", () => {
+  it("keeps each known rehome state + the attempt count", () => {
+    for (const state of [
+      "idle",
+      "rehoming",
+      "exhausted",
+      "guard_blocked",
+    ] as const) {
+      const caps = normalizeCapabilities({
+        tier: 4,
+        usbRehomeState: state,
+        usbRehomeAttempts: 2,
+      });
+      expect(caps.usbRehomeState).toBe(state);
+      expect(caps.usbRehomeAttempts).toBe(2);
+    }
+  });
+
+  it("normalizes an unknown / absent state to undefined", () => {
+    expect(
+      normalizeCapabilities({ tier: 4, usbRehomeState: "weird" })
+        .usbRehomeState,
+    ).toBeUndefined();
+    expect(normalizeCapabilities({ tier: 4 }).usbRehomeState).toBeUndefined();
+  });
+});

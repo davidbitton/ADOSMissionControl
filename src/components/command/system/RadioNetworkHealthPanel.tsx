@@ -90,6 +90,10 @@ export function RadioNetworkHealthPanel() {
   const mgmtFailoverIface = useAgentCapabilitiesStore(
     (s) => s.mgmtFailoverIface,
   );
+  const usbRehomeState = useAgentCapabilitiesStore((s) => s.usbRehomeState);
+  const usbRehomeAttempts = useAgentCapabilitiesStore(
+    (s) => s.usbRehomeAttempts,
+  );
 
   const recentEvents = useRadioNetworkHealthStore((s) => s.recentEvents);
   const wifiReassocRecent = useRadioNetworkHealthStore(
@@ -116,6 +120,29 @@ export function RadioNetworkHealthPanel() {
     managementLink !== undefined ||
     mgmtLinkMode !== undefined;
   if (!hasRadioSurface) return null;
+
+  // USB-rehome: the agent is unbind/rebind-recovering a WFB adapter stuck on a
+  // slow USB port. "idle" shows no pill; the other states warrant attention.
+  const rehomeValue =
+    usbRehomeState === "rehoming"
+      ? `Rehoming${
+          typeof usbRehomeAttempts === "number" && usbRehomeAttempts > 0
+            ? ` (attempt ${usbRehomeAttempts})`
+            : ""
+        }`
+      : usbRehomeState === "exhausted"
+        ? "Rehome exhausted"
+        : usbRehomeState === "guard_blocked"
+          ? "Rehome held back"
+          : null;
+  const rehomeTone: "warning" | "error" =
+    usbRehomeState === "exhausted" ? "error" : "warning";
+  const rehomeNote =
+    usbRehomeState === "exhausted"
+      ? "The adapter is on a slow USB port and a rehome could not recover it. Move it to a high-speed (480 Mbps) USB port."
+      : usbRehomeState === "guard_blocked"
+        ? "A rehome was held back because it could disturb the management link."
+        : null;
 
   // ── Live indicators ──────────────────────────────────────────────────
 
@@ -304,6 +331,9 @@ export function RadioNetworkHealthPanel() {
             tone={reachbackTone}
           />
         ) : null}
+        {rehomeValue ? (
+          <Indicator label="USB rehome" value={rehomeValue} tone={rehomeTone} />
+        ) : null}
       </div>
 
       {mgmtRepairNote ? (
@@ -319,6 +349,18 @@ export function RadioNetworkHealthPanel() {
           )}
         >
           {reachbackNote}
+        </p>
+      ) : null}
+      {rehomeNote ? (
+        <p
+          className={cn(
+            "mt-2 text-xs",
+            usbRehomeState === "exhausted"
+              ? "text-status-error"
+              : "text-status-warning",
+          )}
+        >
+          {rehomeNote}
         </p>
       ) : null}
 
