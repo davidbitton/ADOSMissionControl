@@ -7,9 +7,11 @@
  * plus the effective-primary-path picker. The peripheral-status block
  * stays gated on a bound LCD; the picker shows on every ground-station
  * agent so the operator can swap between HDMI / LCD / none / auto-detect
- * without an SPI panel being present. Touch calibration, theme,
- * last-touch age, active page, and the 5-point calibration wizard
- * remain under the bound-LCD gate.
+ * without an SPI panel being present. Touch calibration status, theme,
+ * last-touch age, and active page stay under the bound-LCD gate. The
+ * "Calibrate touch" button requests the on-device calibration wizard;
+ * the operator taps the crosshairs on the panel itself, and the status
+ * pill reflects the result from the next heartbeat.
  * @license GPL-3.0-only
  */
 
@@ -36,18 +38,7 @@ function formatLastTouch(ts: number | undefined): string | null {
   return `${days} d`;
 }
 
-interface LocalDisplayCardProps {
-  /** Optional. Fires after the agent accepts a calibration-start
-   * request. The Display sub-view uses this to open
-   * `LcdCalibrationDialog`; pages that don't need the wizard can
-   * leave it unset and the toast alone tells the operator the LCD
-   * is now in calibration mode. */
-  onCalibrationStarted?: () => void;
-}
-
-export function LocalDisplayCard({
-  onCalibrationStarted,
-}: LocalDisplayCardProps = {}) {
+export function LocalDisplayCard() {
   const display = useAgentCapabilitiesStore((s) => s.display);
   const displayType = useAgentCapabilitiesStore((s) => s.displayType);
   const uiTheme = useAgentCapabilitiesStore((s) => s.uiTheme);
@@ -212,7 +203,6 @@ export function LocalDisplayCard({
     try {
       await client.startDisplayCalibration();
       toast(t("calibrateStarted"), "info");
-      onCalibrationStarted?.();
     } catch (err) {
       const msg = err instanceof Error ? err.message : t("calibrateError");
       toast(msg, "error");

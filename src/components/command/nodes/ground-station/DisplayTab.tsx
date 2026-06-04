@@ -3,20 +3,20 @@
 /**
  * @module DisplayTab
  * @description Command-tab home for the LCD-related cards: status,
- * live preview, remote control, theme toggle, calibration wizard,
- * camera switch, recording monitor. Lifted from the prior
- * /hardware/display route.
+ * live preview, remote control, theme toggle, touch calibration,
+ * camera switch, recording monitor. Calibration is captured on the
+ * device panel itself (the operator taps the crosshairs shown on the
+ * LCD); the live preview mirrors it and the status pill reflects the
+ * result. Lifted from the prior /hardware/display route.
  * @license GPL-3.0-only
  */
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { LocalDisplayCard } from "@/components/hardware/LocalDisplayCard";
 import { CloudModeLimitedNotice } from "@/components/command/shared/CloudModeLimitedNotice";
 import { LcdPagePreview } from "@/components/hardware/LcdPagePreview";
 import { LcdRemoteControl } from "@/components/hardware/LcdRemoteControl";
 import { LcdThemeToggle } from "@/components/hardware/LcdThemeToggle";
-import { LcdCalibrationDialog } from "@/components/hardware/LcdCalibrationDialog";
 import { LcdCameraSwitch } from "@/components/hardware/LcdCameraSwitch";
 import { LcdRecordingMonitor } from "@/components/hardware/LcdRecordingMonitor";
 import { PageIntro } from "@/components/hardware/PageIntro";
@@ -25,8 +25,6 @@ import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 export function DisplayTab() {
   const agentUrl = useAgentConnectionStore((s) => s.agentUrl);
   const t = useTranslations("hardware.displayPage");
-
-  const [calibrationOpen, setCalibrationOpen] = useState(false);
 
   if (!agentUrl) {
     return (
@@ -44,9 +42,7 @@ export function DisplayTab() {
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
-            <LocalDisplayCard
-              onCalibrationStarted={() => setCalibrationOpen(true)}
-            />
+            <LocalDisplayCard />
           </div>
           <div>
             <LcdPagePreview />
@@ -68,11 +64,6 @@ export function DisplayTab() {
           </div>
         </div>
       </div>
-
-      <LcdCalibrationDialog
-        open={calibrationOpen}
-        onClose={() => setCalibrationOpen(false)}
-      />
     </div>
   );
 }

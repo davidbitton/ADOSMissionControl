@@ -207,20 +207,18 @@ describe("LocalDisplayCard", () => {
   });
 
   it("fires startDisplayCalibration when the calibrate button is clicked", async () => {
-    const onStarted = vi.fn();
     useAgentCapabilitiesStore.setState({
       ...initial,
       loaded: true,
       display: { type: "spi-lcd", hasTouch: true, touchCalibrated: false },
     });
-    renderWithIntl(<LocalDisplayCard onCalibrationStarted={onStarted} />);
+    renderWithIntl(<LocalDisplayCard />);
     fireEvent.click(screen.getByText("Calibrate touch"));
     await waitFor(() => {
       expect(mockClient.startDisplayCalibration).toHaveBeenCalledTimes(1);
     });
-    expect(onStarted).toHaveBeenCalledTimes(1);
     expect(toastFn).toHaveBeenCalledWith(
-      "Calibration started on the LCD",
+      "Calibration started — tap each crosshair shown on the device LCD.",
       "info",
     );
   });

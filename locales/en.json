@@ -2714,7 +2714,7 @@
       "lastTouchAgo": "{value} ago",
       "activePage": "Active page",
       "calibrateButton": "Calibrate touch",
-      "calibrateStarted": "Calibration started on the LCD",
+      "calibrateStarted": "Calibration started — tap each crosshair shown on the device LCD.",
       "calibrateError": "Could not start calibration",
       "effectivePrimary": "Effective primary path",
       "effectiveUnknown": "Unknown",

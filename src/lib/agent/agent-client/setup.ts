@@ -86,37 +86,22 @@ export function setDisplayPage(
   );
 }
 
-/** Kick off the 5-point touch calibration wizard on the agent. */
+/**
+ * Request the on-device touch calibration wizard. The agent drops a
+ * one-shot flag its LCD service consumes on the next render tick and
+ * launches the full-screen target capture on the panel itself (touch
+ * calibration is physical — the operator taps the crosshairs on the
+ * device). Completion is reflected back through the heartbeat's
+ * `touchCalibrated` flag, not a remote step poll.
+ */
 export function startDisplayCalibration(
   ctx: RequestContext,
-): Promise<{ ok?: boolean; current_step?: number }> {
-  return agentRequest<{ ok?: boolean; current_step?: number }>(
+): Promise<{ ok?: boolean; message?: string }> {
+  return agentRequest<{ ok?: boolean; message?: string }>(
     ctx,
-    "/api/v1/display/calibrate/start",
+    "/api/v1/setup/display/calibrate/start",
     { method: "POST" },
   );
-}
-
-/** Poll the calibration wizard's progress. Returns step 0..5,
- * `complete=true` once the operator has tapped all five targets. */
-export function getDisplayCalibrationStatus(
-  ctx: RequestContext,
-): Promise<{
-  current_step?: number;
-  complete?: boolean;
-  rms_residual_px?: number;
-  skipped?: boolean;
-}> {
-  return agentRequest(ctx, "/api/v1/display/calibrate/status");
-}
-
-/** Skip the calibration wizard and persist the untouched matrix. */
-export function skipDisplayCalibration(
-  ctx: RequestContext,
-): Promise<{ ok?: boolean }> {
-  return agentRequest<{ ok?: boolean }>(ctx, "/api/v1/display/calibrate/skip", {
-    method: "POST",
-  });
 }
 
 /** Apply a partial setup config update. Used here to push the LCD

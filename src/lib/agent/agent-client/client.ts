@@ -157,21 +157,8 @@ export class AgentClient {
     return setup.setDisplayPage(this.ctx, page);
   }
 
-  startDisplayCalibration(): Promise<{ ok?: boolean; current_step?: number }> {
+  startDisplayCalibration(): Promise<{ ok?: boolean; message?: string }> {
     return setup.startDisplayCalibration(this.ctx);
-  }
-
-  getDisplayCalibrationStatus(): Promise<{
-    current_step?: number;
-    complete?: boolean;
-    rms_residual_px?: number;
-    skipped?: boolean;
-  }> {
-    return setup.getDisplayCalibrationStatus(this.ctx);
-  }
-
-  skipDisplayCalibration(): Promise<{ ok?: boolean }> {
-    return setup.skipDisplayCalibration(this.ctx);
   }
 
   applySetup(update: Record<string, unknown>): Promise<{ ok?: boolean }> {
