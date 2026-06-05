@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { useFleetStore } from "@/stores/fleet-store";
 import { useDroneManager } from "@/stores/drone-manager";
 import { useDroneMetadataStore } from "@/stores/drone-metadata-store";
+import { useLocalNodesStore } from "@/stores/local-nodes-store";
+import { unpairLocal } from "@/lib/agent/local-pair-client";
 import { useAgentSystemStore } from "@/stores/agent-system-store";
 import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
 import { Button } from "@/components/ui/button";
@@ -193,6 +195,23 @@ export function DroneDetailPanel({ droneId, onClose }: DroneDetailPanelProps) {
     removeDrone(droneId);
     // Delete metadata
     useDroneMetadataStore.getState().deleteProfile(droneId);
+    // A local node is the only fleet row backed by persisted storage
+    // (local-nodes-store); the fleet + metadata stores above are RAM/IndexedDB
+    // for this id but LocalDroneBridge re-creates the row from the persisted
+    // node on the next load. Purge it too (and release the agent's pairing)
+    // so a deleted local drone does not rehydrate as an offline ghost.
+    if (droneId.startsWith("local-")) {
+      const deviceId = droneId.slice("local-".length);
+      const node = useLocalNodesStore
+        .getState()
+        .nodes.find((n) => n.deviceId === deviceId);
+      if (node) {
+        void unpairLocal(node.hostname, node.apiKey).catch(() => {
+          // Agent gone / unreachable — local forget proceeds regardless.
+        });
+      }
+      useLocalNodesStore.getState().removeNode(deviceId);
+    }
     setDeleteOpen(false);
     toast(`Drone "${displayName}" deleted`, "warning");
     onClose();
