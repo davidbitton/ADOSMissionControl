@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Usb, Wifi, RotateCw, Trash2 } from "lucide-react";
 import { randomId } from "@/lib/utils";
+import { pairedAgentDeviceIdForUrl } from "@/lib/agent/paired-agent-match";
 import { WebSerialTransport } from "@/lib/protocol/transport/webserial";
 import { WebSocketTransport } from "@/lib/protocol/transport/websocket";
 import { MAVLinkAdapter } from "@/lib/protocol/mavlink-adapter";
@@ -47,6 +48,15 @@ export function RecentConnections() {
 
     try {
       if (conn.type === "websocket" && conn.url) {
+        // A paired agent's FC is owned by its agent card; reconnecting it here
+        // as a direct link would spawn a duplicate. Send the operator to the
+        // fleet list instead.
+        if (pairedAgentDeviceIdForUrl(conn.url)) {
+          setError(
+            "This link belongs to a companion-computer agent — open it from the fleet list instead.",
+          );
+          return;
+        }
         const transport = new WebSocketTransport();
         await transport.connect(conn.url);
         const adapter = new MAVLinkAdapter();

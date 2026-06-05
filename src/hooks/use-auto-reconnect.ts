@@ -17,6 +17,7 @@ import { WebSerialTransport } from "@/lib/protocol/transport/webserial";
 import { WebSocketTransport } from "@/lib/protocol/transport/websocket";
 import { MAVLinkAdapter } from "@/lib/protocol/mavlink-adapter";
 import { serialPortManager } from "@/lib/serial-port-manager";
+import { pairedAgentDeviceIdForUrl } from "@/lib/agent/paired-agent-match";
 import { randomId } from "@/lib/utils";
 
 export function useAutoReconnect() {
@@ -86,6 +87,10 @@ export function useAutoReconnect() {
 
       try {
         if (last.type === "websocket" && last.url) {
+          // If this WebSocket is a paired agent's own host, its agent bridge
+          // owns that FC — dialing it directly here would spawn a duplicate
+          // standalone fleet card. Leave it to the agent path.
+          if (pairedAgentDeviceIdForUrl(last.url)) return;
           const transport = new WebSocketTransport();
           await transport.connect(last.url);
           const adapter = new MAVLinkAdapter();

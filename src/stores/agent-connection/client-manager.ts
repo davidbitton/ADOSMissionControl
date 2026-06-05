@@ -109,13 +109,40 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
       }
     }
 
-    const firstError = await attempt(url);
+    // Prefer a known IPv4 for a `.local` agent host. Resolving `.local` in the
+    // browser tries AAAA/IPv6 first and hangs ~5s on a box with no usable IPv6,
+    // which also poisons the browser-direct video (WHEP) + MAVLink-WS dials that
+    // take their host from `agentUrl`. Connecting by IPv4 makes `agentUrl` the
+    // IPv4 so every derived URL is fast; the `.local` URL stays as a fallback
+    // (mDNS can self-heal a stale IPv4 after a DHCP change).
+    const ipv4First = (() => {
+      const node = useLocalNodesStore
+        .getState()
+        .nodes.find((n) => n.hostname === url);
+      return node?.ipv4 != null ? buildIpv4Fallback(url, node.ipv4) : null;
+    })();
+
+    const firstError = await attempt(ipv4First ?? url);
     if (firstError === null) return; // success
 
-    // First attempt failed. If this URL corresponds to a LAN-paired
-    // node that has a server-resolved IPv4 hint stored, try that
-    // address once before surfacing the error. The browser can fail
-    // to resolve .local hostnames even when the agent is reachable.
+    if (ipv4First) {
+      // IPv4 failed (e.g. a stale lease after DHCP moved the box). Fall back to
+      // the `.local` URL, which re-resolves via mDNS.
+      const lanError = await attempt(url);
+      if (lanError === null) return;
+      set({
+        connected: false,
+        connectionError: `${firstError} (also tried ${url}: ${lanError})`,
+        client: null,
+        agentUrl: null,
+      });
+      return;
+    }
+
+    // No known IPv4 — the first attempt WAS the `.local` URL. If this URL
+    // corresponds to a LAN-paired node, ask the server-side mDNS browse for the
+    // device's IPv4 and try that once before surfacing the error. The browser
+    // can fail to resolve .local hostnames even when the agent is reachable.
     let local = useLocalNodesStore
       .getState()
       .nodes.find((n) => n.hostname === url);

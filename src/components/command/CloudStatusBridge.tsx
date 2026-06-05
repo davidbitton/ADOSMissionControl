@@ -265,12 +265,17 @@ export function CloudStatusBridge() {
           .pairedDrones.find((d) => d.deviceId === cloudDeviceId)
       : null;
     const lastIp = cloudRecord.lastIp as string | undefined;
+    // Prefer the agent's IPv4 over its `.local` mDNS name. Resolving a `.local`
+    // host in the browser does IPv6/AAAA first and hangs ~5s when the box has
+    // no usable IPv6, which blows the video-transport + MAVLink-WS connect
+    // timeouts ("All transports failed"). The IPv4 connects instantly. mDNS is
+    // kept only as a last resort for the rare case no IPv4 was captured.
     const lanHost =
-      localNode?.mdnsHost ||
       localNode?.ipv4 ||
-      pairedDrone?.mdnsHost ||
       pairedDrone?.lastIp ||
       lastIp ||
+      localNode?.mdnsHost ||
+      pairedDrone?.mdnsHost ||
       null;
 
     const { state: videoState, whepUrl } = resolveVideoUrls(cloudRecord, lanHost);

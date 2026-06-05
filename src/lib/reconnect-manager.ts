@@ -10,7 +10,6 @@ import { WebSerialTransport } from "@/lib/protocol/transport/webserial";
 import { WebSocketTransport } from "@/lib/protocol/transport/websocket";
 import { MAVLinkAdapter } from "@/lib/protocol/mavlink-adapter";
 import { serialPortManager } from "@/lib/serial-port-manager";
-import { randomId } from "@/lib/utils";
 import { useDiagnosticsStore } from "@/stores/diagnostics-store";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 
@@ -177,10 +176,13 @@ export class ReconnectManager {
 
     const adapter = new MAVLinkAdapter();
     const vehicleInfo = await adapter.connect(transport);
-    const newId = randomId();
+    // Reconnect under the ORIGINAL id, not a fresh one. For an agent-owned FC
+    // (id `local-`/`cloud-`, ownsFleetRow=false) the presence card survives the
+    // drop, so a new random id would re-attach as a SECOND standalone row
+    // (the duplicate). Re-using the id re-attaches to the same card.
     const name = `${vehicleInfo.firmwareVersionString} (${vehicleInfo.vehicleClass})`;
 
-    this.addDroneCallback(newId, name, adapter, transport, vehicleInfo, entry.meta);
+    this.addDroneCallback(entry.droneId, name, adapter, transport, vehicleInfo, entry.meta);
   }
 
   private async attemptWebSocket(entry: ReconnectEntry): Promise<void> {
@@ -198,12 +200,14 @@ export class ReconnectManager {
 
     const adapter = new MAVLinkAdapter();
     const vehicleInfo = await adapter.connect(transport);
-    const newId = randomId();
+    // Reconnect under the ORIGINAL id (see attemptSerial) so an agent FC
+    // re-attaches to its surviving presence card instead of spawning a
+    // duplicate standalone row.
     const name = `${vehicleInfo.firmwareVersionString} (${vehicleInfo.vehicleClass})`;
 
     // Persist the URL actually dialed so a later disconnect doesn't fall back
     // to the stale captured one.
-    this.addDroneCallback(newId, name, adapter, transport, vehicleInfo, {
+    this.addDroneCallback(entry.droneId, name, adapter, transport, vehicleInfo, {
       ...entry.meta,
       url,
     });

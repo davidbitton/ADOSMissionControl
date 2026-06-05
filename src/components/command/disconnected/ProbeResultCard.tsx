@@ -168,7 +168,7 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
         } else {
           await useAgentConnectionStore
             .getState()
-            .connect(probe.hostname, claim.apiKey);
+            .connect(probe.hostname, claim.apiKey, claim.deviceId);
         }
       } catch (connectErr) {
         if (!mountedRef.current) return;

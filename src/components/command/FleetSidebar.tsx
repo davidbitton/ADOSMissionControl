@@ -228,7 +228,10 @@ function FleetSidebarBase({
           if (onHttps) {
             agentConnectCloud(node.deviceId);
           } else if (node.hostname && node.apiKey) {
-            void agentConnect(node.hostname, node.apiKey);
+            // Pass the deviceId so nodeDeviceId is set synchronously: the FC's
+            // MAVLink session then reconciles to this node's local-<deviceId>
+            // card instead of racing to a standalone agent-<timestamp> row.
+            void agentConnect(node.hostname, node.apiKey, node.deviceId);
           }
         }
       } else if (pairedDrones.length > 0) {

@@ -330,6 +330,24 @@ export function buildGroundStationPatch(
   return Object.keys(patch).length > 0 ? patch : null;
 }
 
+/** Swap a `.local` host in `url` for `lastIp` when known. Resolving `.local`
+ * in the browser tries AAAA/IPv6 first and hangs ~5s on a box with no usable
+ * IPv6, blowing the browser-direct video + MAVLink-WS connect timeouts. The
+ * IPv4 connects instantly. Hosts that are already an IP are left untouched. */
+function preferIpv4Host(url: string, lastIp: string | undefined): string {
+  if (!lastIp) return url;
+  try {
+    const u = new URL(url);
+    if (u.hostname.toLowerCase().endsWith(".local")) {
+      u.hostname = lastIp;
+      return u.toString();
+    }
+  } catch {
+    /* not a parseable URL; leave as-is */
+  }
+  return url;
+}
+
 export interface VideoStreamUrls {
   state: string | undefined;
   whepUrl: string | null;
@@ -351,7 +369,7 @@ export function resolveVideoUrls(
 
   let whepUrl: string | null = null;
   if (videoState === "running" && videoWhepUrl) {
-    whepUrl = videoWhepUrl;
+    whepUrl = preferIpv4Host(videoWhepUrl, lastIp);
   } else if (
     videoState === "running" &&
     lastIp &&
@@ -383,7 +401,7 @@ export function resolveMavlinkUrl(
   const mavlinkWsUrl = cloudStatus.mavlinkWsUrl as string | undefined;
   const lastIp = cloudStatus.lastIp as string | undefined;
 
-  if (mavlinkWsUrl) return { url: mavlinkWsUrl };
+  if (mavlinkWsUrl) return { url: preferIpv4Host(mavlinkWsUrl, lastIp) };
   if (lastIp && mavlinkWsPort && mavlinkWsPort > 0) {
     return { url: `ws://${lastIp}:${mavlinkWsPort}/` };
   }
