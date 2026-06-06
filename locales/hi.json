@@ -548,6 +548,8 @@
     "errorGeneral": "संदेश भेजने में विफल। कृपया पुनः प्रयास करें।"
   },
   "dashboard": {
+    "viewGrid": "ग्रिड",
+    "viewOverview": "अवलोकन",
     "logs": "लॉग्स",
     "flightLogs": "फ़्लाइट लॉग्स",
     "expandLogs": "लॉग पैनल विस्तारित करें",

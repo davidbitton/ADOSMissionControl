@@ -2,15 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutGrid, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDroneManager } from "@/stores/drone-manager";
 import { useFleetStore } from "@/stores/fleet-store";
 import { useUiStore } from "@/stores/ui-store";
 import { useLogActivityStore } from "@/stores/log-activity-store";
+import { useConnectDialogStore } from "@/stores/connect-dialog-store";
+import { useFleetNodes } from "@/hooks/use-fleet-nodes";
 import { DroneListPanel } from "@/components/dashboard/DroneListPanel";
 import { DashboardOverview } from "@/components/dashboard/DashboardOverview";
-import { DroneDetailPanel } from "@/components/dashboard/DroneDetailPanel";
+import { CommandFleetOverview } from "@/components/command/CommandFleetOverview";
+import { NodeDetailPanel } from "@/components/dashboard/node-detail/NodeDetailPanel";
 import { DroneLogsPanel } from "@/components/drone-detail/DroneLogsPanel";
 import { EmptyFleetState } from "@/components/dashboard/EmptyFleetState";
 
@@ -19,8 +22,28 @@ export default function DashboardPage() {
   const selectedDroneId = useDroneManager((s) => s.selectedDroneId);
   const selectDrone = useDroneManager((s) => s.selectDrone);
   const drones = useFleetStore((s) => s.drones);
+  const fleetNodes = useFleetNodes();
+  const dashboardView = useUiStore((s) => s.dashboardView);
+  const setDashboardView = useUiStore((s) => s.setDashboardView);
   const immersiveMode = useUiStore((s) => s.immersiveMode);
   const exitImmersiveMode = useUiStore((s) => s.exitImmersiveMode);
+
+  // A grid tile's expand/open maps the agent deviceId back to its
+  // fleet-store row (LocalDroneBridge keys local rows as
+  // `local-<deviceId>` with cloudDeviceId set) and selects it, which
+  // opens the existing DroneDetailPanel — same as a sidebar click.
+  function handleOpenAgent(deviceId: string) {
+    const fleet = useFleetStore.getState().drones;
+    const match =
+      fleet.find((d) => d.cloudDeviceId === deviceId) ??
+      fleet.find((d) => d.id === `local-${deviceId}`);
+    if (match) selectDrone(match.id);
+  }
+
+  // Reuse the sidebar's Add-a-Node dialog (local-first pairing).
+  function handleOpenPairing() {
+    useConnectDialogStore.getState().openDialog();
+  }
   const [panelCollapsed, setPanelCollapsed] = useState(false);
   // Flight Logs panel starts closed; the operator opens it when wanted.
   const [logsCollapsed, setLogsCollapsed] = useState(true);
@@ -71,7 +94,7 @@ export default function DashboardPage() {
       )}
       {selectedDroneId ? (
         <>
-          <DroneDetailPanel droneId={selectedDroneId} onClose={() => selectDrone(null)} />
+          <NodeDetailPanel droneId={selectedDroneId} onClose={() => selectDrone(null)} />
           {!immersiveMode && logsCollapsed && (
             <div className="w-10 shrink-0 flex flex-col h-full border-l border-border-default bg-bg-secondary">
               <button
@@ -132,7 +155,49 @@ export default function DashboardPage() {
           )}
         </>
       ) : (
-        <DashboardOverview />
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {/* View toggle: node grid (live video tiles) vs map + status cards */}
+          <div className="flex items-center justify-end px-3 py-2 border-b border-border-default bg-bg-secondary shrink-0">
+            <div className="inline-flex rounded border border-border-default overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setDashboardView("grid")}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors",
+                  dashboardView === "grid"
+                    ? "bg-accent-primary text-white"
+                    : "bg-bg-secondary text-text-secondary hover:text-text-primary",
+                )}
+              >
+                <LayoutGrid size={13} />
+                {t("viewGrid")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDashboardView("overview")}
+                className={cn(
+                  "flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium transition-colors border-l border-border-default",
+                  dashboardView === "overview"
+                    ? "bg-accent-primary text-white"
+                    : "bg-bg-secondary text-text-secondary hover:text-text-primary",
+                )}
+              >
+                <LayoutDashboard size={13} />
+                {t("viewOverview")}
+              </button>
+            </div>
+          </div>
+
+          {dashboardView === "grid" ? (
+            <CommandFleetOverview
+              fleetNodes={fleetNodes}
+              onOpenAgent={handleOpenAgent}
+              onOpenPairing={handleOpenPairing}
+            />
+          ) : (
+            <DashboardOverview />
+          )}
+        </div>
       )}
     </div>
   );

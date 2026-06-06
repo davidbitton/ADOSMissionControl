@@ -548,6 +548,8 @@
     "errorGeneral": "Failed to send message. Please try again."
   },
   "dashboard": {
+    "viewGrid": "ਗ੍ਰਿਡ",
+    "viewOverview": "ਸੰਖੇਪ ਜਾਣਕਾਰੀ",
     "logs": "Logs",
     "flightLogs": "Flight Logs",
     "expandLogs": "Expand logs panel",

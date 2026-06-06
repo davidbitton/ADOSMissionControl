@@ -563,6 +563,8 @@
     "errorGeneral": "संदेश पाठवता आला नाही. कृपया पुन्हा प्रयत्न करा."
   },
   "dashboard": {
+    "viewGrid": "ग्रिड",
+    "viewOverview": "विहंगावलोकन",
     "logs": "लॉग्ज",
     "flightLogs": "उड्डाण लॉग्ज",
     "expandLogs": "लॉग्ज पॅनेल विस्तारा",

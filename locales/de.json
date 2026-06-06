@@ -548,6 +548,8 @@
     "errorGeneral": "Nachricht konnte nicht gesendet werden. Bitte versuche es erneut."
   },
   "dashboard": {
+    "viewGrid": "Raster",
+    "viewOverview": "Übersicht",
     "logs": "Protokolle",
     "flightLogs": "Flugprotokolle",
     "expandLogs": "Protokollbereich erweitern",

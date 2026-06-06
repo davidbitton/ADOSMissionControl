@@ -563,6 +563,8 @@
     "errorGeneral": "Gagal mengirim pesan. Silakan coba lagi."
   },
   "dashboard": {
+    "viewGrid": "Kisi",
+    "viewOverview": "Ikhtisar",
     "logs": "Log",
     "flightLogs": "Log Penerbangan",
     "expandLogs": "Perluas panel log",

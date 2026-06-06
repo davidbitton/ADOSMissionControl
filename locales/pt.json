@@ -563,6 +563,8 @@
     "errorGeneral": "Falha ao enviar mensagem. Por favor, tente novamente."
   },
   "dashboard": {
+    "viewGrid": "Grade",
+    "viewOverview": "Visão geral",
     "logs": "Logs",
     "flightLogs": "Logs de Voo",
     "expandLogs": "Expandir painel de logs",

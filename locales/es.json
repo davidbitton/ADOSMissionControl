@@ -548,6 +548,8 @@
     "errorGeneral": "No se pudo enviar el mensaje. Inténtalo de nuevo."
   },
   "dashboard": {
+    "viewGrid": "Cuadrícula",
+    "viewOverview": "Resumen",
     "logs": "Registros",
     "flightLogs": "Registros de vuelo",
     "expandLogs": "Expandir panel de registros",

@@ -563,6 +563,8 @@
     "errorGeneral": "메시지 전송에 실패했습니다. 다시 시도해 주세요."
   },
   "dashboard": {
+    "viewGrid": "그리드",
+    "viewOverview": "개요",
     "logs": "로그",
     "flightLogs": "비행 로그",
     "expandLogs": "로그 패널 확장",

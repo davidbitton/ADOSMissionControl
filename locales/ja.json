@@ -563,6 +563,8 @@
     "errorGeneral": "メッセージの送信に失敗しました。再度お試しください。"
   },
   "dashboard": {
+    "viewGrid": "グリッド",
+    "viewOverview": "概要",
     "logs": "ログ",
     "flightLogs": "飛行ログ",
     "expandLogs": "ログパネルを展開",

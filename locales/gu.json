@@ -563,6 +563,8 @@
     "errorGeneral": "સંદેશ મોકલવામાં નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો."
   },
   "dashboard": {
+    "viewGrid": "ગ્રીડ",
+    "viewOverview": "વિહંગાવલોકન",
     "logs": "લોગ્સ",
     "flightLogs": "ઉડાન લોગ્સ",
     "expandLogs": "લોગ પેનલ વિસ્તારો",

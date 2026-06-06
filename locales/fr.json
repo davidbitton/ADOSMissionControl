@@ -548,6 +548,8 @@
     "errorGeneral": "Échec de l'envoi du message. Réessaie."
   },
   "dashboard": {
+    "viewGrid": "Grille",
+    "viewOverview": "Aperçu",
     "logs": "Journaux",
     "flightLogs": "Journaux de vol",
     "expandLogs": "Agrandir le panneau des journaux",

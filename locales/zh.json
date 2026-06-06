@@ -548,6 +548,8 @@
     "errorGeneral": "消息发送失败，请重试。"
   },
   "dashboard": {
+    "viewGrid": "网格",
+    "viewOverview": "概览",
     "logs": "日志",
     "flightLogs": "飞行日志",
     "expandLogs": "展开日志面板",
