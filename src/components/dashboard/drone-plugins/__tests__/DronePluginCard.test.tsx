@@ -45,8 +45,12 @@ vi.mock("lucide-react", () => {
 
 // Convex mutation hook returns a no-op function. The card never
 // awaits it at mount time so the tests can use the synchronous stub.
+// `useQuery` is stubbed too: the card watches the command-ack row via
+// `useConvexSkipQuery` (which calls `useQuery`), but with no command in
+// flight at mount the query is skipped and resolves to undefined.
 vi.mock("convex/react", () => ({
   useMutation: () => async () => null,
+  useQuery: () => undefined,
 }));
 
 // Toast hook returns a stub recorder.

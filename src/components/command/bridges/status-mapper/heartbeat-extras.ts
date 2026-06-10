@@ -113,67 +113,24 @@ export function buildHeartbeatExtras(
         }
       : null;
 
+  // Local-display + UI-theme + navigation overrides the agent forwards on
+  // the cloud heartbeat. The LCD/HDMI display-pipeline, local-decoder,
+  // video-recording, display-type, and vision-summary fields are NOT on the
+  // cloud wire — no agent path emits them today — so they are not read here
+  // (forwarding always-undefined fields makes the contract lie). They return
+  // through the store's merge as a sparse tick when a producer eventually
+  // ships them on the wire.
   const inferOverrides: Parameters<typeof inferCapabilities>[2] = {
-    lcdActivePage: cloudStatus.lcdActivePage as string | null | undefined,
     lcdTouchCalibrated: cloudStatus.lcdTouchCalibrated as
       | boolean
       | null
       | undefined,
-    lcdRotation: cloudStatus.lcdRotation as number | null | undefined,
     lcdSnapshotUrl: cloudStatus.lcdSnapshotUrl as string | null | undefined,
     lcdLastTouchAt: cloudStatus.lcdLastTouchAt as number | null | undefined,
     lcdLastGesture: cloudStatus.lcdLastGesture as string | null | undefined,
-    videoLocalDecoderActive: cloudStatus.videoLocalDecoderActive as
-      | boolean
-      | null
-      | undefined,
-    videoLocalDecoderType: cloudStatus.videoLocalDecoderType as
-      | string
-      | null
-      | undefined,
-    videoLocalDecoderFps: cloudStatus.videoLocalDecoderFps as
-      | number
-      | null
-      | undefined,
-    videoRecording: cloudStatus.videoRecording as boolean | null | undefined,
     uiTheme: cloudStatus.uiTheme as string | null | undefined,
-    displayType: cloudStatus.displayType as string | null | undefined,
     navigation: cloudStatus.navigation,
-    visionActiveModel: cloudStatus.visionActiveModel as
-      | string
-      | null
-      | undefined,
-    visionBackend: cloudStatus.visionBackend as string | null | undefined,
-    visionDetectionsPerSec: cloudStatus.visionDetectionsPerSec as
-      | number
-      | null
-      | undefined,
-    visionFps: cloudStatus.visionFps as number | null | undefined,
   };
-
-  const flavor = cloudStatus.videoPipelineFlavor;
-  const videoPipeline: AgentCapabilities["videoPipeline"] | undefined =
-    typeof flavor === "string" && flavor.length > 0
-      ? {
-          flavor,
-          encoderName:
-            typeof cloudStatus.videoEncoderName === "string"
-              ? cloudStatus.videoEncoderName
-              : undefined,
-          encoderHwAccel:
-            typeof cloudStatus.videoEncoderHwAccel === "boolean"
-              ? cloudStatus.videoEncoderHwAccel
-              : undefined,
-          cameraSource:
-            typeof cloudStatus.videoCameraSource === "string"
-              ? cloudStatus.videoCameraSource
-              : undefined,
-          state:
-            typeof cloudStatus.videoPipelineState === "string"
-              ? cloudStatus.videoPipelineState
-              : undefined,
-        }
-      : undefined;
 
   const setupState =
     typeof cloudStatus.setupState === "string"
@@ -271,7 +228,13 @@ export function buildHeartbeatExtras(
     manualConnectionUrls,
     cloudRelayUrl: pickStringOrNull(cloudStatus.cloudRelayUrl),
     cloudflareUrl: pickStringOrNull(cloudStatus.cloudflareUrl),
-    videoPipeline,
+    // The air-side in-process video-pipeline identity (flavor / encoder /
+    // camera-source / state) and the FC CAN-bus inventory are not on the
+    // cloud heartbeat wire — no agent path emits them — so they are always
+    // undefined. The store's merge keeps the prior value through the sparse
+    // tick. Kept on the shape so the capability bridge stays type-stable for
+    // when a producer ships these on the wire.
+    videoPipeline: undefined,
     inferOverrides,
     radioRaw: cloudStatus.radio,
     setupState,
@@ -303,34 +266,9 @@ export function buildHeartbeatExtras(
     // Camera-recovery block: validated through the shared parser. The
     // store keeps the prior value on a sparse tick that omits it.
     cameraUsbRecovery: normalizeCameraUsbRecovery(cloudStatus.cameraUsbRecovery),
-    canBuses: (() => {
-      // Structural pass-through. The agent emits the canBuses array on
-      // the heartbeat root once the FC parameter cache has at least
-      // one CAN_P*_DRIVER / BITRATE / CAN_D*_PROTOCOL entry; before
-      // that the field is omitted entirely. We return undefined to
-      // preserve that "not yet known" semantics so the store's merge
-      // can keep the prior value through a sparse tick.
-      const raw = cloudStatus.canBuses;
-      if (!Array.isArray(raw)) return undefined;
-      const parsed = raw.flatMap((entry) => {
-        if (!entry || typeof entry !== "object") return [];
-        const e = entry as Record<string, unknown>;
-        if (
-          typeof e.port !== "number"
-          || typeof e.driver !== "number"
-          || typeof e.bitrate !== "number"
-          || typeof e.protocol !== "number"
-        ) {
-          return [];
-        }
-        return [{
-          port: e.port,
-          driver: e.driver,
-          bitrate: e.bitrate,
-          protocol: e.protocol,
-        }];
-      });
-      return parsed;
-    })(),
+    // canBuses is not on the cloud heartbeat wire — no agent path emits the
+    // FC CAN-bus inventory there — so it is always undefined and the store's
+    // merge keeps the prior value through the sparse tick.
+    canBuses: undefined,
   };
 }

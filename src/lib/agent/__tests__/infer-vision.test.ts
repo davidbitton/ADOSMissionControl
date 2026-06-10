@@ -93,22 +93,29 @@ describe("inferCapabilities vision flag", () => {
 });
 
 describe("cmd_droneStatus vision mapping", () => {
-  it("extracts the vision summary fields from a cloud row into inferOverrides", () => {
+  // No agent path emits the vision-summary fields on the cloud heartbeat
+  // today, so the bridge no longer reads visionActiveModel / visionBackend /
+  // visionFps / visionDetectionsPerSec off a cloud row — forwarding
+  // always-undefined fields would make the contract lie. The inference path
+  // still accepts the overrides directly (see the suite above); only the
+  // heartbeat-row extraction is gone until a producer ships them on the wire.
+  it("does not read vision summary fields off a cloud row", () => {
     const extras = buildHeartbeatExtras({
       visionActiveModel: "com.example.weeds",
       visionBackend: "ort",
       visionDetectionsPerSec: 8,
       visionFps: 15,
     });
-    expect(extras.inferOverrides?.visionActiveModel).toBe("com.example.weeds");
-    expect(extras.inferOverrides?.visionBackend).toBe("ort");
-    expect(extras.inferOverrides?.visionDetectionsPerSec).toBe(8);
-    expect(extras.inferOverrides?.visionFps).toBe(15);
+    expect(extras.inferOverrides?.visionActiveModel).toBeUndefined();
+    expect(extras.inferOverrides?.visionBackend).toBeUndefined();
+    expect(extras.inferOverrides?.visionDetectionsPerSec).toBeUndefined();
+    expect(extras.inferOverrides?.visionFps).toBeUndefined();
   });
 
-  it("feeds a cloud row end-to-end into an inferred vision summary", () => {
-    // Mirror the bridge path: a cmd_droneStatus row → buildHeartbeatExtras
-    // → inferCapabilities(status, peripherals, extras.inferOverrides).
+  it("does not fabricate a vision summary from a cloud row", () => {
+    // A cloud row carrying vision fields must not light up the Vision tab,
+    // because the bridge drops them; only hardware inference (an NPU-bearing
+    // SoC) can set visionAvailable absent an advertised surface.
     const extras = buildHeartbeatExtras({
       visionActiveModel: "com.example.people",
       visionBackend: "rknn",
@@ -116,17 +123,12 @@ describe("cmd_droneStatus vision mapping", () => {
       visionFps: 30,
     });
     const caps = inferCapabilities(
-      statusWithSoc("RK3576"),
+      statusWithSoc("BCM2711"),
       [],
       extras.inferOverrides,
     );
-    expect(caps!.visionAvailable).toBe(true);
-    expect(caps!.visionSummary).toEqual({
-      activeModel: "com.example.people",
-      backend: "rknn",
-      detectionsPerSec: 30,
-      fps: 30,
-    });
+    expect(caps!.visionAvailable).toBeUndefined();
+    expect(caps!.visionSummary).toBeUndefined();
   });
 
   it("leaves vision overrides undefined when the row omits them", () => {

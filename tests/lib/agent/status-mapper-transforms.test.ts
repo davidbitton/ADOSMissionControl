@@ -290,7 +290,6 @@ describe("buildHeartbeatExtras", () => {
     expect(extras.macStability).toBeUndefined();
     expect(extras.managementLink).toBeUndefined();
     expect(extras.cameraState).toBeNull();
-    expect(extras.canBuses).toBeUndefined();
     expect(extras.peerChannel).toBeNull();
   });
 
@@ -309,10 +308,6 @@ describe("buildHeartbeatExtras", () => {
         mavlinkWs: "",
         videoViewer: null,
       },
-      canBuses: [
-        { port: 1, driver: 1, bitrate: 1000000, protocol: 1 },
-        { port: 2, driver: 0 },
-      ],
     });
     // 3.9 floors to 3, not rounded.
     expect(extras.videoRestartAttempts).toBe(3);
@@ -326,21 +321,15 @@ describe("buildHeartbeatExtras", () => {
     expect(extras.manualConnectionUrls?.mavlinkTcp).toBe("tcp://10.0.0.7:5760");
     expect(extras.manualConnectionUrls?.mavlinkWs).toBeNull();
     expect(extras.manualConnectionUrls?.videoViewer).toBeNull();
-    // Only the well-formed CAN entry survives the structural filter.
-    expect(extras.canBuses).toEqual([
-      { port: 1, driver: 1, bitrate: 1000000, protocol: 1 },
-    ]);
   });
 
-  it("drops a malformed cameraState and a non-array canBuses", () => {
+  it("drops a malformed cameraState and clamps a negative restart count", () => {
     const extras = buildHeartbeatExtras({
       ...base,
       cameraState: "exploded",
-      canBuses: { not: "an array" },
       videoRestartAttempts: -2,
     });
     expect(extras.cameraState).toBeNull();
-    expect(extras.canBuses).toBeUndefined();
     // A negative restart count is rejected back to 0.
     expect(extras.videoRestartAttempts).toBe(0);
   });

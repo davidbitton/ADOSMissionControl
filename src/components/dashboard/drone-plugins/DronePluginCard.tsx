@@ -15,7 +15,7 @@
  * @license GPL-3.0-only
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   MoreHorizontal,
@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/components/ui/toast";
+import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
 import { cn, isDemoMode } from "@/lib/utils";
 import { RiskBadge } from "@/components/plugins/RiskBadge";
 import {
@@ -71,11 +72,116 @@ export function DronePluginCard({ install, className }: DronePluginCardProps) {
   const [updateSettingsOpen, setUpdateSettingsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // The lifecycle command currently awaiting an agent ACK. We keep the
+  // operator action pending (spinner held, local status NOT flipped)
+  // until the agent confirms the command completed or failed — the
+  // agent's failed-ACK must surface as a failure, never as success.
+  const [pendingCommand, setPendingCommand] = useState<{
+    commandId: Id<"cmd_droneCommands">;
+    kind: "enable" | "disable" | "uninstall";
+    nextStatus: "enabled" | "disabled";
+  } | null>(null);
+  // Guards the ACK effect against double-applying the same terminal row.
+  const ackedRef = useRef<string | null>(null);
+
   // Convex mutations. These resolve through `api.*` to keep the
   // typed-api guard rails on. In demo mode they are not called at all.
   const enqueueCommand = useMutation(api.cmdDroneCommands.enqueueCommand);
   const setStatus = useMutation(api.cmdPlugins.setStatus);
   const removeInstall = useMutation(api.cmdPlugins.removeInstall);
+
+  // Reactively watch the in-flight command row for its terminal ACK.
+  // Convex pushes the row update the instant the agent acks, so the
+  // card reflects the real outcome without polling.
+  const commandRow = useConvexSkipQuery(api.cmdDroneCommands.getCommandStatus, {
+    args: { commandId: pendingCommand?.commandId as Id<"cmd_droneCommands"> },
+    enabled: pendingCommand !== null,
+  });
+
+  // Resolve the operator action once the watched command reaches a
+  // terminal status. On `completed` we apply the local install-state
+  // change; on `failed` we surface the agent's failure message and
+  // leave the status untouched so a no-op never renders as success.
+  useEffect(() => {
+    if (!pendingCommand || !commandRow) return;
+    const { status } = commandRow;
+    if (status !== "completed" && status !== "failed") return;
+    if (ackedRef.current === commandRow._id) return;
+    ackedRef.current = commandRow._id;
+
+    const { kind, nextStatus } = pendingCommand;
+
+    if (status === "failed") {
+      const message = commandRow.result?.message;
+      toast(
+        t("actionFailed", {
+          action:
+            kind === "enable"
+              ? t("enable")
+              : kind === "disable"
+                ? t("disable")
+                : t("uninstall"),
+          error:
+            typeof message === "string" && message.length > 0
+              ? message
+              : t("agentRejected"),
+        }),
+        "error",
+      );
+      setPendingCommand(null);
+      setBusy(false);
+      return;
+    }
+
+    // status === "completed": commit the local install-state change.
+    const apply = async () => {
+      try {
+        if (kind === "uninstall") {
+          await removeInstall({
+            installId: install.installId as Id<"cmd_pluginInstalls">,
+          });
+          toast(t("uninstallConfirmed", { name: install.name }), "success");
+        } else {
+          await setStatus({
+            installId: install.installId as Id<"cmd_pluginInstalls">,
+            status: nextStatus,
+          });
+          toast(
+            kind === "enable"
+              ? t("enableConfirmed", { name: install.name })
+              : t("disableConfirmed", { name: install.name }),
+            "success",
+          );
+        }
+      } catch (err) {
+        toast(
+          t("actionFailed", {
+            action:
+              kind === "enable"
+                ? t("enable")
+                : kind === "disable"
+                  ? t("disable")
+                  : t("uninstall"),
+            error: err instanceof Error ? err.message : String(err),
+          }),
+          "error",
+        );
+      } finally {
+        setPendingCommand(null);
+        setBusy(false);
+        setConfirmRemoveOpen(false);
+      }
+    };
+    void apply();
+  }, [
+    commandRow,
+    pendingCommand,
+    install,
+    removeInstall,
+    setStatus,
+    t,
+    toast,
+  ]);
 
   const trustSignals = useMemo<TrustSignal[]>(() => {
     const out: TrustSignal[] = [];
@@ -112,17 +218,25 @@ export function DronePluginCard({ install, className }: DronePluginCardProps) {
       toast(t("demoActionDisabled"), "info");
       return;
     }
+    if (pendingCommand) return;
     setBusy(true);
+    ackedRef.current = null;
     try {
-      const nextStatus = isEnabled ? "disabled" : "enabled";
-      await enqueueCommand({
+      const nextStatus: "enabled" | "disabled" = isEnabled
+        ? "disabled"
+        : "enabled";
+      // Enqueue the command and wait for the agent's ACK before flipping
+      // the local install state. The status only changes once the agent
+      // confirms the command completed (see the ACK effect above).
+      const { commandId } = await enqueueCommand({
         deviceId: install.deviceId,
         command: isEnabled ? "plugin.disable" : "plugin.enable",
         args: { pluginId: install.pluginId },
       });
-      await setStatus({
-        installId: install.installId as Id<"cmd_pluginInstalls">,
-        status: nextStatus,
+      setPendingCommand({
+        commandId,
+        kind: isEnabled ? "disable" : "enable",
+        nextStatus,
       });
       toast(
         isEnabled
@@ -136,16 +250,15 @@ export function DronePluginCard({ install, className }: DronePluginCardProps) {
           action: isEnabled ? t("disable") : t("enable"),
           error: err instanceof Error ? err.message : String(err),
         }),
-        "warning",
+        "error",
       );
-    } finally {
       setBusy(false);
     }
   }, [
     enqueueCommand,
     install,
     isEnabled,
-    setStatus,
+    pendingCommand,
     t,
     toast,
   ]);
@@ -174,15 +287,22 @@ export function DronePluginCard({ install, className }: DronePluginCardProps) {
       setConfirmRemoveOpen(false);
       return;
     }
+    if (pendingCommand) return;
     setBusy(true);
+    ackedRef.current = null;
     try {
-      await enqueueCommand({
+      // Enqueue the uninstall and wait for the agent's ACK before
+      // removing the local install row. A failed ACK keeps the row and
+      // surfaces the failure (see the ACK effect above).
+      const { commandId } = await enqueueCommand({
         deviceId: install.deviceId,
         command: "plugin.uninstall",
         args: { pluginId: install.pluginId },
       });
-      await removeInstall({
-        installId: install.installId as Id<"cmd_pluginInstalls">,
+      setPendingCommand({
+        commandId,
+        kind: "uninstall",
+        nextStatus: "disabled",
       });
       toast(t("uninstallQueued", { name: install.name }), "info");
     } catch (err) {
@@ -191,13 +311,12 @@ export function DronePluginCard({ install, className }: DronePluginCardProps) {
           action: t("uninstall"),
           error: err instanceof Error ? err.message : String(err),
         }),
-        "warning",
+        "error",
       );
-    } finally {
       setBusy(false);
-      setConfirmRemoveOpen(false);
     }
-  }, [enqueueCommand, install, removeInstall, t, toast]);
+    setConfirmRemoveOpen(false);
+  }, [enqueueCommand, install, pendingCommand, t, toast]);
 
   return (
     <div
