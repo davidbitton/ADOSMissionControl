@@ -47,7 +47,8 @@ interface MissionStoreState {
   setDownloadState: (state: "idle" | "downloading" | "downloaded" | "error") => void;
   createMission: (name: string, droneId: string) => void;
   clearMission: () => void;
-  uploadMission: () => Promise<void>;
+  /** Upload the mission to the FC. Resolves true on success, false on failure. */
+  uploadMission: () => Promise<boolean>;
   downloadMission: () => Promise<Waypoint[]>;
   undo: () => void;
   redo: () => void;
@@ -188,9 +189,9 @@ export const useMissionStore = create<MissionStoreState>()(
 
   uploadMission: async () => {
     const protocol = useDroneManager.getState().getSelectedProtocol();
-    if (!protocol) return;
+    if (!protocol) return false;
     const { waypoints } = get();
-    if (waypoints.length === 0) return;
+    if (waypoints.length === 0) return false;
 
     set({ uploadState: "uploading" });
 
@@ -215,8 +216,10 @@ export const useMissionStore = create<MissionStoreState>()(
     try {
       const result = await protocol.uploadMission(items);
       set({ uploadState: result.success ? "uploaded" : "error" });
+      return result.success;
     } catch {
       set({ uploadState: "error" });
+      return false;
     }
   },
 

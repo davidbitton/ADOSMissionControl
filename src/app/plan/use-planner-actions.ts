@@ -38,7 +38,7 @@ interface ActionsDeps {
   clearMission: () => void;
   setWaypoints: (wps: Waypoint[]) => void;
   downloadMission: () => Promise<Waypoint[]>;
-  uploadMission: () => void;
+  uploadMission: () => Promise<boolean>;
   addRallyPoint: (point: { id: string; lat: number; lon: number; alt: number }) => void;
   // State setters
   setContextMenu: (menu: ContextMenuState | null) => void;
@@ -239,7 +239,11 @@ export function usePlannerActions(deps: ActionsDeps) {
     toast("Waypoints reversed", "info");
   }, [waypoints, setWaypoints, toast]);
 
-  const handleUpload = useCallback(() => { uploadMission(); }, [uploadMission]);
+  const handleUpload = useCallback(async () => {
+    const ok = await uploadMission();
+    if (ok) toast("Mission uploaded to FC", "success");
+    else toast("Mission upload failed — check the connection and try again", "error");
+  }, [uploadMission, toast]);
 
   const handleDrawingComplete = useCallback(
     (shape: DrawnPolygon | DrawnCircle) => {
