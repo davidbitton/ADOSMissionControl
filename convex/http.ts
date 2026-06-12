@@ -603,6 +603,16 @@ http.route({
       cloudRelayUrl: nullableString(body.cloudRelayUrl),
       cloudflareUrl: nullableString(body.cloudflareUrl),
       wfbFailoverState: stringField(body, "wfbFailoverState"),
+      // Ground-station cloud-relay forwarding state, posted by the uplink-aware
+      // relay bridge. This route PICKS fields explicitly (it does not spread the
+      // body like the production deployment), so the six relay fields must be
+      // listed here or pushStatus silently never receives them.
+      uplink: stringField(body, "uplink"),
+      mqttConnected: booleanField(body, "mqttConnected"),
+      throttleState: stringField(body, "throttleState"),
+      forwardingVideo: booleanField(body, "forwardingVideo"),
+      forwardingTelemetry: booleanField(body, "forwardingTelemetry"),
+      tsMs: numberField(body, "tsMs"),
       setupState: stringField(body, "setupState"),
       profile: stringField(body, "profile"),
       role: stringField(body, "role"),

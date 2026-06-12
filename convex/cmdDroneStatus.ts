@@ -164,8 +164,9 @@ export const pushStatus = internalMutation({
     wfbFailoverState: v.optional(v.string()),
     // Ground-station cloud-relay state from the uplink-aware relay bridge.
     // All optional so the drone heartbeat (and a GS with no active uplink)
-    // round-trip cleanly; the /agent/status route spreads these top-level
-    // camelCase fields straight through.
+    // round-trip cleanly. NOTE: this OSS-twin /agent/status route PICKS fields
+    // explicitly (it does not spread the body like the production deployment),
+    // so each of these is also listed in http.ts's statusPayload pick list.
     uplink: v.optional(v.string()),
     mqttConnected: v.optional(v.boolean()),
     throttleState: v.optional(v.string()),
