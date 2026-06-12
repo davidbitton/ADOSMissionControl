@@ -1,7 +1,9 @@
 /**
  * @module SimulationHUD
- * @description Glassmorphism HUD overlay showing current telemetry during simulation playback.
- * Displays waypoint progress, altitude, speed, heading, and ETA.
+ * @description HUD overlay for the trajectory preview. Every value here is computed
+ * from the planned path (altitude, commanded speed, geometric heading, distance,
+ * ETA) — it is NOT live telemetry. A PREVIEW badge makes that explicit so the
+ * operator never reads these as measured flight data.
  * @license GPL-3.0-only
  */
 
@@ -56,6 +58,9 @@ export function SimulationHUD() {
   return (
     <div className="absolute top-4 right-4 z-10 min-w-[140px]">
       <div className="bg-bg-primary/70 backdrop-blur-md border border-border-default rounded-lg p-3 shadow-lg">
+        <div className="flex justify-end pb-1 mb-1 border-b border-border-default">
+          <span className="text-[8px] font-mono tracking-wider text-accent-primary/80" title="Computed from the planned path, not live telemetry">PREVIEW</span>
+        </div>
         {items.map((item) => (
           <div key={item.label} className="flex justify-between items-center gap-4 py-0.5">
             <span className="text-[10px] font-mono text-text-tertiary">{item.label}</span>
