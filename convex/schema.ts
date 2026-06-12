@@ -814,6 +814,18 @@ fullName: v.optional(v.string()),
     // both paths down. Undefined for agents that predate the failover
     // supervisor; the GCS treats absent as "local".
     wfbFailoverState: v.optional(v.string()),
+    // Ground-station cloud-relay state, posted by the uplink-aware relay
+    // bridge when a ground station is in cloud mode. All optional so a drone
+    // (or a GS with no active uplink) round-trips cleanly. "uplink" is the
+    // active uplink iface; "throttleState" follows the data-cap ladder
+    // ("ok" | "throttle_80" | "throttle_95"); "forwarding*" are the live
+    // forwarding decisions derived from that ladder.
+    uplink: v.optional(v.string()),
+    mqttConnected: v.optional(v.boolean()),
+    throttleState: v.optional(v.string()),
+    forwardingVideo: v.optional(v.boolean()),
+    forwardingTelemetry: v.optional(v.boolean()),
+    tsMs: v.optional(v.number()),
     // Setup wizard state on the agent. Live agents report "configured"
     // once the universal webapp wizard has been completed. Older agents
     // omit this and the GCS treats them as configured by default.

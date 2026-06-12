@@ -109,12 +109,25 @@ export interface UplinkDataCap {
   cap_mb: number;
 }
 
+/**
+ * Cloud-relay forwarding state for a ground station reached over the cloud.
+ * Populated from the cloud status heartbeat (the uplink-aware relay bridge);
+ * null when the ground station is reached locally or is not relaying.
+ */
+export interface UplinkCloudRelay {
+  mqtt_connected: boolean;
+  throttle_state: string;
+  forwarding_video: boolean;
+  forwarding_telemetry: boolean;
+}
+
 export interface UplinkSlice {
   active: string | null;
   priority: string[];
   health: UplinkHealth;
   failover_log: UplinkFailoverEntry[];
   data_cap: UplinkDataCap | null;
+  cloud_relay: UplinkCloudRelay | null;
   loading: boolean;
   error: string | null;
 }

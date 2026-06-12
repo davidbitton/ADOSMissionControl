@@ -3778,7 +3778,11 @@
       },
       "priority": "Priority",
       "dataCap": "Data cap",
-      "none": "None"
+      "none": "None",
+      "cloudRelay": "Cloud relay",
+      "fwdVideoTelemetry": "Video + telemetry",
+      "fwdTelemetryOnly": "Telemetry only",
+      "fwdPaused": "Paused"
     },
     "pairedDrone": {
       "title": "Paired drone",

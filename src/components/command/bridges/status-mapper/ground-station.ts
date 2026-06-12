@@ -32,6 +32,12 @@ export interface GroundStationFanOutCurrent {
   };
   uplink: {
     active: string | null;
+    cloud_relay: {
+      mqtt_connected: boolean;
+      throttle_state: string;
+      forwarding_video: boolean;
+      forwarding_telemetry: boolean;
+    } | null;
   };
   peripherals: {
     list: unknown[];
@@ -57,6 +63,16 @@ export function buildGroundStationPatch(
   const wfbFailoverState = cloudStatus.wfbFailoverState as string | undefined;
   const roleField = cloudStatus.role as string | undefined;
   const peripherals = cloudStatus.peripherals;
+  // Cloud-relay forwarding state posted by the uplink-aware relay bridge when
+  // the ground station is reached over the cloud. Present only when the GS is
+  // relaying; a locally-reached GS leaves these absent.
+  const cloudUplink = cloudStatus.uplink as string | undefined;
+  const mqttConnected = cloudStatus.mqttConnected as boolean | undefined;
+  const throttleState = cloudStatus.throttleState as string | undefined;
+  const forwardingVideo = cloudStatus.forwardingVideo as boolean | undefined;
+  const forwardingTelemetry = cloudStatus.forwardingTelemetry as
+    | boolean
+    | undefined;
 
   const patch: Record<string, unknown> = {};
 
@@ -97,10 +113,27 @@ export function buildGroundStationPatch(
     };
   }
 
-  if (wfbFailoverState) {
+  // The active uplink the GS reports over the cloud takes precedence over the
+  // failover-state label; either updates the uplink slice, and a relaying GS
+  // also carries its live MQTT + throttle + forwarding state.
+  const cloudRelay =
+    throttleState !== undefined ||
+    mqttConnected !== undefined ||
+    forwardingVideo !== undefined ||
+    forwardingTelemetry !== undefined
+      ? {
+          mqtt_connected: mqttConnected ?? false,
+          throttle_state: throttleState ?? "ok",
+          forwarding_video: forwardingVideo ?? false,
+          forwarding_telemetry: forwardingTelemetry ?? false,
+        }
+      : current.uplink.cloud_relay;
+
+  if (wfbFailoverState || cloudUplink || cloudRelay !== current.uplink.cloud_relay) {
     patch.uplink = {
       ...current.uplink,
-      active: wfbFailoverState,
+      active: cloudUplink ?? wfbFailoverState ?? current.uplink.active,
+      cloud_relay: cloudRelay,
     };
   }
 

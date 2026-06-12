@@ -61,6 +61,35 @@ export function GroundStationUplinkCard() {
             </dd>
           </>
         )}
+
+        {uplink.cloud_relay && (
+          <>
+            <dt className="text-text-tertiary">{t("cloudRelay")}</dt>
+            <dd className="flex items-center gap-1.5">
+              <span
+                className={`inline-block w-1.5 h-1.5 rounded-full ${
+                  uplink.cloud_relay.mqtt_connected
+                    ? "bg-status-success"
+                    : "bg-status-error"
+                }`}
+                aria-hidden
+              />
+              <span
+                className={
+                  uplink.cloud_relay.forwarding_video
+                    ? "text-text-secondary"
+                    : "text-status-warning"
+                }
+              >
+                {uplink.cloud_relay.forwarding_video
+                  ? t("fwdVideoTelemetry")
+                  : uplink.cloud_relay.forwarding_telemetry
+                    ? t("fwdTelemetryOnly")
+                    : t("fwdPaused")}
+              </span>
+            </dd>
+          </>
+        )}
       </dl>
     </div>
   );

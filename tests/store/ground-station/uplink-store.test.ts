@@ -32,6 +32,7 @@ describe("ground-station uplink slice", () => {
       health: "ok",
       failover_log: [],
       data_cap: null,
+      cloud_relay: null,
       loading: false,
       error: null,
     });
@@ -59,6 +60,7 @@ describe("ground-station uplink slice", () => {
         health: "degraded",
         failover_log: [],
         data_cap: null,
+        cloud_relay: null,
         loading: false,
         error: null,
       },

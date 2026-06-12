@@ -162,6 +162,16 @@ export const pushStatus = internalMutation({
     profile: v.optional(v.string()),
     role: v.optional(v.string()),
     wfbFailoverState: v.optional(v.string()),
+    // Ground-station cloud-relay state from the uplink-aware relay bridge.
+    // All optional so the drone heartbeat (and a GS with no active uplink)
+    // round-trip cleanly; the /agent/status route spreads these top-level
+    // camelCase fields straight through.
+    uplink: v.optional(v.string()),
+    mqttConnected: v.optional(v.boolean()),
+    throttleState: v.optional(v.string()),
+    forwardingVideo: v.optional(v.boolean()),
+    forwardingTelemetry: v.optional(v.boolean()),
+    tsMs: v.optional(v.number()),
     setupState: v.optional(v.string()),
     profileSource: v.optional(v.string()),
     // Top-level mirror of the selected WFB radio adapter (also nested in

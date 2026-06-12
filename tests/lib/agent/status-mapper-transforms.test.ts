@@ -216,7 +216,7 @@ describe("buildGroundStationPatch", () => {
     },
     status: { paired_drone: null, profile: "", uplink_active: null },
     role: { info: null },
-    uplink: { active: null },
+    uplink: { active: null, cloud_relay: null },
     peripherals: { list: [] },
   };
 
@@ -267,6 +267,27 @@ describe("buildGroundStationPatch", () => {
     expect(role.configured).toBe("relay");
     expect(role.supported).toEqual(["direct", "relay", "receiver"]);
     expect((patch?.uplink as Record<string, unknown>).active).toBe("cloud_relay");
+  });
+
+  it("maps the cloud-relay forwarding state from a relaying ground station", () => {
+    const patch = buildGroundStationPatch(
+      {
+        profile: "ground-station",
+        uplink: "eth0",
+        mqttConnected: true,
+        throttleState: "throttle_95",
+        forwardingVideo: false,
+        forwardingTelemetry: true,
+      },
+      current,
+    );
+    const uplink = patch?.uplink as Record<string, unknown>;
+    expect(uplink.active).toBe("eth0");
+    const relay = uplink.cloud_relay as Record<string, unknown>;
+    expect(relay.mqtt_connected).toBe(true);
+    expect(relay.throttle_state).toBe("throttle_95");
+    expect(relay.forwarding_video).toBe(false);
+    expect(relay.forwarding_telemetry).toBe(true);
   });
 
   it("returns null when a ground station sends no patchable fields", () => {

@@ -77,6 +77,7 @@ export const INITIAL_UPLINK: UplinkSlice = {
   health: "ok",
   failover_log: [],
   data_cap: null,
+  cloud_relay: null,
   loading: false,
   error: null,
 };
