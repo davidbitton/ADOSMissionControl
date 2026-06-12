@@ -47,9 +47,17 @@ export default function MissionPlannerPage() {
   const [validationOpen, setValidationOpen] = useState(true);
   const [terrainOpen, setTerrainOpen] = useState(false);
   const [overlayPanelOpen, setOverlayPanelOpen] = useState(false);
-  const toggleOverlayPanel = useCallback(() => setOverlayPanelOpen((v) => !v), []);
   const [downloadPanelOpen, setDownloadPanelOpen] = useState(false);
-  const toggleDownloadPanel = useCallback(() => setDownloadPanelOpen((v) => !v), []);
+  // The overlay and download panels dock at the same spot, so they are mutually
+  // exclusive — opening one closes the other.
+  const toggleOverlayPanel = useCallback(() => {
+    setOverlayPanelOpen((v) => !v);
+    setDownloadPanelOpen(false);
+  }, []);
+  const toggleDownloadPanel = useCallback(() => {
+    setDownloadPanelOpen((v) => !v);
+    setOverlayPanelOpen(false);
+  }, []);
   const togglePattern = useCallback(() => setPatternSectionOpen(!patternOpen), [patternOpen, setPatternSectionOpen]);
   const toggleValidation = useCallback(() => setValidationOpen((v) => !v), []);
   const toggleTerrain = useCallback(() => setTerrainOpen((v) => !v), []);
