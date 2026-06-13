@@ -128,6 +128,15 @@ export interface UplinkSlice {
   failover_log: UplinkFailoverEntry[];
   data_cap: UplinkDataCap | null;
   cloud_relay: UplinkCloudRelay | null;
+  /**
+   * Result of the last share-uplink toggle. `null` until a toggle is made;
+   * `true` when the firewall/NAT rule took effect, `false` when the flag was
+   * persisted but no active uplink resolved (the reason is in
+   * `shareUplinkAppliedReason`).
+   */
+  shareUplinkApplied: boolean | null;
+  /** Short reason the last share-uplink toggle did not apply. Null on success. */
+  shareUplinkAppliedReason: string | null;
   loading: boolean;
   error: string | null;
 }

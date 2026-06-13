@@ -130,6 +130,15 @@ export interface UplinkPriorityConfig {
 
 export interface ShareUplinkResult {
   enabled: boolean;
+  /** Whether the firewall/NAT rule was actually applied to a live uplink.
+   *  False when the flag was persisted but no active uplink resolved (or the
+   *  firewall helper failed); `apply_error` then carries the short reason. */
+  applied?: boolean;
+  /** Short reason the apply did not take effect (no active uplink, helper
+   *  failure, etc.). Present only when `applied` is false. */
+  apply_error?: string | null;
+  /** Firewall backend that handled the rule (iptables-persistent, nftables). */
+  backend?: string | null;
 }
 
 export interface UplinkFailoverEntry {

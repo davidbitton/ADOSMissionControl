@@ -91,6 +91,16 @@ export function GroundStationUplinkCard() {
           </>
         )}
       </dl>
+
+      {uplink.shareUplinkApplied === false && (
+        <p
+          role="alert"
+          className="text-xs text-status-warning border-t border-border-subtle pt-2"
+        >
+          {t("shareUplinkNotApplied")}:{" "}
+          {uplink.shareUplinkAppliedReason ?? t("shareUplinkNotAppliedDefault")}
+        </p>
+      )}
     </div>
   );
 }

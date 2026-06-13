@@ -227,6 +227,16 @@ export const createUplinkSlice: GroundStationSliceCreator<UplinkSlice> = (
       if (prev) {
         set({ network: { ...prev, share_uplink: res.enabled } });
       }
+      // Surface whether the firewall/NAT rule actually applied. Older agents
+      // omit `applied`; treat that as a success so the warning never shows.
+      const applied = res.applied ?? true;
+      set({
+        uplink: {
+          ...get().uplink,
+          shareUplinkApplied: applied,
+          shareUplinkAppliedReason: applied ? null : res.apply_error ?? null,
+        },
+      });
       return res.enabled;
     } catch (err) {
       const { message } = errorMessage(err);

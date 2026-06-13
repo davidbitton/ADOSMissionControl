@@ -3608,7 +3608,9 @@
       "cloudRelay": "Cloud relay",
       "fwdVideoTelemetry": "Video + telemetry",
       "fwdTelemetryOnly": "Telemetry only",
-      "fwdPaused": "Paused"
+      "fwdPaused": "Paused",
+      "shareUplinkNotApplied": "Share uplink not applied",
+      "shareUplinkNotAppliedDefault": "No active uplink to share"
     },
     "pairedDrone": {
       "title": "Paired drone",
