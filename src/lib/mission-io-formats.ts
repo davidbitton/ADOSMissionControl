@@ -20,7 +20,7 @@ const FRAME_TERRAIN = 10;
 const DEFAULT_FRAME: AltitudeFrame = "relative";
 
 /** Map an altitude reference frame to its MAV_FRAME number. */
-function frameToMav(frame: AltitudeFrame | undefined): number {
+export function frameToMav(frame: AltitudeFrame | undefined): number {
   switch (frame ?? DEFAULT_FRAME) {
     case "absolute":
       return FRAME_GLOBAL;

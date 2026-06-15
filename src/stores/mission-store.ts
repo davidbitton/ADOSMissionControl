@@ -36,7 +36,7 @@ import {
 import { registerWaypointAdapter } from "@/lib/planner-history-adapter";
 // Shared MAVLink command maps. Single source of truth so the upload (cmdMap)
 // and download (reverseCmd) directions can never drift out of sync.
-import { cmdMap, reverseCmd } from "@/lib/mission-io-formats";
+import { cmdMap, reverseCmd, frameToMav } from "@/lib/mission-io-formats";
 
 interface MissionStoreState {
   activeMission: Mission | null;
@@ -200,12 +200,15 @@ export const useMissionStore = create<MissionStoreState>()(
 
     set({ uploadState: "uploading" });
 
-    const frameMap: Record<string, number> = { relative: 3, absolute: 0, terrain: 10 };
-    const altFrame = frameMap[usePlannerStore.getState().defaultFrame] ?? 3;
+    // Each waypoint carries its own altitude frame; fall back to the mission's
+    // default frame when a waypoint does not specify one. This matches what
+    // mission file export/import preserve, so a mixed-frame mission uploads the
+    // same frames it was saved with rather than coercing them all to one.
+    const defaultFrame = usePlannerStore.getState().defaultFrame;
 
     const items: MissionItem[] = waypoints.map((wp, i) => ({
       seq: i,
-      frame: altFrame,
+      frame: frameToMav(wp.frame ?? defaultFrame),
       command: cmdMap[wp.command ?? "WAYPOINT"] ?? 16,
       current: i === 0 ? 1 : 0,
       autocontinue: 1,
