@@ -213,7 +213,7 @@ When you need to understand a system, read these files:
 | Cloud status bridge | `src/components/command/CloudStatusBridge.tsx` — Convex reactive query → agent store |
 | MQTT bridge | `src/components/command/MqttBridge.tsx` — Browser MQTT client for real-time telemetry |
 | MSE video player | `src/lib/video/mse-player.ts` — WebSocket to MediaSource Extensions player |
-| Agent store (cloud mode) | `src/stores/agent-store.ts` — Cloud/local agent connection state |
+| Agent store (cloud mode) | `src/stores/agent-connection-store.ts` — Cloud/local agent connection state (with `agent-system-store`, `agent-peripherals-store`, `fleet-network-store`) |
 
 ---
 

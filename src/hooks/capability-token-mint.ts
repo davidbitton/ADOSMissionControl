@@ -2,11 +2,11 @@
  * Mint helpers for `useCapabilityToken`. Split out so the hook file
  * stays under the 250 LOC target.
  *
- * The Convex action `cmdPluginCapabilityTokens.mintToken` is expected
- * to return exactly `{ token: string; expiresAt: number }`. If Convex
- * evolves to wrap that in `{ ok: true, ... }` (matching the agent's
- * REST shape), unwrap the envelope inside `mintCloud`. TODO(audit):
- * pin shape.
+ * The Convex action `cmdPluginCapabilityTokens.mintToken` returns
+ * exactly `{ token: string; expiresAt: number }`. `mintCloud` asserts
+ * that shape and fails loud on anything else, so a future `{ ok: true,
+ * ... }` envelope would be rejected at the shape check rather than
+ * silently misread.
  *
  * @license GPL-3.0-only
  */
@@ -43,8 +43,8 @@ export async function mintCloud(
     pluginInstallId: pluginInstallId as Id<"cmd_pluginInstalls">,
     deviceId,
   });
-  if (!res || typeof res.token !== "string") {
-    throw new Error("cloud mint did not return a token string");
+  if (!res || typeof res.token !== "string" || typeof res.expiresAt !== "number") {
+    throw new Error("cloud mint returned an unexpected shape");
   }
   const claims = parseTokenClaims(res.token).claims;
   return wrapMinted(res.token, claims);

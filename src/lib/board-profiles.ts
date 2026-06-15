@@ -133,14 +133,6 @@ export function getBoardProfileListGrouped(): SelectOptionGroup[] {
 }
 
 /**
- * Get the board profile list for manual selection UI (flat list).
- * @deprecated Use getBoardProfileListGrouped() for grouped dropdown.
- */
-export function getBoardProfileList(): { name: string; vendor: string }[] {
-  return BOARD_PROFILES.map((b) => ({ name: b.name, vendor: b.vendor }))
-}
-
-/**
  * Find a board profile by name (for manual selection).
  */
 export function getBoardProfileByName(name: string): BoardProfile {
