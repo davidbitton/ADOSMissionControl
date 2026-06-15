@@ -21,7 +21,25 @@ interface LineConfig {
   color: string;
 }
 
-export function GuidanceSettingsMenu() {
+/**
+ * Where the floating guidance menu docks over its host map.
+ * - `top-left` (default): the historical position, used by maps whose top-right
+ *   corner carries other controls.
+ * - `top-right`: used by the mission planner, whose top-left corner is occupied
+ *   by the GPS badge, the tool dock, and the overlay / download panels.
+ */
+export type GuidanceMenuPlacement = "top-left" | "top-right";
+
+const PLACEMENT_CLASS: Record<GuidanceMenuPlacement, string> = {
+  "top-left": "top-16 left-3",
+  "top-right": "top-2 right-2",
+};
+
+export function GuidanceSettingsMenu({
+  placement = "top-left",
+}: {
+  placement?: GuidanceMenuPlacement;
+} = {}) {
   const [expanded, setExpanded] = useState(false);
   const t = useTranslations("guidance");
 
@@ -87,7 +105,12 @@ export function GuidanceSettingsMenu() {
   }, [expanded, handleKeyDown]);
 
   return (
-    <div className="absolute top-16 left-3 z-[1000] bg-bg-primary/80 backdrop-blur-md border border-border-strong rounded shadow-lg overflow-hidden">
+    // The host picks the corner: the planner docks this top-right so the
+    // collapsed pill and its downward-expanding panel never overlap the
+    // left-edge tool dock or the overlay / download panels; other maps keep the
+    // historical top-left dock. max-w + the panel's own scroll keep a long
+    // expanded panel inside the map.
+    <div className={`absolute ${PLACEMENT_CLASS[placement]} z-[1000] max-w-[min(18rem,calc(100%-1rem))] bg-bg-primary/80 backdrop-blur-md border border-border-strong rounded shadow-lg overflow-hidden`}>
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}

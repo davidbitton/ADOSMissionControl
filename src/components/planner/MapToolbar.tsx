@@ -74,6 +74,10 @@ function ToolButton({
       <button
         onClick={onClick}
         disabled={disabled}
+        // Icon-only control: the visible tooltip text is also the button's
+        // accessible name, so screen readers announce the same label sighted
+        // users see on hover.
+        aria-label={tooltip}
         className={cn(
           "w-8 h-8 flex items-center justify-center rounded-md transition-colors cursor-pointer",
           "disabled:opacity-30 disabled:cursor-not-allowed",

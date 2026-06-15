@@ -26,10 +26,69 @@ import { randomId } from "@/lib/utils";
 import L from "leaflet";
 import {
   makeWaypointIcon, makeSplineWaypointIcon, makeSegmentLabel, makeRallyIcon, makeMeasureLabel, formatDist,
-  DRAWING_TOOLS, PLACEMENT_TOOLS, TOOL_CURSORS, TOOL_INSTRUCTIONS,
+  DRAWING_TOOLS, PLACEMENT_TOOLS, TOOL_CURSORS,
 } from "./planner-map-helpers";
 import { generateSplinePath } from "@/lib/spline-interpolation";
 import { JumpArrowOverlay } from "./JumpArrowOverlay";
+import type { PlannerMode } from "@/lib/planner-mode";
+
+/**
+ * A single in-map hint surface. `tone` controls whether the banner reads as the
+ * always-on subdued select hint or the louder accent hint shown while an
+ * explicit placement / drawing mode is armed.
+ */
+interface BannerDescriptor {
+  readonly message: string;
+  readonly tone: "subdued" | "accent";
+}
+
+/**
+ * Map the authoritative interaction mode to the hint banner shown over the map.
+ * Pure: no React, no leaflet, no store access — every placement, draw, datum,
+ * and rally mode resolves to one consistent descriptor here so the map renders a
+ * single banner driven by `mode.kind` instead of several bespoke blocks.
+ *
+ * Returns `null` for the rare modes that should show no banner (none today; the
+ * select mode keeps a subdued always-on hint). Exported for unit testing.
+ */
+export function mapBannerDescriptor(mode: PlannerMode): BannerDescriptor | null {
+  switch (mode.kind) {
+    case "select":
+      return { message: "Click map to add a waypoint", tone: "subdued" };
+    case "waypoint":
+      switch (mode.tool) {
+        case "waypoint":
+          return { message: "Click map to place waypoint", tone: "accent" };
+        case "takeoff":
+          return { message: "Click map to place takeoff point", tone: "accent" };
+        case "land":
+          return { message: "Click map to place landing point", tone: "accent" };
+        case "loiter":
+          return { message: "Click map to place loiter point", tone: "accent" };
+        case "roi":
+          return { message: "Click map to set region of interest", tone: "accent" };
+      }
+    // falls through (every waypoint tool is handled above)
+    case "rally":
+      return { message: "Click map to place rally point", tone: "accent" };
+    case "datum":
+      return { message: "Click map to set the search datum point", tone: "accent" };
+    case "draw":
+      switch (mode.shape) {
+        case "polygon":
+          return {
+            message:
+              "Click to place vertices. Right-click or click first vertex to close. Backspace to undo. Escape to cancel.",
+            tone: "accent",
+          };
+        case "circle":
+          return { message: "Click and drag to draw circle. Right-click to cancel.", tone: "accent" };
+        case "measure":
+          return { message: "Click to add points, double-click to finish. Right-click to cancel.", tone: "accent" };
+      }
+  }
+  return null;
+}
 
 const MapContainer = dynamic(() => import("react-leaflet").then((m) => m.MapContainer), { ssr: false });
 const TileLayerSwitcher = dynamic(() => import("@/components/map/TileLayerSwitcher").then((m) => ({ default: m.TileLayerSwitcher })), { ssr: false });
@@ -71,18 +130,33 @@ export function PlannerMap({
   const setActiveDrawingVertices = useDrawingStore((s) => s.setActiveDrawingVertices);
   const measureLine = useDrawingStore((s) => s.measureLine);
   const setActiveTool = usePlannerStore((s) => s.setActiveTool);
+  // Authoritative interaction mode drives the single in-map hint banner.
+  const mode = usePlannerStore((s) => s.mode);
   const fitRequestTs = usePlannerStore((s) => s.fitRequestTs);
   const clearFitRequest = usePlannerStore((s) => s.clearFitRequest);
   const defaultCenter = useDefaultCenter();
-  const isDrawingTool = DRAWING_TOOLS.includes(activeTool);
 
   // Telemetry for GPS badge + guidance vectors
   const pos = useTelemetryLatest("position");
   const gps = useTelemetryLatest("gps");
   const nav = useTelemetryLatest("navController");
-  const dronePos: [number, number] | null =
-    pos && pos.lat !== 0 && pos.lon !== 0 ? [pos.lat, pos.lon] : null;
+  // `useTelemetryLatest` re-runs every ~10-60 Hz telemetry tick, so reading the
+  // raw lat/lon directly here is fine, but a fresh `[lat, lon]` array literal
+  // would change reference on every tick and force the guidance-vector memos
+  // (and any other consumer) to recompute even when the position is unchanged.
+  // Pull the primitive values out first, then memoize the array on those exact
+  // numbers so a tick that does not move the drone produces a stable reference.
+  const posLat = pos?.lat ?? null;
+  const posLon = pos?.lon ?? null;
   const heading = pos?.heading ?? 0;
+  const hasPos = pos != null;
+  const dronePos = useMemo<[number, number] | null>(
+    () =>
+      posLat !== null && posLon !== null && posLat !== 0 && posLon !== 0
+        ? [posLat, posLon]
+        : null,
+    [posLat, posLon],
+  );
   const fixType = gps?.fixType ?? 0;
   const satellites = gps?.satellites ?? 0;
   const fixLabel = GPS_FIX_LABELS[fixType] ?? `FIX ${fixType}`;
@@ -106,10 +180,10 @@ export function PlannerMap({
 
   // Guidance vector endpoints
   const hdgLine = useMemo(() => {
-    if (!dronePos || (heading === 0 && !pos)) return null;
+    if (!dronePos || (heading === 0 && !hasPos)) return null;
     const end = projectByBearing(dronePos[0], dronePos[1], heading, guidanceHdgLength);
     return [dronePos, end] as [[number, number], [number, number]];
-  }, [dronePos, heading, guidanceHdgLength, pos]);
+  }, [dronePos, heading, guidanceHdgLength, hasPos]);
 
   const trackWpLine = useMemo(() => {
     if (!dronePos || !nav) return null;
@@ -258,6 +332,28 @@ export function PlannerMap({
     [measureLine]
   );
 
+  // Build the waypoint markers once per real change (waypoint set, selection,
+  // or drag-ability) instead of on every render. A live telemetry tick re-runs
+  // the component but leaves these inputs untouched, so the marker list is
+  // returned from the memo unchanged and never rebuilt under the ~10-60 Hz
+  // position stream.
+  const waypointMarkers = useMemo(
+    () =>
+      waypoints.map((wp, i) => (
+        <Marker key={wp.id} position={[wp.lat, wp.lon]}
+          icon={wp.command === "SPLINE_WAYPOINT" ? makeSplineWaypointIcon(i, wp.id === selectedWaypointId) : makeWaypointIcon(i, wp.id === selectedWaypointId)}
+          draggable={activeTool === "select"}
+          eventHandlers={{
+            click: (e) => { e.originalEvent.stopPropagation(); onWaypointClick(wp.id); },
+            dragend: (e) => { const ll = e.target.getLatLng(); onWaypointDragEnd(wp.id, ll.lat, ll.lng); },
+            contextmenu: (e) => { e.originalEvent.preventDefault(); e.originalEvent.stopPropagation(); onWaypointRightClick(wp.id, e.originalEvent.clientX, e.originalEvent.clientY); },
+          }} />
+      )),
+    [waypoints, selectedWaypointId, activeTool, onWaypointClick, onWaypointDragEnd, onWaypointRightClick]
+  );
+
+  const banner = useMemo(() => mapBannerDescriptor(mode), [mode]);
+
   return (
     <div className="w-full h-full relative">
       {/* GPS status badge */}
@@ -266,7 +362,7 @@ export function PlannerMap({
           {fixLabel} | {satellites} SAT
         </span>
       )}
-      {hasActivePlan && <GuidanceSettingsMenu />}
+      {hasActivePlan && <GuidanceSettingsMenu placement="top-right" />}
       <MapContainer center={defaultCenter} zoom={13} className="w-full h-full" zoomControl={false} attributionControl={false}
         style={{ background: "#0a0a0a" }} ref={(instance) => { if (instance) setMapInstance(instance); }}>
         <TileLayerSwitcher showControls={hasActivePlan} />
@@ -288,16 +384,7 @@ export function PlannerMap({
           <Polyline positions={tgtHdgLine} pathOptions={{ color: guidanceTgtHdgColor, weight: guidanceTgtHdgWidth, dashArray: getLineTypeDashArray(guidanceTgtHdgLineType), opacity: 0.8 }} />
         )}
         {hasActivePlan && <JumpArrowOverlay waypoints={waypoints} />}
-        {hasActivePlan && waypoints.map((wp, i) => (
-          <Marker key={wp.id} position={[wp.lat, wp.lon]}
-            icon={wp.command === "SPLINE_WAYPOINT" ? makeSplineWaypointIcon(i, wp.id === selectedWaypointId) : makeWaypointIcon(i, wp.id === selectedWaypointId)}
-            draggable={activeTool === "select"}
-            eventHandlers={{
-              click: (e) => { e.originalEvent.stopPropagation(); onWaypointClick(wp.id); },
-              dragend: (e) => { const ll = e.target.getLatLng(); onWaypointDragEnd(wp.id, ll.lat, ll.lng); },
-              contextmenu: (e) => { e.originalEvent.preventDefault(); e.originalEvent.stopPropagation(); onWaypointRightClick(wp.id, e.originalEvent.clientX, e.originalEvent.clientY); },
-            }} />
-        ))}
+        {hasActivePlan && waypointMarkers}
         {hasActivePlan && rallyPoints.map((rp, i) => <Marker key={`rally-${rp.id}`} position={[rp.lat, rp.lon]} icon={makeRallyIcon(i)} interactive={false} />)}
         {hasActivePlan && measureLine && measureLine.points.length >= 2 && (<>
           <Polyline positions={measurePositions} pathOptions={{ color: MAP_COLORS.muted, weight: 2, dashArray: "4 4" }} />
@@ -317,27 +404,18 @@ export function PlannerMap({
         </div>
       )}
 
-      {hasActivePlan && TOOL_INSTRUCTIONS[activeTool] && (
+      {/* One mode-driven hint banner for every interaction mode. The select
+          mode keeps a subdued always-on hint that a plain click adds a
+          waypoint; every placement / datum / rally / draw mode shows the louder
+          accent style. Both are derived from the authoritative `mode` value. */}
+      {hasActivePlan && banner && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
-          {/* The default select tool keeps a subdued, always-on hint that a plain
-              click adds a waypoint; explicit tools use the louder accent style. */}
-          <div className={activeTool === "select"
+          <div className={banner.tone === "subdued"
             ? "bg-bg-secondary/90 border border-border-default px-3 py-1.5"
             : "bg-bg-secondary/90 border border-accent-primary/30 px-3 py-1.5"}>
-            <span className={activeTool === "select"
+            <span className={banner.tone === "subdued"
               ? "text-xs text-text-secondary font-mono"
-              : "text-xs text-accent-primary font-mono"}>{TOOL_INSTRUCTIONS[activeTool]}</span>
-          </div>
-        </div>
-      )}
-      {hasActivePlan && isDrawingTool && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none">
-          <div className="bg-bg-secondary/90 border border-accent-primary/30 px-3 py-1.5">
-            <span className="text-xs text-accent-primary font-mono">
-              {activeTool === "polygon" && "Click to place vertices. Right-click or click first vertex to close. Backspace to undo. Escape to cancel."}
-              {activeTool === "circle" && "Click and drag to draw circle. Right-click to cancel."}
-              {activeTool === "measure" && "Click to add points, double-click to finish. Right-click to cancel."}
-            </span>
+              : "text-xs text-accent-primary font-mono"}>{banner.message}</span>
           </div>
         </div>
       )}
