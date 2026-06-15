@@ -28,6 +28,13 @@ import type { RadioState } from "@/lib/api/ground-station/types";
 export interface ManualConnectionUrls {
   mavlinkTcp: string | null;
   mavlinkWs: string | null;
+  /** Path-or-absolute form of the ticket-gated authenticated MAVLink
+   * WebSocket endpoint the agent advertises in its manual-connection
+   * block (ground-station profile). Null when the agent does not
+   * advertise the gated endpoint. The bridge resolves this into the
+   * dialable absolute URL carried on the store's top-level
+   * `mavlinkWsAuthenticated`. */
+  mavlinkWsAuthenticated: string | null;
   videoViewer: string | null;
   videoWhep: string | null;
 }
@@ -136,6 +143,15 @@ export interface AgentCapabilitiesState {
   /** Previous MAVLink WebSocket URL the agent advertised, if it
    * rotated its binding. Null when no rotation is in flight. */
   mavlinkWsUrlPrev: string | null;
+  /** Resolved absolute URL of the agent's ticket-gated authenticated
+   * MAVLink WebSocket endpoint (ground-station profile). The bridge
+   * resolves the heartbeat / local-status path-or-absolute form into a
+   * single dialable ws/wss URL before it reaches the store. Null when
+   * the agent does not advertise the gated endpoint (older agents, or a
+   * non-ground-station profile). When present the MAVLink bridge mints a
+   * one-shot ticket and dials this in preference to the legacy raw
+   * proxy. */
+  mavlinkWsAuthenticated: string | null;
   /** Current pairing/uplink failover state. "local" is the steady
    * state on the wireless radio link. "cloud_relay" means the
    * agent's local pairing supervisor failed over to the cloud

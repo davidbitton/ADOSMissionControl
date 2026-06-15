@@ -120,6 +120,7 @@ export const pushStatus = internalMutation({
       v.object({
         mavlinkTcp: v.optional(v.union(v.string(), v.null())),
         mavlinkWs: v.optional(v.union(v.string(), v.null())),
+        mavlinkWsAuthenticated: v.optional(v.union(v.string(), v.null())),
         videoViewer: v.optional(v.union(v.string(), v.null())),
         videoWhep: v.optional(v.union(v.string(), v.null())),
       }),

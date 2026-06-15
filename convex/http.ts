@@ -251,6 +251,7 @@ function commandResultField(
 interface ManualConnectionUrlsPayload {
   mavlinkTcp?: string | null;
   mavlinkWs?: string | null;
+  mavlinkWsAuthenticated?: string | null;
   videoViewer?: string | null;
   videoWhep?: string | null;
 }
@@ -268,10 +269,13 @@ function manualConnectionUrlsField(
   const out: ManualConnectionUrlsPayload = {};
   const mavlinkTcp = nullableString(row.mavlinkTcp);
   const mavlinkWs = nullableString(row.mavlinkWs);
+  const mavlinkWsAuthenticated = nullableString(row.mavlinkWsAuthenticated);
   const videoViewer = nullableString(row.videoViewer);
   const videoWhep = nullableString(row.videoWhep);
   if (mavlinkTcp !== undefined) out.mavlinkTcp = mavlinkTcp;
   if (mavlinkWs !== undefined) out.mavlinkWs = mavlinkWs;
+  if (mavlinkWsAuthenticated !== undefined)
+    out.mavlinkWsAuthenticated = mavlinkWsAuthenticated;
   if (videoViewer !== undefined) out.videoViewer = videoViewer;
   if (videoWhep !== undefined) out.videoWhep = videoWhep;
   return out;

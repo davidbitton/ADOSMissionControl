@@ -121,6 +121,23 @@ export function deriveMavlinkWsUrlPrev(
 }
 
 /**
+ * Resolved absolute URL of the agent's ticket-gated authenticated MAVLink
+ * WebSocket endpoint. The bridge resolves the path-or-absolute wire form
+ * into a single dialable ws/wss URL before handing it to the store, so
+ * this deriver only coerces the already-resolved value. Forward-permissive:
+ * undefined keeps the prior store value, an explicit null clears it.
+ */
+export function deriveMavlinkWsAuthenticated(
+  caps: unknown,
+): string | null | undefined {
+  const raw = (caps as { mavlinkWsAuthenticated?: unknown })
+    .mavlinkWsAuthenticated;
+  if (typeof raw === "string" && raw.length > 0) return raw;
+  if (raw === null) return null;
+  return undefined;
+}
+
+/**
  * Manual-connection URL block. Forward-permissive: undefined keeps the
  * prior value, a partial block is accepted as-is so the GCS can render
  * whichever fallbacks the agent currently advertises.
@@ -137,6 +154,7 @@ export function deriveManualConnectionUrls(
   return {
     mavlinkTcp: pick(m.mavlinkTcp),
     mavlinkWs: pick(m.mavlinkWs),
+    mavlinkWsAuthenticated: pick(m.mavlinkWsAuthenticated),
     videoViewer: pick(m.videoViewer),
     videoWhep: pick(m.videoWhep),
   };

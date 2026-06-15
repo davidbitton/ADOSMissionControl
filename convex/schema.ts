@@ -747,6 +747,11 @@ fullName: v.optional(v.string()),
       v.object({
         mavlinkTcp: v.optional(v.union(v.string(), v.null())),
         mavlinkWs: v.optional(v.union(v.string(), v.null())),
+        // Ticket-gated authenticated MAVLink WebSocket endpoint
+        // (ground-station profile), as an absolute URL or a path
+        // relative to the agent front. Sibling of mavlinkWs. Null when
+        // the agent does not advertise the gated endpoint.
+        mavlinkWsAuthenticated: v.optional(v.union(v.string(), v.null())),
         videoViewer: v.optional(v.union(v.string(), v.null())),
         videoWhep: v.optional(v.union(v.string(), v.null())),
       }),

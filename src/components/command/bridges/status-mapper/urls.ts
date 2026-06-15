@@ -88,7 +88,19 @@ function resolveAuthenticatedMavlinkWsUrl(
   lanHost: string | null,
   lastIp: string | undefined,
 ): string | null {
-  const raw = cloudStatus.mavlinkWsAuthenticated;
+  // The agent advertises the gated endpoint either at the row top level or,
+  // mirroring the legacy `mavlinkWs`, inside the `manualConnectionUrls`
+  // block. Prefer the top-level value, then the nested sibling.
+  const manual = cloudStatus.manualConnectionUrls;
+  const nested =
+    manual && typeof manual === "object"
+      ? (manual as Record<string, unknown>).mavlinkWsAuthenticated
+      : undefined;
+  const raw =
+    typeof cloudStatus.mavlinkWsAuthenticated === "string" &&
+    cloudStatus.mavlinkWsAuthenticated.length > 0
+      ? cloudStatus.mavlinkWsAuthenticated
+      : nested;
   if (typeof raw !== "string" || raw.length === 0) return null;
 
   // Absolute ws:// / wss:// URL — honor it, swapping a `.local` host for

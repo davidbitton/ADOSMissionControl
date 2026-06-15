@@ -73,15 +73,13 @@ export function AgentMavlinkBridge() {
   const mavlinkWsUrlPrev = useAgentCapabilitiesStore(
     (s) => s.mavlinkWsUrlPrev,
   );
-  // The agent's ticket-gated authenticated MAVLink endpoint, advertised on
-  // the heartbeat and merged into the capability store alongside the other
-  // heartbeat extras. Read permissively: an older store object that has not
-  // yet merged the field reads as undefined and the cascade falls back to
-  // the legacy raw proxy.
+  // The agent's ticket-gated authenticated MAVLink endpoint, resolved from
+  // the heartbeat / local-status path and merged into the capability store
+  // alongside the other heartbeat extras. Null when the agent does not
+  // advertise it, in which case the cascade falls back to the legacy raw
+  // proxy.
   const mavlinkWsAuthenticated = useAgentCapabilitiesStore(
-    (s) =>
-      (s as { mavlinkWsAuthenticated?: string | null })
-        .mavlinkWsAuthenticated ?? null,
+    (s) => s.mavlinkWsAuthenticated,
   );
   const fcConnected = status?.fc_connected ?? false;
   const connectingRef = useRef(false);

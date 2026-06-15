@@ -400,6 +400,11 @@ export interface FullStatusResponse {
    * path light the same per-node runtime badge the cloud heartbeat
    * does. Optional for older agents that predate the field. */
   runtimeMode?: "native" | "hybrid" | "packaged";
+  /** Resolved node profile (wire form, e.g. "drone" | "ground-station" |
+   * "compute"). Lets the LAN-direct path tell a ground station apart so it
+   * can prefer that profile's ticket-gated MAVLink endpoint. Optional for
+   * older agents that predate the field on the consolidated status. */
+  profile?: string;
   /** Air-side camera discovery state ("ready" | "missing" | "error").
    * Carried at the top level of `/api/status/full` so the LAN-direct
    * path lights the same "No camera" surfaces the cloud heartbeat does.
@@ -408,6 +413,25 @@ export interface FullStatusResponse {
   /** Air-side USB camera recovery state. Carried at the top level of
    * `/api/status/full`. Absent on agents that predate the surface. */
   cameraUsbRecovery?: CameraUsbRecovery;
+  /** MAVLink access descriptor (ground-station profile). Carries the
+   * ticket-gated authenticated WebSocket endpoint as an absolute URL
+   * and/or a path relative to the agent's :8080 front. Absent on agents
+   * that predate the gated endpoint. The LAN-direct path resolves this
+   * into the dialable URL the MAVLink bridge prefers. */
+  mavlink?: MavlinkAccess;
+}
+
+/**
+ * MAVLink access descriptor advertised on `/api/status` and
+ * `/api/status/full` (ground-station profile). `authenticated_websocket_url`
+ * is an absolute ws/wss URL; `authenticated_websocket_path` is a path
+ * relative to the agent's :8080 front (resolved against the LAN host when
+ * the absolute URL is absent). Both null on agents that predate the gated
+ * endpoint or on a non-ground-station profile.
+ */
+export interface MavlinkAccess {
+  authenticated_websocket_url?: string | null;
+  authenticated_websocket_path?: string | null;
 }
 
 // ── Pairing ─────────────────────────────────────────────

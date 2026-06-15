@@ -22,6 +22,7 @@ import {
   deriveCloudRelayUrl,
   deriveCloudflareUrl,
   deriveManualConnectionUrls,
+  deriveMavlinkWsAuthenticated,
   deriveMavlinkWsUrlPrev,
   derivePairingCodeExpiresAt,
   deriveProfile,
@@ -66,6 +67,7 @@ const INITIAL_STATE: AgentCapabilitiesState = {
   videoRestartAttempts: 0,
   pairingCodeExpiresAt: null,
   mavlinkWsUrlPrev: null,
+  mavlinkWsAuthenticated: null,
   wfbFailoverState: "local",
   manualConnectionUrls: null,
   cloudRelayUrl: null,
@@ -113,6 +115,7 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>(
       const videoRestartAttempts = deriveVideoRestartAttempts(caps);
       const pairingCodeExpiresAt = derivePairingCodeExpiresAt(caps);
       const mavlinkWsUrlPrev = deriveMavlinkWsUrlPrev(caps);
+      const mavlinkWsAuthenticated = deriveMavlinkWsAuthenticated(caps);
       const manualConnectionUrls = deriveManualConnectionUrls(caps);
       const cloudRelayUrl = deriveCloudRelayUrl(caps);
       const cloudflareUrl = deriveCloudflareUrl(caps);
@@ -212,6 +215,10 @@ export const useAgentCapabilitiesStore = create<AgentCapabilitiesStore>(
           mavlinkWsUrlPrev === undefined
             ? state.mavlinkWsUrlPrev
             : mavlinkWsUrlPrev,
+        mavlinkWsAuthenticated:
+          mavlinkWsAuthenticated === undefined
+            ? state.mavlinkWsAuthenticated
+            : mavlinkWsAuthenticated,
         wfbFailoverState:
           wfbFailoverState === undefined
             ? state.wfbFailoverState
