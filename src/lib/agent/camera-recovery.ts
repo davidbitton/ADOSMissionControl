@@ -58,6 +58,11 @@ export function normalizeCameraUsbRecovery(
     cameraPresent: booleanOr(r.cameraPresent, false),
     expected: booleanOr(r.expected, false),
     pppsCapable: booleanOr(r.pppsCapable, false),
+    powerContention: booleanOr(r.powerContention, false),
+    contentionPeer:
+      typeof r.contentionPeer === "string" && r.contentionPeer.length > 0
+        ? r.contentionPeer
+        : null,
   };
 }
 

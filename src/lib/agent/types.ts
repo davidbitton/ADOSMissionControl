@@ -377,6 +377,12 @@ export interface CameraUsbRecovery {
   expected: boolean;
   /** True when the adapter/port supports per-port power cycling. */
   pppsCapable: boolean;
+  /** True when the camera shares an over-subscribed USB hub (no per-port
+   * power) with the high-draw radio — a brown-out risk. The fix is to move
+   * the camera to a separate port or a self-powered hub. */
+  powerContention: boolean;
+  /** The bind id of the device the camera contends with (the radio), or null. */
+  contentionPeer: string | null;
 }
 
 /** Response from `/api/status/full` (agent v0.3.19+). */

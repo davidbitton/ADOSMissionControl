@@ -208,6 +208,8 @@ export function getMockCapabilities(
       cameraPresent: false,
       expected: true,
       pppsCapable: true,
+      powerContention: true,
+      contentionPeer: "1-1.2",
     },
     tier: 4,
     cameras: [

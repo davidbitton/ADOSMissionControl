@@ -13,6 +13,8 @@ describe("normalizeCapabilities cameraUsbRecovery clamp", () => {
         cameraPresent: false,
         expected: true,
         pppsCapable: true,
+        powerContention: true,
+        contentionPeer: "1-1.2",
       },
     });
     expect(caps.cameraUsbRecovery?.state).toBe("port_cycling");
@@ -22,6 +24,8 @@ describe("normalizeCapabilities cameraUsbRecovery clamp", () => {
     expect(caps.cameraUsbRecovery?.cameraPresent).toBe(false);
     expect(caps.cameraUsbRecovery?.expected).toBe(true);
     expect(caps.cameraUsbRecovery?.pppsCapable).toBe(true);
+    expect(caps.cameraUsbRecovery?.powerContention).toBe(true);
+    expect(caps.cameraUsbRecovery?.contentionPeer).toBe("1-1.2");
   });
 
   it("accepts each known recovery state", () => {

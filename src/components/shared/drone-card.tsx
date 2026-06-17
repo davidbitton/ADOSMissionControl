@@ -235,6 +235,16 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
             }
             return null;
           })()}
+          {drone.cameraUsbRecovery?.powerContention && (
+            <span
+              title="The camera shares an over-subscribed USB hub with the radio, which can brown it out under load. Move the camera to a separate port or a self-powered hub."
+              className="inline-flex"
+            >
+              <Badge variant="warning" className="text-[10px]">
+                Camera: power
+              </Badge>
+            </span>
+          )}
           {(drone.profileSource === "detected" ||
             drone.profileSource === "tiebreaker" ||
             drone.profileSource === "default") && (

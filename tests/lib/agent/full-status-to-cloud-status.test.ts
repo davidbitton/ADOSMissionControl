@@ -66,6 +66,8 @@ describe("mapFullStatusToCloudStatus camera surface", () => {
           cameraPresent: false,
           expected: true,
           pppsCapable: true,
+          powerContention: false,
+          contentionPeer: null,
         },
       }),
       node,
