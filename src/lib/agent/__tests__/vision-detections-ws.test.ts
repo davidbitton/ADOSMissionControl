@@ -23,6 +23,8 @@ describe("mapWireBatch", () => {
           class_label: "weed",
           confidence: 0.87,
           track_id: 3,
+          assoc_confidence: 0.71,
+          lock_state: "locked",
         },
       ],
     });
@@ -38,7 +40,54 @@ describe("mapWireBatch", () => {
     expect(d.classLabel).toBe("weed");
     expect(d.confidence).toBeCloseTo(0.87);
     expect(d.trackId).toBe(3);
+    expect(d.assocConfidence).toBeCloseTo(0.71);
+    expect(d.lockState).toBe("locked");
     expect(d.bbox).toEqual({ x: 12, y: 20, width: 64, height: 32 });
+  });
+
+  it("defaults the lock fields to null when the agent omits them", () => {
+    const batch = mapWireBatch({
+      model_id: "m",
+      camera_id: "c",
+      frame_id: 1,
+      ts_ms: 0,
+      detections: [
+        {
+          bbox: { x: 0, y: 0, width: 1, height: 1 },
+          class_label: "x",
+          confidence: 0.5,
+          track_id: 9,
+        },
+      ],
+    });
+    expect(batch.detections[0].assocConfidence).toBeNull();
+    expect(batch.detections[0].lockState).toBeNull();
+  });
+
+  it("maps the uncertain lock state and rejects an unknown one", () => {
+    const ok = mapWireBatch({
+      model_id: "m",
+      camera_id: "c",
+      frame_id: 1,
+      ts_ms: 0,
+      detections: [
+        {
+          bbox: { x: 0, y: 0, width: 1, height: 1 },
+          class_label: "x",
+          confidence: 0.5,
+          lock_state: "uncertain",
+        },
+        {
+          bbox: { x: 0, y: 0, width: 1, height: 1 },
+          class_label: "x",
+          confidence: 0.5,
+          lock_state: "garbage",
+        },
+      ],
+    } as never);
+    expect(ok.detections[0].lockState).toBe("uncertain");
+    // An unrecognized state coerces to null, never a bad enum value.
+    expect(ok.detections[1].lockState).toBeNull();
   });
 
   it("uses explicit frame dimensions when the agent advertises them", () => {

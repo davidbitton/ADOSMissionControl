@@ -35,6 +35,14 @@ export interface DetectionBox {
   height: number;
 }
 
+/** Discrete identity-lock state of a track this frame. Mirrors the
+ * vision-contract `LockState` (lowercase string on the wire). `locked` = the
+ * tracker is confident the identity held; `uncertain` = a weak association
+ * (e.g. a box held on prediction through a miss) so the identity is
+ * provisional; `lost` = the track could not be re-associated. Carrying it lets
+ * the overlay show identity uncertainty instead of a silent swap. */
+export type LockState = "locked" | "uncertain" | "lost";
+
 /** One detection from a model. Mirrors the vision-contract `Detection`. */
 export interface VisionDetection {
   bbox: DetectionBox;
@@ -42,6 +50,13 @@ export interface VisionDetection {
   confidence: number;
   /** Stable track id across frames (tracking models only). */
   trackId?: number | null;
+  /** How confident the tracker is that this detection is the same object as
+   * its `trackId` (0..1). Absent when the source does not score association.
+   * Distinct from `confidence` (the class/object detection itself). */
+  assocConfidence?: number | null;
+  /** Discrete identity-lock state this frame. Absent when the source does not
+   * report a lock state. */
+  lockState?: LockState | null;
 }
 
 /** A batch of detections for one frame. Carries the source frame

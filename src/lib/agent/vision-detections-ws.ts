@@ -23,6 +23,7 @@
 import { subscribeWebSocket } from "@/lib/api/ground-station/ws";
 import { useVisionDetectionsStore } from "@/stores/vision-detections-store";
 import type {
+  LockState,
   VisionDetection,
   VisionDetectionBatch,
 } from "@/stores/vision-detections-store";
@@ -35,12 +36,16 @@ import type {
 const DEFAULT_FRAME_WIDTH = 640;
 const DEFAULT_FRAME_HEIGHT = 480;
 
-/** One detection as it arrives on the wire (contract field names). */
+/** One detection as it arrives on the wire (contract field names). The two
+ * lock fields are optional so batches from an agent that predates them still
+ * map cleanly. */
 interface WireDetection {
   bbox?: { x?: unknown; y?: unknown; width?: unknown; height?: unknown };
   class_label?: unknown;
   confidence?: unknown;
   track_id?: unknown;
+  assoc_confidence?: unknown;
+  lock_state?: unknown;
 }
 
 /** A detection batch as the agent forwards it (contract field names). A
@@ -64,11 +69,20 @@ function str(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
+function lockState(v: unknown): LockState | null {
+  return v === "locked" || v === "uncertain" || v === "lost" ? v : null;
+}
+
 function mapDetection(raw: WireDetection): VisionDetection {
   const b = raw.bbox ?? {};
   const trackId =
     typeof raw.track_id === "number" && Number.isFinite(raw.track_id)
       ? raw.track_id
+      : null;
+  const assocConfidence =
+    typeof raw.assoc_confidence === "number" &&
+    Number.isFinite(raw.assoc_confidence)
+      ? raw.assoc_confidence
       : null;
   return {
     bbox: {
@@ -80,6 +94,8 @@ function mapDetection(raw: WireDetection): VisionDetection {
     classLabel: str(raw.class_label),
     confidence: num(raw.confidence),
     trackId,
+    assocConfidence,
+    lockState: lockState(raw.lock_state),
   };
 }
 
