@@ -1,12 +1,12 @@
 # Altnautica Mission Control
 
-**Open-source web GCS for software-defined drones. ArduPilot, PX4, Betaflight, and iNav. AI tuning. 50km+ data link. Full gamepad flight control.**
+**Open-source web ground station for software-defined drones. ArduPilot, PX4, Betaflight, and iNav. Mission planning, AI tuning, and gamepad flight, in the browser.**
 
 ![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-green.svg) ![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue.svg) ![Next.js 16](https://img.shields.io/badge/Next.js-16-black.svg) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg) [![Discord](https://img.shields.io/badge/Discord-Join-5865F2.svg)](https://discord.gg/uxbvuD4d5q)
 
-Command any drone from any browser. ADOS Mission Control is a full-stack ground control station built for software-defined drones. Configure 59 flight controller panels, plan missions with 7 pattern generators, fly with a gamepad at 50Hz, and tune PIDs with AI. No install. No locked hardware. 98,000 lines of TypeScript.
+Command any drone from any browser. ADOS Mission Control is a full ground control station for software-defined drones. Configure flight controllers panel by panel, plan missions with pattern generators, fly with a gamepad at 50 Hz, and tune PIDs with AI. No install. No locked hardware.
 
-> **Part of the ADOS ecosystem.** Pairs with [ADOS Drone Agent](https://github.com/altnautica/ADOSDroneAgent) (the onboard companion OS) for 50km data link, HD video, and cloud fleet management. Works standalone with any MAVLink drone over USB or WebSocket. Add features with [ADOS Extensions](https://github.com/altnautica/ADOSExtensions), the first-party plugin repo.
+> **Part of the ADOS ecosystem.** Pairs with [ADOS Drone Agent](https://github.com/altnautica/ADOSDroneAgent), the Rust-first onboard companion, for the long-range data link, HD video, and cloud fleet management. Works standalone with any MAVLink drone over USB or WebSocket. Add features with [ADOS Extensions](https://github.com/altnautica/ADOSExtensions), the first-party plugin repo.
 
 <p align="center">
   <strong><a href="https://command.altnautica.com">Live App</a></strong> |
@@ -30,11 +30,11 @@ Command any drone from any browser. ADOS Mission Control is a full-stack ground 
   <tr>
     <td width="50%">
       <img src="public/screenshots/mission-planner.png" alt="Mission Planner" height="220" width="100%"><br>
-      <sub>Mission planning with 7 pattern generators and terrain following</sub>
+      <sub>Mission planning with pattern generators and terrain following</sub>
     </td>
     <td width="50%">
       <img src="public/screenshots/flight-control.png" alt="Flight Control" height="220" width="100%"><br>
-      <sub>Gamepad and HOTAS flight controls at 50Hz</sub>
+      <sub>Gamepad and HOTAS flight controls at 50 Hz</sub>
     </td>
   </tr>
   <tr>
@@ -44,7 +44,7 @@ Command any drone from any browser. ADOS Mission Control is a full-stack ground 
     </td>
     <td width="50%">
       <img src="public/screenshots/configure.png" alt="FC Configuration" height="220" width="100%"><br>
-      <sub>59 panels for full flight controller setup</sub>
+      <sub>Nearly 60 panels for full flight controller setup</sub>
     </td>
   </tr>
   <tr>
@@ -59,18 +59,8 @@ Command any drone from any browser. ADOS Mission Control is a full-stack ground 
   </tr>
   <tr>
     <td width="50%">
-      <img src="public/screenshots/dashboard.png" alt="Fleet Dashboard" height="220" width="100%"><br>
-      <sub>Multi-drone dashboard with live telemetry, connection state, and quick-switch</sub>
-    </td>
-    <td width="50%">
       <img src="public/screenshots/planning.png" alt="Mission Planning" height="220" width="100%"><br>
-      <sub>Drag-and-drop waypoint editor with terrain profile, mission validation, and pattern generators</sub>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%">
-      <img src="public/screenshots/code-editor.png" alt="Code Editor" height="220" width="100%"><br>
-      <sub>Built-in Python script editor with syntax highlighting for drone automation scripts</sub>
+      <sub>Drag-and-drop waypoint editor with terrain profile and mission validation</sub>
     </td>
     <td width="50%">
       <img src="public/screenshots/drone-agent-overview.png" alt="Drone Agent Overview" height="220" width="100%"><br>
@@ -82,24 +72,37 @@ Command any drone from any browser. ADOS Mission Control is a full-stack ground 
       <img src="public/screenshots/drone-agent-fleet.png" alt="Fleet Network" height="220" width="100%"><br>
       <sub>MeshNet fleet enrollment, MQTT gateway status, mesh radio peers, and network topology</sub>
     </td>
-  </tr>
-  <tr>
     <td width="50%">
       <img src="public/screenshots/drone-agent-peripherals.png" alt="Peripherals" height="220" width="100%"><br>
       <sub>Connected peripheral detection with live sensor readings (IMU, GPS, barometer, camera, radio)</sub>
     </td>
+  </tr>
+  <tr>
     <td width="50%">
       <img src="public/screenshots/simulate-3d.png" alt="3D Mission Simulation" height="220" width="100%"><br>
       <sub>3D mission simulation with waypoints over terrain, playback controls, and camera presets</sub>
     </td>
+    <td width="50%"></td>
   </tr>
 </table>
 
 ---
 
+## What it lets you do
+
+- **Connect to any drone, no driver install.** Plug in over USB (WebSerial), point at a MAVLink WebSocket, or pair with an ADOS agent over your LAN.
+- **Set up the whole flight controller.** Nearly 60 panels cover calibration, PID tuning, receivers, outputs, failsafe, power, ports, OSD, firmware flashing, and the iNav-specific surfaces.
+- **Plan a mission by drawing it.** Drop waypoints on the map, generate survey, orbit, corridor, SAR, and structure-scan patterns, follow terrain, set geofences and rally points, then validate before upload.
+- **Fly with a real controller.** Gamepad, HOTAS, RC transmitter, or keyboard at 50 Hz, with arm/disarm, mode switching, guided flight, and a kill switch.
+- **Rehearse in 3D.** Replay a mission over real terrain on a Cesium globe before you fly it.
+- **Tune PIDs with help.** FFT-driven noise and motor-health analysis suggests filter settings and PID values.
+- **Manage a fleet from anywhere.** Cloud mode adds multi-drone dashboards, mission sync, and real-time telemetry over MQTT.
+- **Sign your commands.** HMAC-SHA256 on every outbound MAVLink v2 frame, with the key held only in your browser.
+- **Self-host all of it.** Field operations work fully offline, and the cloud relay can run entirely on your own servers.
+
 ## Quick Start
 
-Try it right now at [command.altnautica.com](https://command.altnautica.com). No install needed. Demo mode loads 5 simulated drones with live telemetry, mission planning, and full FC configuration.
+Try it right now at [command.altnautica.com](https://command.altnautica.com). No install needed. Demo mode loads simulated drones with live telemetry, mission planning, and full FC configuration.
 
 Or run locally:
 
@@ -110,20 +113,22 @@ npm install
 npm run demo
 ```
 
-Open [http://localhost:4000](http://localhost:4000). Five simulated drones. No hardware required.
+Open [http://localhost:4000](http://localhost:4000). Simulated drones, no hardware required.
 
 ---
 
 ## What ADOS Mission Control Is
 
-- **Platform:** Browser-based. Runs on any OS with a modern browser. Optional Electron desktop build for WebSerial + WebUSB access.
+- **Platform:** Browser-based. Runs on any OS with a modern browser. Optional Electron desktop build for WebSerial and WebUSB access.
 - **Firmware:** ArduPilot, PX4, Betaflight, and iNav as first-class targets.
-- **Protocol:** MAVLink v2 + MSP v1/v2 in the same app via a unified `DroneProtocol` adapter interface.
+- **Protocol:** MAVLink v2 and MSP v1/v2 in the same app, behind a unified `DroneProtocol` adapter interface.
 - **Flight control:** Gamepad, HOTAS, RC transmitter, or keyboard input at 50 Hz.
-- **AI tuning:** PID + filter analysis with FFT-driven noise and motor-health diagnosis.
+- **AI tuning:** PID and filter analysis with FFT-driven noise and motor-health diagnosis.
 - **3D simulation:** CesiumJS globe with real terrain and flight path replay.
-- **Fleet mode:** MQTT + Convex relay for multi-drone dashboards. Self-hostable end to end.
+- **Fleet mode:** MQTT and Convex relay for multi-drone dashboards. Self-hostable end to end.
 - **License:** GPL-3.0-only.
+
+The browser side is TypeScript. The onboard agent it pairs with, [ADOS Drone Agent](https://github.com/altnautica/ADOSDroneAgent), is Rust-first, which is what carries the long-range link, HD video, and headless operation on small boards.
 
 ---
 
@@ -131,15 +136,15 @@ Open [http://localhost:4000](http://localhost:4000). Five simulated drones. No h
 
 ### Configure your flight controller
 
-59 panels covering calibration, PID tuning, receiver, outputs, failsafe, power, ports, OSD, firmware flashing, plus iNav-specific panels for safehomes, geozones, navigation config, profiles, output mapping, servos, temp sensors, MC braking, rate dynamics, and mission summary. Works with ArduPilot, PX4, Betaflight, and iNav. **AI PID tuning** analyzes FFT noise and motor health, then suggests filter settings and PID values. Board auto-detection for 9 STM32 profiles. WebUSB firmware flashing with no external tools.
+Nearly 60 panels covering calibration, PID tuning, receiver, outputs, failsafe, power, ports, OSD, firmware flashing, plus iNav-specific panels for safehomes, geozones, navigation config, profiles, output mapping, servos, temp sensors, MC braking, rate dynamics, and mission summary. Works with ArduPilot, PX4, Betaflight, and iNav. **AI PID tuning** analyzes FFT noise and motor health, then suggests filter settings and PID values. Board auto-detection for firmware flashing. WebUSB firmware flashing with no external tools.
 
 ### Plan missions
 
-Drag waypoints on an interactive map. 7 pattern generators: survey (boustrophedon), orbit, corridor, SAR (expanding square, sector, parallel track), structure scan. Terrain following via Open Elevation API. Geofence editor, rally points, batch waypoint editing, and mission validation before upload. Import/export KML, KMZ, CSV, `.waypoints`, `.plan`.
+Drag waypoints on an interactive map. Pattern generators for survey (boustrophedon), orbit, corridor, SAR (expanding square, sector, parallel track), structure scan, plus automated landing approaches. Terrain following via the Open Elevation API. Geofence editor, rally points, batch waypoint editing, and mission validation before upload. Import and export KML, KMZ, CSV, `.waypoints`, `.plan`.
 
 ### Fly and simulate
 
-Gamepad, HOTAS, RC transmitter, or keyboard input at 50Hz. Arm/disarm, mode switching, guided flight, mission execution, kill switch. 3D Cesium globe simulation with real terrain, flight path replay, and camera presets.
+Gamepad, HOTAS, RC transmitter, or keyboard input at 50 Hz. Arm/disarm, mode switching, guided flight, mission execution, kill switch. 3D Cesium globe simulation with real terrain, flight path replay, and camera presets.
 
 ### Monitor telemetry
 
@@ -147,15 +152,15 @@ Real-time attitude, GPS, battery, EKF status, vibration, RSSI, and sensor health
 
 ### Sign MAVLink commands
 
-HMAC-SHA256 on every outbound MAVLink v2 frame. The 32-byte key lives only in your browser as a non-extractable Web Crypto key and is enrolled with the flight controller once via `SETUP_SIGNING`. Flip require mode from the Configure tab Security panel to make the flight controller reject any unsigned command. ArduPilot 4.0 and newer supported today. See [docs](https://docs.altnautica.com/mission-control/mavlink-signing).
+HMAC-SHA256 on every outbound MAVLink v2 frame. The 32-byte key lives only in your browser as a non-extractable Web Crypto key, and is enrolled with the flight controller once via `SETUP_SIGNING`. Flip require mode from the Configure tab Security panel to make the flight controller reject any unsigned command. ArduPilot 4.0 and newer supported today. See [docs](https://docs.altnautica.com/mission-control/mavlink-signing).
 
-### Connect over the cloud
+### Connect locally or over the cloud
 
-Works standalone in field mode (direct WebSocket or WebSerial). Cloud mode adds fleet management, mission sync, and MQTT telemetry relay. When paired with ADOS Drone Agent, the GCS receives live telemetry at 2Hz+ and can send commands through a three-layer relay: Convex HTTP (baseline), MQTT real-time, and WebSocket video streaming.
+ADOS is local-first. In field mode the GCS talks directly to hardware over WebSerial or WebSocket, or to an ADOS agent over the LAN by hostname or IP, with no cloud account. Cloud mode adds fleet management, mission sync, and MQTT telemetry relay for reaching drones across networks. When paired with ADOS Drone Agent, the GCS receives live telemetry at 2 Hz and faster and can send commands through the relay.
 
 ### Manage a ground station
 
-When the paired agent is running in ground-station profile, a Hardware tab appears with sub-views for Network (uplink priority and AP management), Distributed RX (single-node link stats, relay list, combined stream stats), Mesh (batman-adv health, neighbors, gateways, pairing accept window, pending approvals), Physical UI (OLED screens and button mappings), Peripherals (connected USB and GPIO hardware), and Controllers (paired joysticks and gamepads). A role badge sits in the top bar at all times so operators can see at a glance whether a paired node is running as `direct`, `relay`, or `receiver`. Mesh events (neighbor seen, neighbor lost, gateway change, pair approved) surface as non-blocking toasts.
+When the paired agent runs in the ground-station profile, the node panel shows role-gated surfaces instead of the flight tabs: Network (uplink priority across WiFi, ethernet, and cellular, plus access-point management), Distributed RX (single-node link stats, relay list, combined stream stats), Mesh (batman-adv health, neighbors, gateways, and the pairing accept window), Display and Physical UI (OLED screens and button mappings), and Peripherals (connected USB and GPIO hardware). A role badge in the top bar shows at a glance whether a node is running as `direct`, `relay`, or `receiver`, and mesh events surface as non-blocking toasts.
 
 ---
 
@@ -172,7 +177,7 @@ When the paired agent is running in ground-station profile, a Hardware tab appea
 
 ## By the Numbers
 
-~98K lines of TypeScript. 59 FC panels. 83 MAVLink decoders. 34 MSP decoders. 7 pattern generators. 34 Zustand stores. 9 board profiles. Full demo mode with zero setup.
+~98K lines of TypeScript. Nearly 60 FC panels. 83 MAVLink message decoders. 65 iNav decoders. 7 mission pattern generators. Over 60 ring-buffered Zustand stores. Full demo mode with zero setup.
 
 ---
 
@@ -180,13 +185,13 @@ When the paired agent is running in ground-station profile, a Hardware tab appea
 
 | Platform | Requirements | Notes |
 |----------|-------------|-------|
-| Web (recommended) | Chrome 89+ or Edge 89+ | WebSerial + WebUSB for FC connection and firmware flashing |
+| Web (recommended) | Chrome 89+ or Edge 89+ | WebSerial and WebUSB for FC connection and firmware flashing |
 | Web (limited) | Firefox, Safari | No WebSerial or WebUSB. WebSocket connections work. |
-| Desktop (macOS) | Intel or Apple Silicon | Electron app, not code-signed (same as Betaflight/INAV Configurator) |
+| Desktop (macOS) | Intel or Apple Silicon | Electron app, not code-signed (same as Betaflight and iNav Configurator) |
 | Desktop (Windows) | x64 | Electron app, `.exe` installer |
 | Desktop (Linux) | x64 or arm64 | `.AppImage` |
 
-3D features (simulation, terrain rendering) benefit from a dedicated GPU. Works without one but frame rates will be lower.
+3D features (simulation, terrain rendering) benefit from a dedicated GPU. Works without one, but frame rates will be lower.
 
 ---
 
@@ -213,10 +218,10 @@ All optional. The GCS works fully offline for local FC configuration and field o
 | State | Zustand 5 (ring-buffered telemetry) |
 | Maps | Leaflet + react-leaflet |
 | 3D simulation | CesiumJS |
-| Protocol | Custom MAVLink v2 + MSP v1/v2 binary parsers |
+| Protocol | Custom MAVLink v2 and MSP v1/v2 binary parsers |
 | Transport | WebSocket, WebSerial, WebUSB |
 | Backend | Convex (optional, cloud fleet and community features) |
-| Desktop | Electron |
+| Desktop | Electron 41 |
 | Language | TypeScript (strict) |
 
 ---
@@ -230,7 +235,7 @@ npm run cli              # Interactive menu (recommended starting point)
 npm run cli dev          # Dev server (port 4000)
 npm run cli dev -a       # Dev server + MQTT + Video Relay via Docker
 npm run cli dev --convex # Dev server + Convex dev backend
-npm run cli demo         # Demo mode — 5 simulated drones
+npm run cli demo         # Demo mode with simulated drones
 npm run cli sitl         # Launch ArduPilot SITL + WebSocket bridge
 
 # Services (Docker)
@@ -244,7 +249,7 @@ npm run cli services logs    # Tail service logs
 npm run cli setup        # First-time setup wizard (asks dev vs prod)
 npm run cli prod         # Production deployment wizard (ports, SSL, service config)
 npm run cli config       # Configure environment interactively
-npm run cli deploy       # Lint → build → start production server
+npm run cli deploy       # Lint, build, start production server
 npm run cli info         # System check (Node, Docker, ports, security)
 ```
 
@@ -256,6 +261,8 @@ npm run cli info         # System check (Node, Docker, ports, security)
 
 **WebSerial (USB):** Plug in your FC, open Mission Control in Chrome 89+, click connect, pick the port. No drivers needed.
 
+**ADOS agent (LAN):** Add a node by hostname or IP. Mission Control pairs with the agent directly over the local network. No cloud account required.
+
 ---
 
 ## Desktop App
@@ -266,7 +273,7 @@ npm run desktop:build:win   # Windows .exe installer
 npm run desktop:build:linux # Linux .AppImage
 ```
 
-macOS: right-click the app, Open, then Open again. Not code-signed, same as Betaflight Configurator and INAV Configurator.
+macOS: right-click the app, Open, then Open again. Not code-signed, same as Betaflight Configurator and iNav Configurator.
 
 ---
 
@@ -289,13 +296,13 @@ docker run -d \
 
 Open `http://localhost:4000`.
 
-**About `NEXT_PUBLIC_*` variables:** these get baked into the client JS bundle at build time. Pass them as `--build-arg` to `docker build` AND as `-e` to `docker run` (the runtime version is used by server components and route handlers). The Dockerfile declares each `NEXT_PUBLIC_*` as `ARG` + `ENV` so build args propagate.
+**About `NEXT_PUBLIC_*` variables:** these get baked into the client JS bundle at build time. Pass them as `--build-arg` to `docker build` AND as `-e` to `docker run` (the runtime version is used by server components and route handlers). The Dockerfile declares each `NEXT_PUBLIC_*` as `ARG` plus `ENV` so build args propagate.
 
-**Container orchestrators / PaaS:** the image works with anything that can build a Dockerfile — point your tool at this repo, set the build pack to Dockerfile, expose port 4000, and configure the env vars above. No special framework integration is needed.
+**Container orchestrators and PaaS:** the image works with anything that can build a Dockerfile. Point your tool at this repo, set the build pack to Dockerfile, expose port 4000, and configure the env vars above. No special framework integration is needed.
 
-**Fronting with HTTPS:** the container serves plain HTTP on port 4000. Terminate TLS at any reverse proxy (Caddy, nginx, Traefik) or tunnel (Cloudflare Tunnel, Tailscale Funnel, ngrok). When fronting with a tunnel, route to `127.0.0.1:4000` rather than `localhost:4000` — the standalone server binds IPv4 only.
+**Fronting with HTTPS:** the container serves plain HTTP on port 4000. Terminate TLS at any reverse proxy (Caddy, nginx, Traefik) or tunnel (Cloudflare Tunnel, Tailscale Funnel, ngrok). When fronting with a tunnel, route to `127.0.0.1:4000` rather than `localhost:4000`, since the standalone server binds IPv4 only.
 
-For self-hosting the supporting cloud relay (Convex + MQTT + video relay), see [SELFHOSTING.md](SELFHOSTING.md).
+For self-hosting the supporting cloud relay (Convex, MQTT, and video relay), see [SELFHOSTING.md](SELFHOSTING.md).
 
 ---
 
@@ -322,7 +329,7 @@ All variables are optional. Set them with `npm run cli config` or edit `.env.loc
 | `NEXT_PUBLIC_DEMO_MODE` | Enable demo mode with simulated drones |
 | `NEXT_PUBLIC_DEMO_DRONE_COUNT` | Number of simulated drones (1, 3, 5, or 10) |
 | `NEXT_PUBLIC_CONVEX_URL` | Convex backend URL for cloud fleet features |
-| `GITHUB_TOKEN` | Raises PX4 releases API limit from 60 to 5000 req/hr |
+| `GITHUB_TOKEN` | Raises the PX4 releases API limit from 60 to 5000 req/hr |
 | `GROQ_API_KEY` | AI PID tuning suggestions. Free at [console.groq.com](https://console.groq.com) |
 | `CESIUM_BASE_URL` | Self-hosted Cesium JS URL (falls back to CDN if unset) |
 
@@ -330,8 +337,8 @@ All variables are optional. Set them with `npm run cli config` or edit `.env.loc
 
 | Tool | Path | Description |
 |------|------|-------------|
-| SITL launcher | `tools/sitl/` | ArduPilot SITL + TCP-to-WebSocket bridge |
-| MQTT bridge | `tools/mqtt-bridge/` | Mosquitto broker + MQTT-to-Convex bridge (Docker Compose) |
+| SITL launcher | `tools/sitl/` | ArduPilot SITL plus TCP-to-WebSocket bridge |
+| MQTT bridge | `tools/mqtt-bridge/` | Mosquitto broker plus MQTT-to-Convex bridge (Docker Compose) |
 | Video relay | `tools/video-relay/` | RTSP-to-WebSocket fMP4 relay via ffmpeg (Docker Compose) |
 
 ---
@@ -348,17 +355,17 @@ Building and testing ADOS Mission Control on real hardware. Want to get involved
 
 ## Community
 
-- **[Discord](https://discord.gg/uxbvuD4d5q)** — Join the community, ask questions, share builds
-- **[LinkedIn](https://www.linkedin.com/company/altnautica/)** — Follow company updates
-- **[Email](mailto:team@altnautica.com)** — team@altnautica.com
-- **[Changelog](https://command.altnautica.com/community/changelog)** — What shipped and when
-- **[GitHub Issues](https://github.com/altnautica/ADOSMissionControl/issues)** — Bug reports and technical discussions
+- **[Discord](https://discord.gg/uxbvuD4d5q)** - Join the community, ask questions, share builds
+- **[LinkedIn](https://www.linkedin.com/company/altnautica/)** - Follow company updates
+- **[Email](mailto:team@altnautica.com)** - team@altnautica.com
+- **[Changelog](https://command.altnautica.com/community/changelog)** - What shipped and when
+- **[GitHub Issues](https://github.com/altnautica/ADOSMissionControl/issues)** - Bug reports and technical discussions
 
 ---
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide. Good areas to start: real iNav 7.x hardware testing, map-based polygon geozone drawing, dedicated iNav nav-PID panel, Betaflight hardware testing, new board profiles, UDP transport, unit tests, pattern generators.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide. Good areas to start: real iNav 7.x hardware testing, map-based polygon geozone drawing, a dedicated iNav nav-PID panel, Betaflight hardware testing, new board profiles, UDP transport, unit tests, pattern generators.
 
 ```bash
 npm run demo   # Test against simulated drones

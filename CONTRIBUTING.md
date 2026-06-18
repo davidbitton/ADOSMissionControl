@@ -68,7 +68,7 @@ ADOSMissionControl/
 - Dark-first — all components must look correct on the dark theme.
 
 ### State Management
-- **Zustand** for all application state — 33 stores, one per domain.
+- **Zustand** for all application state. One store per domain.
 - **Ring buffers** for telemetry data (telemetry-store) — fixed-size circular arrays to cap memory usage.
 - Never use `useState` for data that needs to be shared across components. Put it in a store.
 - Store files live in `src/stores/`. One file per store.
