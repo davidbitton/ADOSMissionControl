@@ -33,8 +33,8 @@ export function removeFocusedLocalNode(): void {
   const selected = usePairingStore.getState().selectedPairedId;
   const deviceId =
     conn.stalePairing?.deviceId ??
-    (selected?.startsWith("local-")
-      ? selected.slice("local-".length)
+    (selected?.startsWith("local:")
+      ? selected.slice("local:".length)
       : null);
   if (deviceId) useLocalNodesStore.getState().removeNode(deviceId);
   conn.disconnect();

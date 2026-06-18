@@ -23,19 +23,25 @@ import { RequirementsFooter } from "./disconnected/RequirementsFooter";
 
 interface AgentDisconnectedPageProps {
   onOpenPairing?: () => void;
+  /** Connect + focus the freshly-paired node. The local-nodes-store already
+   * holds its credentials, so only the deviceId is forwarded. */
+  onPaired?: (deviceId: string) => void;
 }
 
 export function AgentDisconnectedPage({
   onOpenPairing,
+  onPaired,
 }: AgentDisconnectedPageProps) {
   const t = useTranslations("disconnectedPage");
   const convexAvailable = useConvexAvailable();
   const [signInOpen, setSignInOpen] = useState(false);
 
-  function handlePaired(_deviceId: string) {
-    // The local-nodes-store has the new entry. Notify the parent
-    // so it can refresh the fleet sidebar selection if needed.
-    onOpenPairing?.();
+  function handlePaired(deviceId: string) {
+    // The local-nodes-store has the new entry (host + apiKey). Hand the
+    // deviceId to the parent so it connects + focuses the node; fall back to
+    // opening the pairing surface if no connect handler is wired.
+    if (onPaired) onPaired(deviceId);
+    else onOpenPairing?.();
   }
 
   return (

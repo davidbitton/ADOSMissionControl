@@ -28,7 +28,7 @@ import { useFreshness } from "@/lib/agent/freshness";
 import { useVisibleTabs, type CommandSubTab } from "@/hooks/use-visible-tabs";
 import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
 import { useFleetNodes } from "@/hooks/use-fleet-nodes";
-import { selectNode } from "@/lib/agent/node-click-handler";
+import { selectNode, connectLocalNode } from "@/lib/agent/node-click-handler";
 import dynamic from "next/dynamic";
 import { FleetSidebar } from "./FleetSidebar";
 import { PairingDialog } from "./PairingDialog";
@@ -193,7 +193,24 @@ export function CommandPage() {
   function handlePaired(deviceId: string, apiKey: string, url: string) {
     closePairing();
     setViewMode("agent");
-    connect(url, apiKey);
+    const isLocal = useLocalNodesStore
+      .getState()
+      .nodes.some((n) => n.deviceId === deviceId);
+    if (isLocal) {
+      // LAN pair: the host + apiKey are already persisted in the
+      // local-nodes store (the onPaired args are empty by design), so route
+      // through the unified local-connect path which reads them and branches
+      // LAN-vs-cloud. Calling connect("","") here was the "paired but
+      // offline" bug.
+      connectLocalNode(deviceId, { onFocusAgent: () => setViewMode("agent") });
+      return;
+    }
+    // Cloud pair (generate-code): connect with the relay url/key provided.
+    if (url) {
+      connect(url, apiKey);
+    } else {
+      connectCloud(deviceId);
+    }
   }
 
   function handleShowFleet() {
@@ -298,7 +315,10 @@ export function CommandPage() {
           // pairing-first empty state. Without this gate, a lingering
           // status object (e.g. from a stale mock session) would render a
           // detail panel that contradicts the sidebar empty state.
-          <AgentDisconnectedPage onOpenPairing={openPairing} />
+          <AgentDisconnectedPage
+            onOpenPairing={openPairing}
+            onPaired={(deviceId) => handlePaired(deviceId, "", "")}
+          />
         ) : status && capsLoaded && selectedProfile === "ground-station" ? (
           <GroundStationDetailPanel />
         ) : status && capsLoaded && selectedProfile === "compute" ? (
@@ -395,7 +415,10 @@ export function CommandPage() {
             </div>
           </div>
         ) : (
-          <AgentDisconnectedPage onOpenPairing={openPairing} />
+          <AgentDisconnectedPage
+            onOpenPairing={openPairing}
+            onPaired={(deviceId) => handlePaired(deviceId, "", "")}
+          />
         )}
       </div>
 

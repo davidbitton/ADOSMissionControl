@@ -1,13 +1,17 @@
 /**
  * @module nodeClickHandler
- * @description One canonical "click a node row" handler shared by
- * the expanded NodeSidebar list and the collapsed icon rail.
+ * @description One canonical "connect a node" path shared by the node
+ * sidebar list, the collapsed icon rail, and the post-pair handoff.
  *
- * Mirrors the LAN-vs-cloud branching the expanded list already does:
- * on HTTPS, locally-paired nodes go through the cloud relay because
+ * `connectLocalNode` is the single entry point for browser-local
+ * (LAN-paired) nodes: it resolves the hostname + apiKey from the
+ * local-nodes store (never from caller args, which are empty right
+ * after pairing), selects the fleet row, and branches LAN-vs-cloud.
+ * On HTTPS, locally-paired nodes go through the cloud relay because
  * the browser blocks mixed-content fetches to ``http://*.local``; on
- * HTTP origins the direct REST path is preferred so the pair stays
- * a single round-trip.
+ * HTTP origins the direct REST path is preferred so the pair stays a
+ * single round-trip. `selectNode` routes local nodes through it and
+ * sends cloud-paired entries to the relay.
  * @license GPL-3.0-only
  */
 
@@ -19,56 +23,74 @@ import type { FleetNodeEntry } from "@/hooks/use-fleet-nodes";
 interface SelectNodeOpts {
   /** Switch the page into single-agent view. */
   onFocusAgent: () => void;
-  /** Optional callback fired when the connect throws. */
+  /** Optional callback fired when the connect cannot proceed. */
   onError?: (message: string) => void;
+}
+
+/**
+ * Connect a browser-local (LAN-paired) node by deviceId. The hostname
+ * and apiKey are read from the local-nodes store rather than passed in,
+ * because the post-pair handoff forwards only the deviceId (the
+ * credentials are already persisted by the pair flow). Selects the
+ * `local:<deviceId>` fleet row, tears down any prior connection, then
+ * connects via the cloud relay on HTTPS or the direct LAN REST path on
+ * HTTP. This is the one place local-node connection logic lives.
+ */
+export function connectLocalNode(
+  deviceId: string,
+  opts: SelectNodeOpts,
+): void {
+  const conn = useAgentConnectionStore.getState();
+  // The fleet row id is `local:<deviceId>` (see use-fleet-nodes adaptLocal).
+  usePairingStore.getState().selectPairedDrone(`local:${deviceId}`);
+  opts.onFocusAgent();
+  // connect() and connectCloud() both mutate agentUrl / apiKey / cloudMode
+  // without an atomic transition, so tear down any prior connection first.
+  conn.disconnect();
+
+  const onHttps =
+    typeof window !== "undefined" && window.location.protocol === "https:";
+  if (onHttps) {
+    // Mixed-content block: the browser refuses to fetch http://*.local from
+    // an https origin. The cloud relay is the only reachable path (and only
+    // when the agent beacons there).
+    conn.connectCloud(deviceId);
+    return;
+  }
+
+  const local = useLocalNodesStore
+    .getState()
+    .nodes.find((n) => n.deviceId === deviceId);
+  if (!local?.hostname || !local.apiKey) {
+    // Surface the real reason instead of a silent cloud fall-through that
+    // produces a misleading timeout later.
+    useAgentConnectionStore.setState({
+      connectionError:
+        "Missing LAN credentials for this node. Re-pair it from the Add-a-Node card.",
+    });
+    opts.onError?.("missing_lan_credentials");
+    return;
+  }
+  // Pass the deviceId so nodeDeviceId is set synchronously: the FC's MAVLink
+  // session then reconciles to this node's local-<deviceId> card instead of
+  // racing to a standalone agent-<timestamp> row.
+  void conn.connect(local.hostname, local.apiKey, deviceId);
 }
 
 export async function selectNode(
   node: FleetNodeEntry,
   opts: SelectNodeOpts,
 ): Promise<void> {
+  if (node.isLocal) {
+    connectLocalNode(node.deviceId, opts);
+    return;
+  }
+  // Cloud-paired entry → relay.
   const conn = useAgentConnectionStore.getState();
   usePairingStore.getState().selectPairedDrone(node._id);
   opts.onFocusAgent();
   try {
-    // Cleanly tear down any prior connection before switching modes.
-    // connect() and connectCloud() both mutate agentUrl / apiKey /
-    // cloudMode without an atomic transition, so a back-to-back call
-    // can leak half-configured state.
     conn.disconnect();
-
-    const onHttps =
-      typeof window !== "undefined" &&
-      window.location.protocol === "https:";
-
-    if (node.isLocal) {
-      if (onHttps) {
-        // Mixed-content block: the browser refuses to fetch
-        // http://*.local from an https origin. Cloud relay is the
-        // only path available; the agent still pushes heartbeats
-        // there when it has connectivity.
-        conn.connectCloud(node.deviceId);
-        return;
-      }
-      const local = useLocalNodesStore
-        .getState()
-        .nodes.find((n) => n.deviceId === node.deviceId);
-      if (!local?.hostname || !node.apiKey) {
-        // Silent fall-through to cloud was the prior behaviour and
-        // produced a misleading "Cloud relay unreachable" timeout
-        // 15s later. Surface the real reason instead so the
-        // operator can re-pair the node.
-        useAgentConnectionStore.setState({
-          connectionError:
-            "Missing LAN credentials for this node. Re-pair it from the Add-a-Node card.",
-        });
-        opts.onError?.("missing_lan_credentials");
-        return;
-      }
-      await conn.connect(local.hostname, node.apiKey, node.deviceId);
-      return;
-    }
-    // Cloud-paired entry → relay
     conn.connectCloud(node.deviceId);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

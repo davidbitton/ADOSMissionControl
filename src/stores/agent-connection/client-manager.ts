@@ -113,8 +113,8 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
             if (ln.nodes.some((n) => n.deviceId === deviceId)) {
               ln.migrateNode(deviceId, answeredId, { lastSeenAt: Date.now() });
               const ps = usePairingStore.getState();
-              if (ps.selectedPairedId === `local-${deviceId}`) {
-                ps.selectPairedDrone(`local-${answeredId}`);
+              if (ps.selectedPairedId === `local:${deviceId}`) {
+                ps.selectPairedDrone(`local:${answeredId}`);
               }
               // Drop the status row keyed by the old id so the overview tile
               // re-keys under the live id on the next poll.
