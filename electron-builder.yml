@@ -1,6 +1,13 @@
 appId: com.altnautica.command
 productName: Altnautica Command
 
+# The Electron wrapper packages only dist-electron and the prebuilt Next
+# standalone server (see files / extraResources); no native node modules are
+# shipped or loaded at runtime. Skipping the native rebuild avoids needing a
+# C toolchain on the build runners (the Windows runner has no Visual Studio,
+# which otherwise fails rebuilding a transitive native watcher dependency).
+npmRebuild: false
+
 directories:
   output: release
 

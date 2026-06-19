@@ -106,6 +106,10 @@ covering web versions 0.10.6 through 0.34.1. Highlights below, grouped by area.
 - **Local pairing edge cases.** A locally-paired node routes through one
   LAN-versus-cloud connect path, deleting a local drone purges its stored
   entry, and local-first mode no longer wipes pair state on sign-in.
+- **Desktop release pipeline builds the Windows installer.** The packaging
+  step no longer rebuilds native node modules that the desktop wrapper never
+  ships, so the Windows build no longer needs a C toolchain on the runner.
+  All three platforms (macOS, Windows, Linux) package again.
 
 ### Removed
 
