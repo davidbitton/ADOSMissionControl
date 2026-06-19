@@ -4,6 +4,127 @@ All notable changes to ADOS Mission Control are recorded here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the project follows [Semantic Versioning](https://semver.org/).
 
+## [0.34.2] - 2026-06-19
+
+This desktop build re-ships the 0.34.1 feature set (rolled up from web versions
+0.10.6 through 0.34.1) with the launch crash fixed and cloud features enabled.
+Highlights below, grouped by area.
+
+### Added
+
+- **Mission planning, reworked.** The Plan tab now drives every map tool from a
+  single interaction mode with one labeled toolbar, so select, waypoint, draw,
+  measure, geofence, and rally no longer fight each other. A persistent hint
+  reminds you that a select-click drops a waypoint. Search patterns get an
+  explicit Set Datum tool. Rally placement is a sticky tool. Undo is unified
+  across waypoints, geofence, rally, and drawn shapes. Each waypoint keeps its
+  own altitude reference frame through upload, export, and import. Missions
+  export losslessly to `.altmission` and `.kmz`. Offline tile download follows
+  wherever you have panned the map. A Center Map Here action and working
+  geofence-clear and rally-clear buttons round it out.
+- **Mission upload feedback.** Uploading a mission to the flight controller now
+  reports success or failure instead of finishing silently, and each waypoint's
+  altitude frame is sent exactly as drawn.
+- **Simulation playback.** The simulator runs from a single clock, shows only
+  the values it actually models, labels its HUD as a preview rather than live
+  telemetry, and preserves the flight duration when you rewind.
+- **Fleet dashboard, one card per agent.** Each agent renders as a single card
+  derived from its device id, so an agent and the flight controller behind it
+  collapse into one entry instead of duplicating. The detail panel adapts to
+  the node's profile (drone, ground station, or compute) through a surface
+  registry that shows only the tabs that node supports. A new node grid view
+  puts live video tiles side by side, with a grid or overview toggle. Stale
+  local nodes show a clear re-pair or remove prompt.
+- **Black Box log viewer.** Read the agent's durable on-device log and
+  telemetry store straight from the GCS, including history that survives an
+  agent restart, with an option to push it to the cloud backend.
+- **Software Update card.** The System tab shows live over-the-air update
+  progress through each phase as the agent updates itself.
+- **Radio and pairing visibility.** The radio panel shows the rendezvous and
+  current channel and band, whether the drone is transmitting, the peer-link
+  and hop state, and the regulatory domain when set. It adds link tuning
+  controls with auto-calibration, the live FEC ratio and adaptive mode, a
+  warning when the radio adapter enumerated on a slow USB port (advancing its
+  transmit counter while emitting no usable RF), a power-floor (muted PHY)
+  badge, a coarse radio-stack rollup that names why a link is not
+  transmitting, a video transmitter stall indicator, and bind
+  injection-adapter readiness on the pairing card.
+- **Camera and video health.** The fleet card surfaces a missing or recovering
+  air-side camera, including a USB power-contention diagnostic, even for a
+  drone paired only over the LAN. Local-node video plays from the agent IP that
+  is actually reachable.
+- **Per-drone plugins.** Plugins install against a specific drone, with the
+  drone detail panel carrying a Plugins tab scoped to that drone (install,
+  enable, disable, configure, uninstall). The list now shows each plugin's
+  service readiness and per-plugin model-delivery status. Plugins can
+  contribute a per-drone tab through a `drone.detail.tab` UI slot.
+- **Vision navigation surface.** Drones running the vision navigation plugin
+  gain a Navigation tab with live optical flow rate and quality, rangefinder
+  reading and health, the active EKF source set, and an arm-readiness summary.
+  Backed by new `OPTICAL_FLOW_RAD`, `VISION_POSITION_ESTIMATE`, and `ODOMETRY`
+  decoders, a `MAV_CMD_SET_EKF_SOURCE_SET` encoder, and a pre-arm parameter
+  batch. The detection overlay carries lock-state and association confidence.
+- **One connect modal.** A single dialog connects a flight controller or a
+  companion agent, and the Pair New Node dialog shows the exact agent install
+  command. Pair-by-code resolves over the LAN with no cloud round-trip.
+- **Firmware flashing.** A complete in-app firmware flashing workflow.
+- **Ground station surfaces.** The uplink card shows cloud-relay forwarding
+  state and surfaces a failed share-uplink apply, and you can trigger on-device
+  touch calibration from the ground-station panel.
+- **Agent reach-back visibility.** The GCS surfaces agent management-link
+  health, the management-link reach-back mode, and the USB-rehome self-heal
+  state.
+
+### Changed
+
+- **Native desktop title bar** on macOS and Linux.
+- **Authenticated MAVLink link.** The MAVLink WebSocket proxy is ticket
+  authenticated, and the GCS prefers the authenticated endpoint whenever the
+  agent advertises it.
+- **Nodes, not drones.** Sidebar terminology moved from "drone" to "node",
+  since an agent can run as a drone, ground, compute, relay, or receiver, with
+  each row labeling its specific type.
+- **Local-first pairing throughout.** Pair flow (probe, claim, unpair) routes
+  through the Mission Control proxy so `.local` hostnames resolve even in
+  browsers without mDNS, an unreachable LAN probe explains itself instead of
+  returning a bare 502, and a pairing code the cloud does not know returns a
+  calm "pair on this network" prompt instead of a console error.
+- **Cloud relay hardening.** The relay forwards radio fields generically and
+  records transmit-rate and churn counters, and its auth, retention, and
+  heartbeat contract are tightened. Agent polling is bounded with clean aborts,
+  and failed cloud command acknowledgements surface in the UI.
+- **Tooling.** Continuous integration now gates on lint and type-check,
+  enforces a test-coverage floor, adds dependency scanning, and the codebase
+  gained protocol and pairing state-machine test coverage.
+
+### Fixed
+
+- **Desktop app no longer crashes on launch.** The Convex client provider is
+  always mounted, so a build with no cloud backend configured, and any screen
+  that uses Convex, renders normally instead of dropping into the global error
+  screen.
+- **Cloud features in the desktop app.** The desktop build now includes the
+  cloud backend, so the community pages, sign-in, and cloud relay for remote
+  drones work in the installed app, matching the web version.
+- **Geofence data loss.** The geofence editor is bound to the geofence store,
+  so an edited fence is no longer dropped.
+- **Stuck and mis-gated panels.** Fleet video gating, bounded diagnostics, and
+  recovery for stuck panels, plus corrected MAVLink routing, command
+  correlation, and mission and mode handling.
+- **Local pairing edge cases.** A locally-paired node routes through one
+  LAN-versus-cloud connect path, deleting a local drone purges its stored
+  entry, and local-first mode no longer wipes pair state on sign-in.
+- **Desktop release pipeline builds the Windows installer.** The packaging
+  step no longer rebuilds native node modules that the desktop wrapper never
+  ships, so the Windows build no longer needs a C toolchain on the runner.
+  All three platforms (macOS, Windows, Linux) package again.
+
+### Removed
+
+- **ROS tab.** The ROS sub-tab, its store, API client, types, and the related
+  capability and heartbeat fields are gone, since the agent no longer ships a
+  ROS environment.
+
 ## [0.34.1] - 2026-06-19
 
 This desktop build rolls up everything since the last desktop release (0.10.5),

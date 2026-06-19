@@ -24,6 +24,8 @@ jobs:
 
       - name: Build Next.js
         run: npm run build
+        env:
+          NEXT_PUBLIC_CONVEX_URL: https://convex.altnautica.com
 
       - name: Compile Electron
         run: npm run electron:compile
@@ -54,6 +56,8 @@ jobs:
 
       - name: Build Next.js
         run: npm run build
+        env:
+          NEXT_PUBLIC_CONVEX_URL: https://convex.altnautica.com
 
       - name: Compile Electron
         run: npm run electron:compile
@@ -84,6 +88,8 @@ jobs:
 
       - name: Build Next.js
         run: npm run build
+        env:
+          NEXT_PUBLIC_CONVEX_URL: https://convex.altnautica.com
 
       - name: Compile Electron
         run: npm run electron:compile
