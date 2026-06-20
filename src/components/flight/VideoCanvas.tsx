@@ -1,22 +1,24 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useVideoStore } from "@/stores/video-store";
 import { useDroneManager } from "@/stores/drone-manager";
 import { useDroneMetadataStore } from "@/stores/drone-metadata-store";
+import { useAgentConnectionStore } from "@/stores/agent-connection-store";
+import { useSettingsStore } from "@/stores/settings-store";
+import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
+import { CAMERA_RECOVERY_ACTIVE_STATES } from "@/lib/agent/camera-recovery";
 import {
-  startStream,
-  stopStream,
   setVideoElement,
-  isStreamActive,
   startRecording as startVideoRecording,
   stopRecording as stopVideoRecording,
   captureScreenshot,
 } from "@/lib/video/webrtc-client";
+import { useSingletonAgentVideo } from "@/hooks/use-singleton-agent-video";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Camera, Settings2, X } from "lucide-react";
+import { Camera, RefreshCw, Settings2, X } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface VideoCanvasProps {
@@ -36,27 +38,61 @@ export function VideoCanvas({ children, className }: VideoCanvasProps) {
   const latencyMs = useVideoStore((s) => s.latencyMs);
   const resolution = useVideoStore((s) => s.resolution);
 
-  // Per-drone video URL from drone metadata
+  // Auto-discovered agent video. The LAN poll (/api/status/full) and the
+  // cloud heartbeat (cmd_droneStatus) both populate these via
+  // setAgentVideoStatus, so the focused drone's stream URL is already known
+  // here — no manual configuration needed.
+  const agentWhepUrl = useVideoStore((s) => s.agentWhepUrl);
+  const agentVideoState = useVideoStore((s) => s.agentVideoState);
+  const cloudDeviceId = useAgentConnectionStore((s) => s.cloudDeviceId);
+  const agentConnected = useAgentConnectionStore((s) => s.connected);
+  const transportMode = useSettingsStore((s) => s.videoTransportMode);
+  // Live air-side camera state for the focused drone (distinct from the
+  // static capability catalog): "missing" = the agent's pipeline found no
+  // primary camera right now; an active recovery means a self-heal is in
+  // flight.
+  const liveCameraState = useAgentCapabilitiesStore((s) => s.cameraState);
+  const cameraUsbRecovery = useAgentCapabilitiesStore(
+    (s) => s.cameraUsbRecovery,
+  );
+
+  // Per-drone manual override (SITL / Gazebo / forced URL), persisted in
+  // drone metadata. When set it wins over the auto-discovered agent URL.
   const selectedDroneId = useDroneManager((s) => s.selectedDroneId);
   const droneProfile = useDroneMetadataStore((s) =>
-    selectedDroneId ? s.profiles[selectedDroneId] : undefined
+    selectedDroneId ? s.profiles[selectedDroneId] : undefined,
   );
   const upsertProfile = useDroneMetadataStore((s) => s.upsertProfile);
-  const videoWhepUrl = droneProfile?.videoWhepUrl ?? "";
+  const manualUrl = droneProfile?.videoWhepUrl ?? "";
   const setVideoWhepUrl = (url: string) => {
     if (selectedDroneId) {
       upsertProfile(selectedDroneId, { videoWhepUrl: url });
     }
   };
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [connecting, setConnecting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Manual override wins; otherwise the auto-discovered agent URL.
+  const effectiveWhepUrl = manualUrl || agentWhepUrl;
+
+  // Callback ref so the cascade hook re-runs once the <video> element mounts.
+  // A plain useRef never triggers a re-render, so the cascade would see
+  // videoEl: null forever (see VideoFeedCard for the same pattern).
+  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
+  const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
+    setVideoEl(el);
+  }, []);
+
   const [showConfig, setShowConfig] = useState(false);
-  const [configUrl, setConfigUrl] = useState(videoWhepUrl);
+  const [configUrl, setConfigUrl] = useState(manualUrl);
 
   // Recording timer
   const [recElapsed, setRecElapsed] = useState("");
+
+  // Bind the element to the webrtc-client singleton so screenshot / recording
+  // and the stats loop (fps / latency / resolution) operate on it.
+  useEffect(() => {
+    setVideoElement(videoEl);
+    return () => setVideoElement(null);
+  }, [videoEl]);
 
   useEffect(() => {
     if (!isRecording) {
@@ -73,43 +109,21 @@ export function VideoCanvas({ children, className }: VideoCanvasProps) {
     return () => clearInterval(timer);
   }, [isRecording]);
 
-  // Auto-connect when component mounts and WHEP URL is set
-  useEffect(() => {
-    if (!videoWhepUrl || isStreaming) return;
-
-    let cancelled = false;
-
-    async function connect() {
-      setConnecting(true);
-      setError(null);
-      try {
-        const stream = await startStream(videoWhepUrl);
-        if (cancelled) {
-          stopStream();
-          return;
-        }
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setVideoElement(videoRef.current);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Video connection failed");
-        }
-      } finally {
-        if (!cancelled) setConnecting(false);
-      }
-    }
-
-    connect();
-
-    return () => {
-      cancelled = true;
-      if (isStreamActive()) {
-        stopStream();
-      }
-    };
-  }, [videoWhepUrl, selectedDroneId]);
+  // The shared singleton-video brain owns the enable gate + transport cascade
+  // + retry + stall recovery — identical to the Agent-tab feed, so the Fly
+  // pane can never diverge from it. A manual override URL (SITL/Gazebo) forces
+  // a connect even when the agent reports no running video.
+  const {
+    state: cascadeState,
+    error: hookError,
+    retry: handleRetry,
+  } = useSingletonAgentVideo({
+    whepUrl: effectiveWhepUrl,
+    cloudDeviceId,
+    transportMode,
+    videoEl,
+    forceEnabled: Boolean(manualUrl),
+  });
 
   const handleRecordToggle = useCallback(() => {
     if (isRecording) {
@@ -128,6 +142,40 @@ export function VideoCanvas({ children, className }: VideoCanvasProps) {
     setShowConfig(false);
   };
 
+  const hasVideo = isStreaming;
+  const showConnecting =
+    cascadeState === "connecting" || agentVideoState === "starting";
+  const cascadeError = cascadeState === "failed" ? hookError : null;
+  const airCameraRecovering =
+    cameraUsbRecovery != null &&
+    CAMERA_RECOVERY_ACTIVE_STATES.has(cameraUsbRecovery.state);
+  const airCameraMissing = liveCameraState === "missing";
+
+  // An agent is present when the focused drone's companion is connected
+  // LAN-direct, or reachable over the cloud relay. When an agent is present
+  // the video is ITS job — so we never fall back to the manual "Configure
+  // Video Source" prompt; we auto-render its stream, or show its real state
+  // (camera recovery / missing / offline) instead. The manual prompt only
+  // appears for a drone with no agent at all (FC-only / SITL).
+  const agentPresent = agentConnected || Boolean(cloudDeviceId);
+  const offerManualConfig = !agentPresent && !effectiveWhepUrl;
+
+  const placeholderLabel = showConnecting
+    ? "CONNECTING..."
+    : airCameraRecovering
+      ? "CAMERA RECOVERING..."
+      : airCameraMissing
+        ? "NO CAMERA"
+        : cascadeError
+          ? "NO SIGNAL"
+          : agentPresent
+            ? agentVideoState === "running"
+              ? "NO SIGNAL"
+              : "VIDEO OFFLINE"
+            : effectiveWhepUrl
+              ? "NO SIGNAL"
+              : "NO VIDEO SOURCE";
+
   return (
     <div
       className={cn(
@@ -137,18 +185,18 @@ export function VideoCanvas({ children, className }: VideoCanvasProps) {
     >
       {/* Video element (always rendered, hidden when not streaming) */}
       <video
-        ref={videoRef}
+        ref={setVideoRef}
         autoPlay
         muted
         playsInline
         className={cn(
           "absolute inset-0 w-full h-full object-contain",
-          !isStreaming && "hidden"
+          !hasVideo && "hidden"
         )}
       />
 
-      {/* NO SIGNAL placeholder */}
-      {!isStreaming && (
+      {/* Placeholder (no live signal) */}
+      {!hasVideo && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
             <div className="w-16 h-16 border border-border-default flex items-center justify-center">
@@ -166,14 +214,23 @@ export function VideoCanvas({ children, className }: VideoCanvasProps) {
               </svg>
             </div>
             <span className="text-sm font-mono text-text-tertiary tracking-wider">
-              {connecting ? "CONNECTING..." : error ? "CONNECTION FAILED" : videoWhepUrl ? "NO SIGNAL" : "NO VIDEO SOURCE"}
+              {placeholderLabel}
             </span>
-            {error && (
+            {cascadeError && (
               <span className="text-[10px] text-status-error max-w-[200px] text-center">
-                {error}
+                {cascadeError}
               </span>
             )}
-            {!videoWhepUrl && !showConfig && (
+            {cascadeError && !showConfig && (
+              <button
+                onClick={handleRetry}
+                className="mt-1 flex items-center gap-1 px-3 py-1.5 text-[10px] font-mono text-text-secondary border border-border-default hover:border-accent-primary hover:text-accent-primary transition-colors cursor-pointer"
+              >
+                <RefreshCw size={11} />
+                RETRY
+              </button>
+            )}
+            {offerManualConfig && !showConfig && (
               <button
                 onClick={() => { setConfigUrl(""); setShowConfig(true); }}
                 className="mt-2 px-3 py-1.5 text-[10px] font-mono text-text-secondary border border-border-default hover:border-accent-primary hover:text-accent-primary transition-colors cursor-pointer"
@@ -185,7 +242,7 @@ export function VideoCanvas({ children, className }: VideoCanvasProps) {
         </div>
       )}
 
-      {/* Video source config panel */}
+      {/* Video source config panel (manual override) */}
       {showConfig && (
         <div className="absolute inset-0 z-20 bg-bg-primary/95 flex items-center justify-center">
           <div className="w-80 space-y-3 p-4 border border-border-default bg-surface-primary">
@@ -201,6 +258,9 @@ export function VideoCanvas({ children, className }: VideoCanvasProps) {
               placeholder="http://localhost:8889/gazebo-cam/whep"
               label="WHEP Endpoint URL"
             />
+            <p className="text-[10px] text-text-tertiary leading-relaxed">
+              Leave empty to use the paired agent&apos;s camera automatically.
+            </p>
             <div className="flex flex-wrap gap-1">
               {WHEP_PRESETS.map((p) => (
                 <button
@@ -221,7 +281,7 @@ export function VideoCanvas({ children, className }: VideoCanvasProps) {
               onClick={handleSaveConfig}
               className="w-full py-1.5 text-xs font-semibold bg-accent-primary text-white hover:bg-accent-primary/90 transition-colors cursor-pointer"
             >
-              Connect
+              {configUrl ? "Connect" : "Use Agent Camera"}
             </button>
           </div>
         </div>
@@ -241,7 +301,7 @@ export function VideoCanvas({ children, className }: VideoCanvasProps) {
       )}
 
       {/* Bottom-left: Video controls */}
-      {isStreaming && (
+      {hasVideo && (
         <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1">
           <button
             onClick={handleRecordToggle}
@@ -284,7 +344,7 @@ export function VideoCanvas({ children, className }: VideoCanvasProps) {
           {latencyMs}ms
         </Badge>
         <button
-          onClick={() => { setConfigUrl(videoWhepUrl); setShowConfig(!showConfig); }}
+          onClick={() => { setConfigUrl(manualUrl); setShowConfig(!showConfig); }}
           className="text-text-tertiary hover:text-text-primary transition-colors cursor-pointer"
           title="Video source settings"
         >

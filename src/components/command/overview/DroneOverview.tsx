@@ -17,6 +17,7 @@ import { useTranslations } from "next-intl";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useAgentSystemStore } from "@/stores/agent-system-store";
 import { AgentStatusCard } from "../shared/AgentStatusCard";
+import { FcSourcePicker } from "../shared/FcSourcePicker";
 import { ServiceTable } from "../shared/ServiceTable";
 import { SystemResourceGauges } from "../shared/SystemResourceGauges";
 import { CpuSparkline } from "../shared/CpuSparkline";
@@ -87,9 +88,10 @@ export function DroneOverview() {
       <StaleBanner />
       <VideoRestartBanner />
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2 relative">
+        <div className="xl:col-span-2 relative space-y-4">
           <StaleOverlay />
           {status && <AgentStatusCard status={status} />}
+          <FcSourcePicker />
         </div>
 
         <div className="xl:row-span-3 space-y-3">

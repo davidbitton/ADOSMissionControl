@@ -57,6 +57,13 @@ export const AgentStatusSchema = z
     fc_connected: z.boolean(),
     fc_port: z.string(),
     fc_baud: NumberLike,
+    // Gated MAVLink truth (transport-open vs decoded-heartbeat). Optional so
+    // older agents validate cleanly; the render boundary prefers these over a
+    // bare fc_connected when present.
+    transport_open: z.boolean().optional(),
+    mavlink_alive: z.boolean().optional(),
+    heartbeat_age_s: NullableNumber.optional(),
+    fc_source: z.string().optional(),
     // Kernel release + radio-module source + install-health summary.
     // Optional so older agents that omit them validate cleanly; the
     // enum-like fields stay loose strings here and are narrowed at the
@@ -240,6 +247,10 @@ export const FullStatusResponseSchema = z
     fc_connected: z.boolean(),
     fc_port: z.string(),
     fc_baud: NumberLike,
+    transport_open: z.boolean().optional(),
+    mavlink_alive: z.boolean().optional(),
+    heartbeat_age_s: NullableNumber.optional(),
+    fc_source: z.string().optional(),
     services: z.array(FullStatusServiceSchema).optional(),
     resources: FullStatusResourcesSchema.optional(),
     video: FullStatusVideoSchema.optional(),
@@ -251,3 +262,24 @@ export const FullStatusResponseSchema = z
 export type FullStatusResponseValidated = z.infer<
   typeof FullStatusResponseSchema
 >;
+
+// ── MAVLink ports + ping ────────────────────────────────
+
+export const MavlinkPortsResponseSchema = z
+  .object({
+    ports: z.array(
+      z
+        .object({
+          path: z.string(),
+          description: z.string().optional().default(""),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+
+export const PingResponseSchema = z
+  .object({
+    pong: NumberLike,
+  })
+  .passthrough();

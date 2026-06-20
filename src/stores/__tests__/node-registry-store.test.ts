@@ -234,6 +234,28 @@ describe("useNodeRegistryStore FC attach/detach", () => {
     expect(entry?.presence.sources).toEqual([]);
   });
 
+  it("attachFc-before-presence: a later presence patch MERGES onto the FC row (no bare-row race)", () => {
+    // The FC link can win the connect race: attachFc creates the row first,
+    // then the presence bridge's heartbeat lands. The presence must merge onto
+    // the existing entry, not be dropped — this is the bug-#3 fix.
+    const id = resolveNodeId("dev-race");
+    store().attachFc(id, "managed-race");
+    expect(store().getEntry(id)?.fc.managedId).toBe("managed-race");
+    expect(store().getEntry(id)?.presence.sources).toEqual([]);
+
+    // Late presence patch arrives.
+    store().upsertPresence(
+      id,
+      { deviceId: "dev-race", name: "Race", profile: "drone", lastHeartbeat: 99 },
+      "local",
+    );
+    const entry = store().getEntry(id);
+    // Single row carrying BOTH the FC and the presence.
+    expect(entry?.fc.managedId).toBe("managed-race");
+    expect(entry?.presence.sources).toEqual(["local"]);
+    expect(entry?.presence.name).toBe("Race");
+  });
+
   it("detachFc clears managedId but leaves a still-present node in place", () => {
     const id = resolveNodeId("dev-keep");
     store().upsertPresence(id, { deviceId: "dev-keep", name: "n" }, "local");
@@ -342,9 +364,23 @@ describe("useNodeRegistryStore connection + telemetry", () => {
     store().updateFcTelemetry(id, {
       flightMode: "LOITER",
       armState: "armed",
-      battery: { voltage: 16.4 },
+      battery: {
+        timestamp: 1,
+        voltage: 16.4,
+        current: 12,
+        remaining: 80,
+        consumed: 100,
+      },
     });
-    store().updateFcTelemetry(id, { battery: { remaining: 70 } });
+    store().updateFcTelemetry(id, {
+      battery: {
+        timestamp: 2,
+        voltage: 16.4,
+        current: 12,
+        remaining: 70,
+        consumed: 110,
+      },
+    });
     const fc = store().getEntry(id)?.fc;
     expect(fc?.managedId).toBe("managed-tel");
     expect(fc?.flightMode).toBe("LOITER");

@@ -177,9 +177,9 @@ export class ReconnectManager {
     const adapter = new MAVLinkAdapter();
     const vehicleInfo = await adapter.connect(transport);
     // Reconnect under the ORIGINAL id, not a fresh one. For an agent-owned FC
-    // (id `local-`/`cloud-`, ownsFleetRow=false) the presence card survives the
+    // (id `node:<deviceId>`, ownsFleetRow=false) the presence row survives the
     // drop, so a new random id would re-attach as a SECOND standalone row
-    // (the duplicate). Re-using the id re-attaches to the same card.
+    // (the duplicate). Re-using the id re-attaches to the same registry node.
     const name = `${vehicleInfo.firmwareVersionString} (${vehicleInfo.vehicleClass})`;
 
     this.addDroneCallback(entry.droneId, name, adapter, transport, vehicleInfo, entry.meta);

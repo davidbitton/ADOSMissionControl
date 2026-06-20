@@ -203,6 +203,14 @@ interface VideoStoreState {
   // supplies the wall-clock-corrected glass-to-glass delta in ms.
   recordG2GSample: (ms: number) => void;
   resetLatency: () => void;
+  /**
+   * Reset the single-slot video state that bleeds across a drone selection
+   * switch: the agent video status + WHEP URL, the live stream URL, and the
+   * poll / latency / transport-health scratch state. Called from
+   * `drone-manager.selectDrone` when the selected node changes so the newly
+   * focused drone never inherits the previous one's stream or stats.
+   */
+  clearForSelection: () => void;
 }
 
 // Module-local ring buffer for the last N G2G samples. Lives outside
@@ -364,5 +372,36 @@ export const useVideoStore = create<VideoStoreState>((set) => ({
   resetLatency: () => {
     g2gRing.length = 0;
     set({ latency: emptyBreakdown() });
+  },
+  clearForSelection: () => {
+    g2gRing.length = 0;
+    set({
+      agentVideoState: "unknown",
+      agentWhepUrl: null,
+      agentDependencies: null,
+      streamUrl: null,
+      isStreaming: false,
+      cloudStreamUrl: null,
+      cloudStreaming: false,
+      transport: "unknown",
+      latency: emptyBreakdown(),
+      _pollState: {
+        lastFrameTime: 0,
+        lastFramesDecoded: 0,
+        lastStatsTime: 0,
+        lastBytesReceived: 0,
+        lastJitterDelay: 0,
+        lastJitterEmitted: 0,
+        lastProgressTime: 0,
+      },
+      transportHealth: {
+        "lan-whep": emptyHealth(),
+        "p2p-mqtt": emptyHealth(),
+        "cloud-whep": emptyHealth(),
+        "cloud-mse": emptyHealth(),
+        "off": emptyHealth(),
+        "unknown": emptyHealth(),
+      },
+    });
   },
 }));

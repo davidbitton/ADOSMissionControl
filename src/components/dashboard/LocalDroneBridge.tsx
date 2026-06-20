@@ -2,123 +2,88 @@
 
 /**
  * @module LocalDroneBridge
- * @description Projects LAN-paired (browser-local, no cloud account) agent
- * nodes into the Dashboard fleet store so they appear and are selectable in the
- * unified drone list. The cloud projector (CloudDroneBridge) only sees
- * Convex-paired drones; without this bridge a locally-paired node would be
- * invisible once the separate Command tab is retired, breaking the local-first
- * path. A node that is also cloud-paired is left to CloudDroneBridge so it is
- * not listed twice.
+ * @description Feeds LAN-paired (browser-local, no cloud account) agent nodes
+ * into the canonical node registry as `"local"` presence. The cloud bridge
+ * feeds `"cloud"` presence for the same `node:<deviceId>`; the registry
+ * collapses both onto one row, so a node paired both ways renders once. The
+ * FleetProjectionBridge turns the registry into the fleet list. This bridge no
+ * longer fabricates flight state (no STABILIZE / disarmed / 0% seeds) — FC
+ * telemetry comes only from a real attached FC via AgentMavlinkBridge.
  * @license GPL-3.0-only
  */
 
 import { useEffect, useRef } from "react";
-import { useFleetStore } from "@/stores/fleet-store";
 import { useLocalNodesStore } from "@/stores/local-nodes-store";
-import { usePairingStore } from "@/stores/pairing-store";
 import { useCommandFleetStore } from "@/stores/command-fleet-store";
-import { STALE_THRESHOLD_MS } from "@/lib/agent/freshness";
-import type { FleetDrone } from "@/lib/types/drone";
+import {
+  useNodeRegistryStore,
+  resolveNodeId,
+} from "@/stores/node-registry";
+import type { NodeProfile } from "@/stores/node-registry";
+
+function asProfile(p: string | undefined): NodeProfile {
+  return p === "ground-station" || p === "compute" ? p : "drone";
+}
 
 export function LocalDroneBridge() {
+  // nodeId set this bridge currently owns local presence for, so we can drop
+  // presence for nodes that disappear from the local store.
   const trackedIds = useRef<Set<string>>(new Set());
   const nodes = useLocalNodesStore((s) => s.nodes);
-  const pairedDrones = usePairingStore((s) => s.pairedDrones);
+  // cloudStatuses carry the freshest LAN poll timestamp; we read them to set a
+  // truthful presence heartbeat (lastSeenAt is the pair time fallback).
   const cloudStatuses = useCommandFleetStore((s) => s.cloudStatuses);
 
   useEffect(() => {
-    const fleet = useFleetStore.getState();
-    const now = Date.now();
+    const registry = useNodeRegistryStore.getState();
     const current = new Set<string>();
-    // deviceIds that are also cloud-paired. We only defer to the cloud row
-    // for these when the cloud row is actually live: the cloud projector
-    // drops the row once its heartbeat goes stale, so an unconditional skip
-    // here would make a still-LAN-reachable node vanish. Local-first means
-    // the LAN row resurrects it.
-    const cloudDeviceIds = new Set(pairedDrones.map((d) => d.deviceId));
 
     for (const node of nodes) {
-      const cloudFleetId = `cloud-${node.deviceId}`;
-      if (cloudDeviceIds.has(node.deviceId)) {
-        const cloudStatus = cloudStatuses[node.deviceId];
-        const cloudFresh =
-          cloudStatus != null && now - cloudStatus.updatedAt < STALE_THRESHOLD_MS;
-        // The cloud row exists only while the cloud projector considers the
-        // node online. When it is present we let it own the row and skip the
-        // local projection — but we hold the local row until the cloud row
-        // has actually landed so the device never blinks out across the
-        // local→cloud handoff.
-        const cloudRowPresent = fleet.drones.some((d) => d.id === cloudFleetId);
-        if (cloudFresh && cloudRowPresent) continue;
-      }
-      const fleetId = `local-${node.deviceId}`;
-      current.add(fleetId);
-
+      const nodeId = resolveNodeId(node.deviceId);
+      current.add(nodeId);
       const status = cloudStatuses[node.deviceId];
-      const lastSeen = status?.updatedAt ?? node.lastSeenAt ?? 0;
-      const online = now - lastSeen < STALE_THRESHOLD_MS;
-
-      const profile: FleetDrone["profile"] =
-        node.profile === "ground-station" || node.profile === "compute"
-          ? node.profile
-          : "drone";
-
-      // Air-side camera state from the LAN-direct status. The cloud
-      // bridge populates these from the heartbeat for cloud-paired
-      // drones; here we give the LAN path the same parity so a wedged
-      // or unplugged USB camera surfaces on a locally-paired card too.
-      const cameraStateRaw = status?.cameraState;
-      const cameraState =
-        cameraStateRaw === "ready" ||
-        cameraStateRaw === "missing" ||
-        cameraStateRaw === "error"
-          ? cameraStateRaw
-          : null;
-      const cameraUsbRecovery = status?.cameraUsbRecovery;
-
-      const drone: FleetDrone = {
-        id: fleetId,
-        name: node.name || `Agent ${node.deviceId.slice(0, 8)}`,
-        status: online ? "online" : "offline",
-        connectionState: online ? "connected" : "disconnected",
-        flightMode: "STABILIZE",
-        armState: "disarmed",
-        lastHeartbeat: lastSeen,
-        firmwareVersion: node.version,
-        healthScore: online ? 80 : 0,
-        hasAgent: true,
-        // The agent's device id, used to resolve the LAN credentials for the
-        // connect-on-select path. Not a cloud-relay id; the connection goes
-        // over the LAN. cloudPosture stays "local" so the card reads correctly.
-        cloudDeviceId: node.deviceId,
-        cloudPosture: "local",
-        profile,
-        role: node.role ?? undefined,
-        cameraState,
-        cameraUsbRecovery,
-      };
-
-      if (trackedIds.current.has(fleetId)) {
-        fleet.updateDrone(fleetId, drone);
-      } else {
-        fleet.addDrone(drone);
-        trackedIds.current.add(fleetId);
-      }
+      const lastHeartbeat = Math.max(
+        status?.updatedAt ?? 0,
+        node.lastSeenAt ?? 0,
+      );
+      registry.upsertPresence(
+        nodeId,
+        {
+          deviceId: node.deviceId,
+          name: node.name || `Agent ${node.deviceId.slice(0, 8)}`,
+          profile: asProfile(node.profile),
+          role: node.role ?? null,
+          // A LAN-paired node is reached over the LAN; its posture is local
+          // unless the cloud bridge later overrides it with an authoritative
+          // value. cloudDeviceId carries the agent device id for the
+          // connect-on-select path (it is a LAN id, not a relay id).
+          cloudPosture: "local",
+          cloudDeviceId: node.deviceId,
+          lastHeartbeat,
+        },
+        "local",
+      );
+      trackedIds.current.add(nodeId);
     }
 
-    for (const id of trackedIds.current) {
-      if (!current.has(id)) {
-        fleet.removeDrone(id);
-        trackedIds.current.delete(id);
+    // Drop local presence for nodes that disappeared from the local store. The
+    // registry GC removes the row only if no cloud presence and no FC remain.
+    for (const nodeId of Array.from(trackedIds.current)) {
+      if (!current.has(nodeId)) {
+        registry.dropPresence(nodeId, "local");
+        trackedIds.current.delete(nodeId);
       }
     }
-  }, [nodes, pairedDrones, cloudStatuses]);
+  }, [nodes, cloudStatuses]);
 
   useEffect(() => {
+    const tracked = trackedIds.current;
     return () => {
-      const fleet = useFleetStore.getState();
-      for (const id of trackedIds.current) fleet.removeDrone(id);
-      trackedIds.current.clear();
+      const registry = useNodeRegistryStore.getState();
+      for (const nodeId of tracked) {
+        registry.dropPresence(nodeId, "local");
+      }
+      tracked.clear();
     };
   }, []);
 

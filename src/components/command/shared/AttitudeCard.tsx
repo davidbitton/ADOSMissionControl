@@ -13,11 +13,6 @@ function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
 }
 
-/** Convert radians to degrees */
-function toDeg(rad: number) {
-  return (rad * 180) / Math.PI;
-}
-
 /** Normalize heading to 0–360 */
 function normalizeHeading(deg: number) {
   return ((deg % 360) + 360) % 360;
@@ -27,8 +22,9 @@ function normalizeHeading(deg: number) {
 function ArtificialHorizon({ roll, pitch, size = 120 }: { roll: number; pitch: number; size?: number }) {
   const r = size / 2;
   // Pitch: 1° = 1.5px shift, clamped to ±40°
+  // roll/pitch arrive in degrees (store is already degrees).
   const pitchShift = clamp(pitch, -40, 40) * 1.5;
-  const rollDeg = clamp(toDeg(roll), -90, 90);
+  const rollDeg = clamp(roll, -90, 90);
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0">
@@ -165,10 +161,11 @@ export function AttitudeCard({ className }: AttitudeCardProps) {
   const roll = latestAtt?.roll ?? 0;
   const pitch = latestAtt?.pitch ?? 0;
   const yaw = latestAtt?.yaw ?? 0;
-  const heading = latestPos?.heading ?? normalizeHeading(toDeg(yaw));
+  const heading = latestPos?.heading ?? normalizeHeading(yaw);
 
+  // Attitude is already in degrees in the store; format directly.
   const fmt = (v: number | undefined) =>
-    v !== undefined ? toDeg(v).toFixed(1) : "--.-";
+    v !== undefined ? v.toFixed(1) : "--.-";
   const fmtRate = (v: number | undefined) =>
     v !== undefined ? v.toFixed(2) : "--.--";
   const fmtHdg = (v: number) => v.toFixed(0).padStart(3, "0");

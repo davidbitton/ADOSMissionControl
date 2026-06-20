@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   CameraOff,
   Maximize2,
@@ -32,10 +32,9 @@ import {
   startRecording,
   stopRecording,
 } from "@/lib/video/webrtc-client";
-// Cascade hook + interactive transport switcher.
-// Replaces the inline transport-selection useEffect that previously lived
-// in this component.
-import { useVideoTransportCascade } from "@/hooks/use-video-transport-cascade";
+// Shared singleton-video connection brain (gate + cascade + retry + stall).
+// The Fly pane uses the exact same hook so the two surfaces can't diverge.
+import { useSingletonAgentVideo } from "@/hooks/use-singleton-agent-video";
 import { VideoTransportSwitcher } from "./VideoTransportSwitcher";
 import { VideoLatencyBreakdown } from "./VideoLatencyBreakdown";
 import { useVideoLatencyPoll } from "@/hooks/use-video-latency-poll";
@@ -45,14 +44,6 @@ interface VideoFeedCardProps {
   className?: string;
   onPopOut?: () => void;
 }
-
-// Auto-recovery backoff. The base delay doubles per attempt and is
-// clamped at the ceiling, then keeps retrying at the ceiling forever — a
-// stalled link that comes back hours later still reconnects without any
-// operator action. There is no attempt cap: silently giving up leaves the
-// operator staring at a frozen frame with no indication anything is wrong.
-const RETRY_BASE_DELAY_SEC = 3;
-const RETRY_MAX_DELAY_SEC = 30;
 
 export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
   const agentWhepUrl = useVideoStore((s) => s.agentWhepUrl);
@@ -78,9 +69,6 @@ export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
   const cameraUsbRecovery = useAgentCapabilitiesStore(
     (s) => s.cameraUsbRecovery,
   );
-  // Frozen-stream signal from the stats watchdog. A bump means the active
-  // stream silently stalled while still "connected"; drive auto-recovery.
-  const videoStallSignal = useVideoStore((s) => s.videoStallSignal);
   // User transport preference (persisted to IndexedDB)
   const transportMode = useSettingsStore((s) => s.videoTransportMode);
 
@@ -100,19 +88,6 @@ export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
   const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
     setVideoEl(el);
-  }, []);
-  const [retryKey, setRetryKey] = useState(0);
-
-  // Exponential backoff state. Tracks how many automatic retries have
-  // happened since last successful connect or user action. Manual retry
-  // resets the counter.
-  const retryAttemptRef = useRef(0);
-  const [retryDelaySec, setRetryDelaySec] = useState(0);
-
-  const handleRetry = useCallback(() => {
-    retryAttemptRef.current = 0;
-    setRetryDelaySec(0);
-    setRetryKey((k) => k + 1);
   }, []);
 
   // Video action buttons. The actual capture/record/PiP logic already
@@ -192,87 +167,27 @@ export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
   // freezes. mediamtx's built-in test page (no catchup logic) streams
   // indefinitely without issues — confirming the timer was the problem.
 
-  // Stabilize the enabled flag so a single flaky agent poll doesn't kill
-  // a healthy WebRTC session. Requires 3 consecutive non-"running" polls
-  // (~9 seconds at 3s interval) before disabling the cascade. A single
-  // transient mediamtx probe timeout on the agent was causing
-  // agentVideoState to flap "running" → "not_initialized" → "running",
-  // which triggered the cascade cleanup (stopStream + srcObject=null)
-  // every time, destroying a perfectly healthy WebRTC connection.
-  const nonRunningCountRef = useRef(0);
-  const stableEnabled = useMemo(() => {
-    if (agentVideoState === "running") {
-      nonRunningCountRef.current = 0;
-      return true;
-    }
-    nonRunningCountRef.current += 1;
-    return nonRunningCountRef.current < 3;
-  }, [agentVideoState]);
-
-  // Cascade hook owns all transport selection + connection logic. The
-  // hook respects the user's `transportMode` preference: in Auto mode it
-  // cascades LAN → P2P MQTT, in pinned mode it tries only that mode.
-  // Cloud WHEP / Cloud MSE are deferred.
-  const cascade = useVideoTransportCascade({
-    agentWhepUrl,
+  // The shared singleton-video brain owns the enable gate + transport cascade
+  // + indefinite retry + stall recovery. The Fly pane uses the identical hook,
+  // so the two surfaces can never diverge.
+  const {
+    state: cascadeState,
+    activeTransport,
+    error: cascadeError,
+    retry: handleRetry,
+    retryDelaySec,
+  } = useSingletonAgentVideo({
+    whepUrl: agentWhepUrl,
     cloudDeviceId,
     transportMode,
     videoEl,
-    retryKey,
-    enabled: stableEnabled,
   });
-
-  // Reset the backoff counter on a healthy connect or manual retry.
-  useEffect(() => {
-    if (cascade.state === "connected") {
-      retryAttemptRef.current = 0;
-      setRetryDelaySec(0);
-    }
-  }, [cascade.state]);
-
-  // The frozen-stream watchdog raised the stall signal: the link looked
-  // "connected" but stopped delivering frames. Re-cascade immediately so
-  // the WHEP offer is re-fetched (WHEP cannot renegotiate in place). The
-  // re-cascade either reconnects (resetting the backoff) or transitions
-  // to "failed", which the indefinite-retry effect below then handles.
-  const lastHandledStallRef = useRef(videoStallSignal);
-  useEffect(() => {
-    if (videoStallSignal === lastHandledStallRef.current) return;
-    lastHandledStallRef.current = videoStallSignal;
-    if (agentVideoState !== "running") return;
-    setRetryDelaySec(0);
-    setRetryKey((k) => k + 1);
-  }, [videoStallSignal, agentVideoState]);
-
-  // Indefinite auto-retry with exponential backoff capped at the ceiling.
-  // Never stops while the agent reports the video service running, so the
-  // feed self-heals whenever the link recovers. Manual retry resets the
-  // attempt counter to start the backoff over from the base delay.
-  useEffect(() => {
-    if (cascade.state !== "failed" || agentVideoState !== "running") {
-      return;
-    }
-    const attempt = retryAttemptRef.current;
-    const delaySec = Math.min(
-      RETRY_BASE_DELAY_SEC * Math.pow(2, attempt),
-      RETRY_MAX_DELAY_SEC,
-    );
-    setRetryDelaySec(delaySec);
-    const retryHandle = setTimeout(() => {
-      retryAttemptRef.current += 1;
-      setRetryDelaySec(0);
-      setRetryKey((k) => k + 1);
-    }, delaySec * 1000);
-    return () => {
-      clearTimeout(retryHandle);
-    };
-  }, [cascade.state, agentVideoState]);
 
   const hasVideo = isStreaming;
   const cameraGate = useSurfaceGate("capability:camera");
   const noCamera = cameraGate.mode === "capability-missing";
   const tLink = useTranslations("linkUp");
-  const showConnecting = cascade.state === "connecting" || agentVideoState === "starting";
+  const showConnecting = cascadeState === "connecting" || agentVideoState === "starting";
   // Live air-side states, distinct from the static capability catalog.
   // A camera the agent reports missing right now (vs. a board the catalog
   // says never had one), and an in-flight self-heal. The recovering case
@@ -287,10 +202,10 @@ export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
   const showNoSignal =
     !hasVideo &&
     !showConnecting &&
-    cascade.state !== "failed" &&
+    cascadeState !== "failed" &&
     !noCamera &&
     !showAirSideCamera;
-  const error = cascade.state === "failed" ? cascade.error : null;
+  const error = cascadeState === "failed" ? cascadeError : null;
 
   return (
     <div
@@ -325,9 +240,9 @@ export function VideoFeedCard({ className, onPopOut }: VideoFeedCardProps) {
             the pill can show "retrying in Xs" instead of flickering between
             FAILED and CONNECTING. */}
         <VideoTransportSwitcher
-          activeTransport={cascade.activeTransport}
-          cascadeState={cascade.state}
-          cascadeError={cascade.error}
+          activeTransport={activeTransport}
+          cascadeState={cascadeState}
+          cascadeError={cascadeError}
           onRetry={handleRetry}
           hasPairedAgent={!!cloudDeviceId}
           hasLanWhep={!!agentWhepUrl}

@@ -10,7 +10,7 @@
  * depend on getSelectedProtocol() returning a real protocol.
  */
 
-import { DEMO_DRONES, configToFleetDrone, type DemoDroneConfig } from "./drones";
+import { DEMO_DRONES, type DemoDroneConfig } from "./drones";
 import { FLIGHT_PATHS, interpolatePath } from "./flight-paths";
 import { generateAlert, batteryAlert } from "./alerts";
 import { MockProtocol } from "./mock-protocol";
@@ -24,9 +24,16 @@ import { useFleetStore } from "@/stores/fleet-store";
 import { useDroneStore } from "@/stores/drone-store";
 import { useDroneManager } from "@/stores/drone-manager";
 import { useDroneMetadataStore } from "@/stores/drone-metadata-store";
+import {
+  useNodeRegistryStore,
+  resolveNodeId,
+} from "@/stores/node-registry";
 import { haversineDistance } from "@/lib/telemetry-utils";
 import { randomId } from "@/lib/utils";
 import type { FleetDrone, FlightRecord } from "@/lib/types";
+
+/** Demo node id for a config id (the canonical `node:<id>`). */
+const nid = (id: string): string => resolveNodeId(id);
 
 interface DroneSimState {
   config: DemoDroneConfig;
@@ -122,13 +129,39 @@ class MockFlightEngine {
     this.tickRate = intervalMs;
     this.running = true;
 
-    const initialDrones = DEMO_DRONES.map(configToFleetDrone);
-    useFleetStore.getState().setDrones(initialDrones);
+    // Seed the canonical node registry (the single fleet-identity write
+    // target) instead of writing the fleet store directly — the
+    // FleetProjectionBridge projects the registry into the fleet list, so a
+    // direct fleet write would be clobbered. Each demo drone gets `"local"`
+    // presence + an attached FC + an initial telemetry seed so it renders once
+    // with its configured arm/mode/battery/position. The flying drones then
+    // receive live telemetry through `bridgeTelemetry` (also into the registry).
+    const registry = useNodeRegistryStore.getState();
+    const now = Date.now();
+    for (const cfg of DEMO_DRONES) {
+      const id = nid(cfg.id);
+      registry.upsertPresence(
+        id,
+        {
+          deviceId: cfg.id,
+          name: cfg.name,
+          profile: "drone",
+          cloudPosture: "local",
+          cloudDeviceId: cfg.id,
+          lastHeartbeat: now,
+        },
+        "local",
+      );
+      registry.attachFc(id, id);
+      registry.updateFcTelemetry(id, this.seedTelemetry(cfg, now));
+    }
 
     const metadataStore = useDroneMetadataStore.getState();
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     for (const cfg of DEMO_DRONES) {
-      metadataStore.ensureProfile(cfg.id, {
+      // Metadata is keyed by the fleet row id (the node id), so the drone card's
+      // `profiles[drone.id]` display-name lookup resolves.
+      metadataStore.ensureProfile(nid(cfg.id), {
         displayName: cfg.name, serial: `ALT-${cfg.id.toUpperCase()}`,
         computeModule: "RPi CM4", weightClass: "Micro",
         totalFlights: cfg.pathIndex >= 0 ? 47 : 12,
@@ -137,18 +170,18 @@ class MockFlightEngine {
       });
     }
 
-    useDroneStore.getState().selectDrone("alpha-1");
+    useDroneStore.getState().selectDrone(nid("alpha-1"));
 
     const droneManager = useDroneManager.getState();
     for (const state of this.states) {
       const cfg = state.config;
       if (cfg.pathIndex < 0 && cfg.id !== 'delta') continue;
       const vehicleInfo = state.protocol.getVehicleInfo();
-      droneManager.addDrone(cfg.id, cfg.name, state.protocol, state.transport, vehicleInfo,
+      droneManager.addDrone(nid(cfg.id), cfg.name, state.protocol, state.transport, vehicleInfo,
         { type: "websocket", url: "mock://demo" });
     }
 
-    droneManager.selectDrone("alpha-1");
+    droneManager.selectDrone(nid("alpha-1"));
 
     const selectedState = this.states.find((s) => s.config.id === "alpha-1");
     if (selectedState && selectedState.protocol instanceof MockProtocol) {
@@ -161,12 +194,62 @@ class MockFlightEngine {
     this.intervalId = setInterval(() => this.tick(), this.tickRate);
   }
 
+  /**
+   * Initial FC telemetry for a demo drone, derived from its config. Used to
+   * seed the registry so each drone renders with its configured
+   * arm/mode/battery/position before the live tick loop takes over.
+   */
+  private seedTelemetry(cfg: DemoDroneConfig, now: number): Parameters<
+    ReturnType<typeof useNodeRegistryStore.getState>["updateFcTelemetry"]
+  >[1] {
+    const flying = cfg.pathIndex >= 0;
+    const armed = cfg.status === "in_mission";
+    const alt = flying ? 50 : 0;
+    return {
+      status: cfg.status,
+      flightMode: cfg.flightMode,
+      armState: armed ? "armed" : "disarmed",
+      healthScore: cfg.healthScore,
+      lastHeartbeat: now,
+      position: {
+        timestamp: now,
+        lat: cfg.homeLat,
+        lon: cfg.homeLon,
+        alt,
+        relativeAlt: alt,
+        heading: 0,
+        groundSpeed: 0,
+        airSpeed: 0,
+        climbRate: 0,
+      },
+      battery: {
+        timestamp: now,
+        voltage: 22.2 * (cfg.batteryStart / 100),
+        current: armed ? 12.5 : 0,
+        remaining: cfg.batteryStart,
+        consumed: (100 - cfg.batteryStart) * 22,
+      },
+      gps: {
+        timestamp: now,
+        fixType: cfg.status === "maintenance" ? 0 : 3,
+        satellites: cfg.status === "maintenance" ? 0 : 17,
+        hdop: 1.0,
+        lat: cfg.homeLat,
+        lon: cfg.homeLon,
+        alt: 10,
+      },
+    };
+  }
+
   stop(): void {
     if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
     this.running = false;
   }
 
   tick(): void {
+    const registry = useNodeRegistryStore.getState();
+    // The fleet store still owns alerts (registry holds only identity + FC
+    // telemetry); keep a reference for addAlert / touch.
     const fleetStore = useFleetStore.getState();
     const selectedId = useDroneStore.getState().selectedId;
     const now = Date.now();
@@ -234,7 +317,9 @@ class MockFlightEngine {
       const jitterLon = (Math.random() - 0.5) * 0.00002;
       state.battery = Math.max(5, state.battery - (0.044 * this.tickRate) / 1000);
 
-      const headingDelta = pos.heading - (fleetStore.drones.find(d => d.id === cfg.id)?.position?.heading ?? pos.heading);
+      const prevHeading =
+        registry.getEntry(nid(cfg.id))?.fc.position?.heading ?? pos.heading;
+      const headingDelta = pos.heading - prevHeading;
       const roll = Math.max(-30, Math.min(30, headingDelta * 0.5));
       const pitch = (nextWp.alt - wp.alt) > 0 ? -5 : (nextWp.alt - wp.alt) < 0 ? 5 : -2;
 
@@ -263,9 +348,16 @@ class MockFlightEngine {
           lat: pos.lat + jitterLat, lon: pos.lon + jitterLon, alt: 920 + pos.alt,
         },
       };
-      fleetStore.updateDrone(cfg.id, droneUpdate);
+      // Mirror the simulated flight into the registry FC sub-state (the single
+      // fleet write target); FleetProjectionBridge turns it into the live row.
+      registry.updateFcTelemetry(nid(cfg.id), {
+        lastHeartbeat: droneUpdate.lastHeartbeat,
+        position: droneUpdate.position,
+        battery: droneUpdate.battery,
+        gps: droneUpdate.gps,
+      });
 
-      if (cfg.id === selectedId && state.protocol instanceof MockProtocol) {
+      if (nid(cfg.id) === selectedId && state.protocol instanceof MockProtocol) {
         // DroneCAN bus simulation : feeds CAN_FRAME events into the
         // selected drone's protocol so the CAN Monitor panel lights up.
         mockCanBus.tick(state.protocol, now);

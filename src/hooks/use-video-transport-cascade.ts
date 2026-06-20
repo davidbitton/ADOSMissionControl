@@ -48,7 +48,7 @@ interface CascadeOpts {
   mqttViewerPassword?: string | null;
 }
 
-interface CascadeResult {
+export interface CascadeResult {
   state: "idle" | "connecting" | "connected" | "failed";
   activeTransport: VideoTransport;
   error: string | null;

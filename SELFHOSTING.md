@@ -88,16 +88,38 @@ npx convex dev                # starts dev backend
 
 **Option B: Self-hosted Convex**
 
-Deploy the [open-source Convex backend](https://github.com/get-convex/convex-backend) using Docker. Then push functions:
+Deploy the [open-source Convex backend](https://github.com/get-convex/convex-backend) using Docker. The all-in-one compose at `tools/selfhost/` includes a `convex-backend` + `convex-dashboard` service (see [Unified Docker Compose](#unified-docker-compose-all-in-one) below). Then push functions:
 
 ```bash
-npx convex deploy --url https://convex.your.domain --admin-key <your-admin-key>
+npx convex deploy --url http://convex.your.domain:3210 --admin-key <your-admin-key>
 ```
 
-Set your GCS `.env.local`:
+Generate and set the auth keys (Convex Auth signs session JWTs with RS256, and a self-hosted backend has no keys until you set them):
+
+```bash
+node scripts/generate-auth-keys.mjs
+npx convex env set JWT_PRIVATE_KEY "$JWT_PRIVATE_KEY" --url http://convex.your.domain:3210 --admin-key <your-admin-key>
+npx convex env set JWKS "$JWKS"                       --url http://convex.your.domain:3210 --admin-key <your-admin-key>
+npx convex env set SITE_URL "http://your.domain:4000" --url http://convex.your.domain:3210 --admin-key <your-admin-key>
 ```
-NEXT_PUBLIC_CONVEX_URL=https://convex.your.domain
+
+On a self-hosted backend the CLI MUST target your own URL + admin key, or the keys land on the wrong deployment and password sign-in fails with no visible error.
+
+Set your GCS `.env.local` to the Convex **client-API** origin (port `3210`):
 ```
+NEXT_PUBLIC_CONVEX_URL=http://convex.your.domain:3210
+```
+
+<details>
+<summary>Convex's two origins (3210 vs 3211)</summary>
+
+A self-hosted Convex backend exposes two origins that are not interchangeable:
+
+- **`:3210`** client API — the GCS browser bundle (`NEXT_PUBLIC_CONVEX_URL`) and `convex deploy` use this.
+- **`:3211`** site / HTTP actions — the drone agent heartbeat and the MQTT bridge POST to this (`CONVEX_URL` → `${CONVEX_URL}/agent/status`). The agent's `server.self_hosted.url` and `pairing.convex_url` also point here.
+
+Cross them and the GCS loads but no drone ever appears, or sign-in works but commands never reach the agent.
+</details>
 
 ---
 
@@ -241,64 +263,38 @@ Open your GCS in a browser (must be HTTPS for cloud mode to activate). Pair a dr
 
 ## Unified Docker Compose (All-in-One)
 
-If you want to run MQTT + video relay from a single compose file:
+The ready-made all-in-one compose lives at `tools/selfhost/`. It brings up the
+whole stack on one host: a self-hosted **Convex backend** (`:3210` client API,
+`:3211` site / HTTP actions) + **Convex dashboard** (`:6791`), the **Mission
+Control web GCS** (`:4000`, built from the repo `Dockerfile`), **Mosquitto**
+(`:1883` / `:9001`), the **MQTT bridge**, and the **video relay** (`:3001`).
 
-```yaml
-services:
-  mosquitto:
-    image: eclipse-mosquitto:2
-    restart: unless-stopped
-    ports:
-      - "1883:1883"
-      - "9001:9001"
-    volumes:
-      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./passwd:/mosquitto/config/passwd:ro
-      - mosquitto-data:/mosquitto/data
-      - mosquitto-log:/mosquitto/log
+```bash
+cd tools/selfhost
+cp .env.example .env       # set CONVEX_INSTANCE_SECRET, MQTT_PASSWORD, origins
 
-  mqtt-bridge:
-    build:
-      context: ../tools/mqtt-bridge
-      dockerfile: deploy/Dockerfile
-    restart: unless-stopped
-    depends_on:
-      - mosquitto
-    environment:
-      - MQTT_BROKER_URL=mqtt://mosquitto:1883
-      - MQTT_USERNAME=ados
-      - MQTT_PASSWORD=${MQTT_PASSWORD}
-      - CONVEX_URL=${CONVEX_URL}
+# 1. start the backend, then push functions + auth keys out-of-band
+docker compose up -d convex-backend
+npx convex deploy --url http://<host>:3210 --admin-key <admin-key>
+node ../../scripts/generate-auth-keys.mjs   # then npx convex env set ... (see Step 1)
 
-  video-relay:
-    build:
-      context: ../tools/video-relay
-      dockerfile: deploy/Dockerfile
-    restart: unless-stopped
-    ports:
-      - "3001:3001"
-    environment:
-      - RTSP_URL_PATTERN=${RTSP_URL_PATTERN:-rtsp://host.docker.internal:8554/{deviceId}}
-      - PORT=3001
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    command: tunnel run
-    depends_on:
-      - mosquitto
-      - video-relay
-    environment:
-      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
-
-volumes:
-  mosquitto-data:
-  mosquitto-log:
+# 2. create the MQTT password, then bring up everything
+docker compose up -d mosquitto
+docker exec -it selfhost-mosquitto-1 mosquitto_passwd -c /mosquitto/config/passwd ados
+docker compose up -d
 ```
 
-Copy `tools/mqtt-bridge/deploy/mosquitto.conf` to `./mosquitto.conf` and create a `.env` with all required variables.
+### Critical port wiring
+
+| Endpoint | Goes to | Variable |
+|---|---|---|
+| GCS browser client | Convex client API `:3210` | `NEXT_PUBLIC_CONVEX_URL` |
+| MQTT bridge + agent heartbeat | Convex site `:3211` (`/agent/status`) | `CONVEX_URL` |
+| Drone agent `server.self_hosted.url` + `pairing.convex_url` | Convex site `:3211` | (agent config) |
+
+Functions are pushed out-of-band with `npx convex deploy --url http://<host>:3210 --admin-key <key>`. A single Mission Control image that pushes functions on boot is a future goal, not built yet.
+
+See `tools/selfhost/README.md` for the full runbook. The minimal MQTT + video-relay-only compose (no Convex, no GCS) remains at `tools/mqtt-bridge/deploy/` if you only need the relay layers behind an existing Convex deployment.
 
 ---
 

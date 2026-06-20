@@ -7,7 +7,7 @@
 import type { DroneProtocol } from "@/lib/protocol/types";
 import { useTelemetryStore, computeVioQuality } from "./telemetry-store";
 import { useDroneStore } from "./drone-store";
-import { useFleetStore } from "./fleet-store";
+import { useNodeRegistryStore } from "./node-registry";
 import { useSettingsStore } from "./settings-store";
 import { useTrailStore } from "./trail-store";
 import { audioEngine } from "@/lib/audio-engine";
@@ -41,7 +41,7 @@ export function bridgeTelemetry(
   protocol: DroneProtocol,
 ): (() => void)[] {
   const telemetry = useTelemetryStore.getState();
-  const fleetStore = useFleetStore.getState();
+  const registry = useNodeRegistryStore.getState();
 
   /**
    * The telemetry-store ring buffers are a single set of slots shared across
@@ -65,20 +65,23 @@ export function bridgeTelemetry(
 
     protocol.onPosition((data) => {
       if (isSelected()) telemetry.pushPosition(data);
-      fleetStore.updateDrone(droneId, { position: data });
+      // Flight telemetry mirrors into the node registry (the single fleet
+      // identity write target); the projection turns it into the fleet row.
+      // The data is already in degrees — the registry is a pass-through mirror.
+      registry.updateFcTelemetry(droneId, { position: data });
       useTrailStore.getState().pushPoint(data.lat, data.lon, data.relativeAlt);
       rec("position", data);
     }),
 
     protocol.onBattery((data) => {
       if (isSelected()) telemetry.pushBattery(data);
-      fleetStore.updateDrone(droneId, { battery: data });
+      registry.updateFcTelemetry(droneId, { battery: data });
       rec("battery", data);
     }),
 
     protocol.onGps((data) => {
       if (isSelected()) telemetry.pushGps(data);
-      fleetStore.updateDrone(droneId, { gps: data });
+      registry.updateFcTelemetry(droneId, { gps: data });
       rec("gps", data);
 
       const settings = useSettingsStore.getState();
@@ -266,10 +269,11 @@ export function bridgeTelemetry(
 
       // per-drone flight lifecycle. Snapshot last-known position so
       // the draft FlightRecord gets takeoff/landing coords. Read from the
-      // per-drone fleet row rather than the shared singleton telemetry ring —
-      // the ring only holds the selected drone's history, so a heartbeat from
-      // a non-selected drone would otherwise pick up the wrong coordinates.
-      const lastPos = useFleetStore.getState().drones.find((d) => d.id === droneId)?.position;
+      // per-node registry FC sub-state rather than the shared singleton
+      // telemetry ring — the ring only holds the selected drone's history, so a
+      // heartbeat from a non-selected drone would otherwise pick up the wrong
+      // coordinates.
+      const lastPos = useNodeRegistryStore.getState().getEntry(droneId)?.fc.position;
       notifyArmed(droneId, droneName, data.armed, {
         lat: lastPos?.lat,
         lon: lastPos?.lon,
@@ -294,11 +298,14 @@ export function bridgeTelemetry(
         );
       }
 
-      fleetStore.updateDrone(droneId, {
-        status: data.armed ? "in_mission" : "online",
-        connectionState: data.armed ? "armed" : "connected",
+      // Flight-state mirrors into the registry FC sub-state. The projection
+      // derives the fleet row's status / connectionState / arm / mode from it,
+      // FC-gated, so a cloud presence tick can never overwrite live flight
+      // state and an FC-less node never shows a fabricated reading.
+      registry.updateFcTelemetry(droneId, {
         flightMode: mode,
         armState: data.armed ? "armed" : "disarmed",
+        status: data.armed ? "in_mission" : "online",
         lastHeartbeat: Date.now(),
       });
     }),

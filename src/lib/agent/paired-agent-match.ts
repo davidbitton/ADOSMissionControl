@@ -2,7 +2,7 @@
  * @module paired-agent-match
  * @description Decide whether a connection URL points at a paired LAN agent's
  * own host. A paired agent's flight controller is reached over MAVLink by its
- * agent bridge (which owns the `local-<deviceId>` fleet card); a SECOND, direct
+ * agent bridge (which owns the `node:<deviceId>` fleet card); a SECOND, direct
  * connection to the same host (auto-reconnect of a saved `ws://<agent>:8765`,
  * a "Reconnect" of a recent entry) would spawn a duplicate standalone card.
  * Callers use this to skip such direct dials and let the agent bridge own the FC.

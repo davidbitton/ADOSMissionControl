@@ -26,13 +26,12 @@ import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useLocalNodesStore } from "@/stores/local-nodes-store";
 import { usePairingStore } from "@/stores/pairing-store";
 import { useSurfaceGate } from "@/hooks/use-surface-gate";
+import { deviceIdFromNodeId } from "@/lib/agent/node-id";
 import { agentGateFallback } from "./shared/agent-gate-fallback";
 import { DronePluginsList } from "@/components/dashboard/drone-plugins/DronePluginsList";
 import { InstallPluginButton } from "@/components/dashboard/drone-plugins/InstallPluginButton";
 import { RegistryPluginGrid } from "@/components/dashboard/drone-plugins/RegistryPluginGrid";
 import type { FleetDrone } from "@/lib/types";
-
-const LOCAL_PREFIX = "local:";
 
 export function PluginsTab() {
   const t = useTranslations("dronePlugins");
@@ -42,18 +41,16 @@ export function PluginsTab() {
   const pairedDrones = usePairingStore((s) => s.pairedDrones);
   const localNodes = useLocalNodesStore((s) => s.nodes);
 
-  // Resolve the active drone via the same selectedPairedId decoder
-  // the rest of the Command page uses. selectedPairedId is either
-  // bare Convex _id (cloud-paired) or `local:<deviceId>` (LAN-direct).
-  // Build a FleetDrone-shaped object large enough for InstallPluginButton
-  // (which only reads id / name / cloudDeviceId) and DronePluginsList
-  // (which only reads agentId, passed in via id).
+  // Resolve the active drone from the canonical `node:<deviceId>` selection id.
+  // A LAN-paired node resolves to its local credentials; otherwise a
+  // cloud-paired drone (matched by device id). Build a FleetDrone-shaped object
+  // large enough for InstallPluginButton (reads id / name / cloudDeviceId) and
+  // DronePluginsList (reads agentId, passed in via id).
   const activeDrone = useMemo<FleetDrone | null>(() => {
-    if (!selectedPairedId) return null;
-    if (selectedPairedId.startsWith(LOCAL_PREFIX)) {
-      const deviceId = selectedPairedId.slice(LOCAL_PREFIX.length);
-      const node = localNodes.find((n) => n.deviceId === deviceId);
-      if (!node) return null;
+    const deviceId = deviceIdFromNodeId(selectedPairedId);
+    if (!deviceId) return null;
+    const node = localNodes.find((n) => n.deviceId === deviceId);
+    if (node) {
       return {
         id: node.deviceId,
         name: node.name ?? node.deviceId,
@@ -61,7 +58,7 @@ export function PluginsTab() {
         // back to targetDevice.id when cloudDeviceId is absent.
       } as FleetDrone;
     }
-    const paired = pairedDrones.find((d) => d._id === selectedPairedId);
+    const paired = pairedDrones.find((d) => d.deviceId === deviceId);
     if (!paired) return null;
     return {
       id: paired.deviceId,

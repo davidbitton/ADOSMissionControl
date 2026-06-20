@@ -91,12 +91,33 @@ export class MockAgentClient {
       fc_connected: true,
       fc_port: "/dev/ttyAMA0",
       fc_baud: 921600,
+      transport_open: true,
+      mavlink_alive: true,
+      heartbeat_age_s: jitter(0.8, 0.4),
+      fc_source: "serial",
       kernel_release: "6.1.0-rpi7-rpi-v8",
       wfb_module_source: "prebuilt",
       install_status: "ok",
       install_version: "0.39.0",
       failed_steps: [],
     };
+  }
+
+  async getMavlinkPorts() {
+    await delay(40);
+    return [
+      { path: "/dev/ttyAMA0", description: "Pixhawk · ArduPilot (serial0)" },
+      { path: "/dev/ttyACM0", description: "USB serial · SpeedyBee F405" },
+    ];
+  }
+
+  async setMavlinkSource() {
+    await delay(60);
+  }
+
+  async ping() {
+    await delay(jitter(12, 6));
+    return { rttMs: Math.round(jitter(14, 6)), pong: Date.now() };
   }
 
   async getOtaStatus() {

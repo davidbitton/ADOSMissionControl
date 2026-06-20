@@ -20,6 +20,7 @@ import { usePairingStore } from "@/stores/pairing-store";
 import { useCommandFleetStore } from "@/stores/command-fleet-store";
 import { mapFullStatusToCloudStatus } from "@/lib/agent/full-status-to-cloud-status";
 import { isStaleLocalIdentity } from "@/lib/agent/stale-local-identity";
+import { nodeIdForDevice } from "@/lib/agent/node-id";
 import { isDemoMode } from "@/lib/utils";
 
 // Lighter cadence than the single-agent System tab (3s) — overview
@@ -130,9 +131,14 @@ export function CommandFleetLocalBridge({
               // panel shows a truthful re-pair / remove prompt the operator can
               // act on, rather than the card vanishing from under them. Other
               // (background) stale ghosts still self-heal silently.
+              // The selection id is the canonical `node:<deviceId>` (see
+              // node-id + use-fleet-nodes). The old code compared against a
+              // `local:<deviceId>` colon literal that never matched the hyphen
+              // form, so the focused node was being deleted from under the
+              // operator — this is the headline fix.
               const focused =
                 usePairingStore.getState().selectedPairedId ===
-                `local-${deviceId}`;
+                nodeIdForDevice(deviceId);
               if (!focused) {
                 useLocalNodesStore.getState().removeNode(deviceId);
               }

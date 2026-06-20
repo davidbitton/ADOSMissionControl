@@ -74,7 +74,7 @@ describe("mergeFleetNodes", () => {
     expect(out[0].role).toBe("relay");
   });
 
-  it("renders local-only entries with isLocal=true and local: prefix", () => {
+  it("renders local-only entries with isLocal=true and the canonical node: id", () => {
     const out = mergeFleetNodes(
       [],
       [localNode({ deviceId: "beta", name: "Beta", pairedAt: 200 })],
@@ -83,8 +83,25 @@ describe("mergeFleetNodes", () => {
     expect(out[0]).toMatchObject({
       deviceId: "beta",
       isLocal: true,
-      _id: "local:beta",
+      _id: "node:beta",
     });
+  });
+
+  it("keys cloud entries by the canonical node: id and preserves the Convex id on convexId", () => {
+    const out = mergeFleetNodes(
+      [
+        cloudDrone({
+          _id: "convex_alpha",
+          deviceId: "alpha",
+          name: "Alpha",
+          pairedAt: 100,
+        }),
+      ],
+      [],
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]._id).toBe("node:alpha");
+    expect(out[0].convexId).toBe("convex_alpha");
   });
 
   it("locally-paired nodes shadow cloud entries with the same deviceId", () => {

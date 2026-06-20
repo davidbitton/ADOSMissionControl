@@ -14,6 +14,12 @@
  * @license GPL-3.0-only
  */
 
+import type {
+  PositionData,
+  BatteryData,
+  GpsData,
+} from "@/lib/types/telemetry";
+
 /**
  * Which transport a presence observation arrived on. A node can be seen on
  * both at once; both must drop before the presence sub-state clears.
@@ -90,29 +96,18 @@ export interface NodeConnection {
   fcConnected: boolean;
 }
 
-/** Battery telemetry mirrored from the attached FC. */
-export interface NodeFcBattery {
-  voltage?: number;
-  current?: number;
-  remaining?: number;
-}
+/**
+ * Battery telemetry mirrored from the attached FC. The full
+ * {@link BatteryData} shape passes through verbatim so the fleet projection
+ * is lossless (the registry is a mirror, no field flattening).
+ */
+export type NodeFcBattery = BatteryData;
 
-/** GPS fix telemetry mirrored from the attached FC. */
-export interface NodeFcGps {
-  lat?: number;
-  lon?: number;
-  altitude?: number;
-  fixType?: number;
-  satellites?: number;
-}
+/** GPS fix telemetry mirrored from the attached FC (full {@link GpsData}). */
+export type NodeFcGps = GpsData;
 
-/** Position / pose telemetry mirrored from the attached FC. */
-export interface NodeFcPosition {
-  lat?: number;
-  lon?: number;
-  altitude?: number;
-  heading?: number;
-}
+/** Position / pose telemetry mirrored from the attached FC (full {@link PositionData}). */
+export type NodeFcPosition = PositionData;
 
 /**
  * Flight-controller sub-state: the drone-manager managed id of the attached

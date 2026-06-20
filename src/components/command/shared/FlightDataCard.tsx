@@ -18,10 +18,6 @@ const FIX_LABELS: Record<number, { label: string; color: string }> = {
   6: { label: "RTK Fix", color: "text-accent-primary" },
 };
 
-function toDeg(rad: number) {
-  return (rad * 180) / Math.PI;
-}
-
 function normalizeHeading(deg: number) {
   return ((deg % 360) + 360) % 360;
 }
@@ -43,10 +39,13 @@ export function FlightDataCard({ className }: FlightDataCardProps) {
   // the FC reports HDOP ~655, lat/lon 0.0, MSL 0.0, heading 360 — all
   // garbage that pollutes the bench dashboard.
   const hasFix = (gpsData?.fixType ?? 0) >= 2;
-  const heading = pos?.heading ?? (att ? normalizeHeading(toDeg(att.yaw)) : undefined);
+  // Attitude/heading in the telemetry store are ALREADY in degrees (the
+  // ingest handler converts MAVLink radians once). Format them directly —
+  // re-applying a rad->deg conversion here yielded the ~57x garbage.
+  const heading = pos?.heading ?? (att ? normalizeHeading(att.yaw) : undefined);
 
   const fmtDeg = (v: number | undefined) =>
-    v !== undefined ? toDeg(v).toFixed(1) : "--.-";
+    v !== undefined ? v.toFixed(1) : "--.-";
   const fmtHdg = (v: number | undefined) =>
     v !== undefined ? v.toFixed(0).padStart(3, "0") : "---";
 

@@ -53,6 +53,11 @@ export interface LocalState {
    * card remembers (re-flashed → new device id, or unpaired). Null whenever a
    * connection is live or the failure was a plain offline/transient one. */
   stalePairing: StalePairingInfo | null;
+  /** Control-plane round-trip time to the agent in milliseconds, measured on
+   * the LAN-direct poll (the GET /api/ping echo, or the status request when
+   * ping is unavailable). Null until the first successful measurement, or in
+   * cloud-relay mode where there is no direct timing surface. */
+  controlRttMs: number | null;
 }
 
 /**
@@ -71,6 +76,8 @@ export interface CloudState {
 export interface LocalActions {
   setApiKey: (key: string | null) => void;
   setMavlinkUrl: (url: string | null) => void;
+  /** Record a fresh control-plane RTT measurement (ms). */
+  setControlRttMs: (rttMs: number | null) => void;
   noteFetchSuccess: () => void;
   noteFetchFailure: () => void;
 }

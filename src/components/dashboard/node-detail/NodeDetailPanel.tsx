@@ -13,11 +13,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { useMutation } from "convex/react";
+import { useConvexAvailable } from "@/app/ConvexClientProvider";
+import { cmdDronesApi } from "@/lib/community-api-drones";
 import { useFleetStore } from "@/stores/fleet-store";
 import { useDroneManager } from "@/stores/drone-manager";
 import { useDroneMetadataStore } from "@/stores/drone-metadata-store";
-import { useLocalNodesStore } from "@/stores/local-nodes-store";
-import { unpairLocal } from "@/lib/agent/local-pair-client";
+import { forgetNode, type UnpairDroneMutation } from "@/lib/agent/forget-node";
 import { useAgentSystemStore } from "@/stores/agent-system-store";
 import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
 import { Button } from "@/components/ui/button";
@@ -57,10 +59,16 @@ export function NodeDetailPanel({ droneId, onClose }: NodeDetailPanelProps) {
   // command.groundStation.tabs.*).
   const tRoot = useTranslations();
   const drones = useFleetStore((s) => s.drones);
-  const removeDrone = useFleetStore((s) => s.removeDrone);
   const [activeTab, setActiveTab] = useState("overview");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { toast } = useToast();
+
+  // Convex unpair mutation, used by forgetNode to delete the cloud row so the
+  // reactive listMyDrones query stops re-feeding a removed cloud drone. A
+  // ConvexProvider is always mounted (local-only uses a non-resolving client),
+  // so useMutation never throws; we only INVOKE it when Convex is available.
+  const convexAvailable = useConvexAvailable();
+  const unpairDroneMutation = useMutation(cmdDronesApi.unpairDrone);
 
   const drone = drones.find((d) => d.id === droneId);
   // This drone is backed by a companion-computer agent when the fleet row
@@ -155,33 +163,23 @@ export function NodeDetailPanel({ droneId, onClose }: NodeDetailPanelProps) {
   }, [droneId, isConnected]);
 
   function handleDelete() {
-    // Disconnect if connected
-    if (isConnected) {
-      useDroneManager.getState().removeDrone(droneId);
-    }
-    // Remove from fleet
-    removeDrone(droneId);
-    // Delete metadata
-    useDroneMetadataStore.getState().deleteProfile(droneId);
-    // A local node is the only fleet row backed by persisted storage
-    // (local-nodes-store); the fleet + metadata stores above are RAM/IndexedDB
-    // for this id but LocalDroneBridge re-creates the row from the persisted
-    // node on the next load. Purge it too (and release the agent's pairing)
-    // so a deleted local drone does not rehydrate as an offline ghost.
-    if (droneId.startsWith("local-")) {
-      const deviceId = droneId.slice("local-".length);
-      const node = useLocalNodesStore
-        .getState()
-        .nodes.find((n) => n.deviceId === deviceId);
-      if (node) {
-        void unpairLocal(node.hostname, node.apiKey).catch(() => {
-          // Agent gone / unreachable — local forget proceeds regardless.
-        });
-      }
-      useLocalNodesStore.getState().removeNode(deviceId);
-    }
+    // One atomic forget across every source (agent connection + managed FC +
+    // Convex cloud row + LAN credential + registry presence). This is the fix
+    // for the "removed drone instantly reconnects" bug: the old path poked the
+    // cosmetic fleet-store (overwritten by the projection on the next tick) and
+    // gated the durable removal on a LAN entry a cloud-only drone never has, so
+    // the Convex row survived and listMyDrones re-fed it. forgetNode deletes the
+    // Convex row + drops registry presence so the projection re-run finds
+    // nothing. `convexId` is the cloud doc id when this node is cloud-paired.
+    const convexId = fleetNodes.find((n) => n._id === droneId)?.convexId ?? null;
+    forgetNode(droneId, {
+      convexId,
+      unpairMutation: convexAvailable
+        ? (unpairDroneMutation as UnpairDroneMutation)
+        : null,
+    });
     setDeleteOpen(false);
-    toast(`Drone "${displayName}" deleted`, "warning");
+    toast(`Drone "${displayName}" removed`, "warning");
     onClose();
   }
 
@@ -340,8 +338,11 @@ export function NodeDetailPanel({ droneId, onClose }: NodeDetailPanelProps) {
             size="sm"
             icon={<Trash2 size={12} />}
             onClick={() => setDeleteOpen(true)}
-            className="text-status-error hover:text-status-error"
-          />
+            className="text-status-error hover:text-status-error shrink-0"
+            title="Remove this node"
+          >
+            {t("delete")}
+          </Button>
           <RuntimeModeBadge />
           {isConnected && <NavStatePill />}
           {isConnected && <TrafficPill />}

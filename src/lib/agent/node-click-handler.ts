@@ -18,6 +18,7 @@
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useLocalNodesStore } from "@/stores/local-nodes-store";
 import { usePairingStore } from "@/stores/pairing-store";
+import { nodeIdForDevice } from "@/lib/agent/node-id";
 import type { FleetNodeEntry } from "@/hooks/use-fleet-nodes";
 
 interface SelectNodeOpts {
@@ -41,8 +42,9 @@ export function connectLocalNode(
   opts: SelectNodeOpts,
 ): void {
   const conn = useAgentConnectionStore.getState();
-  // The fleet row id is `local:<deviceId>` (see use-fleet-nodes adaptLocal).
-  usePairingStore.getState().selectPairedDrone(`local:${deviceId}`);
+  // The canonical selection id is `node:<deviceId>` (see node-id + the registry
+  // projection) — the same id a cloud observation of this node would carry.
+  usePairingStore.getState().selectPairedDrone(nodeIdForDevice(deviceId));
   opts.onFocusAgent();
   // connect() and connectCloud() both mutate agentUrl / apiKey / cloudMode
   // without an atomic transition, so tear down any prior connection first.

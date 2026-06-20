@@ -43,6 +43,7 @@ import { RoleBadge } from "@/components/command/RoleBadge";
 import { AgentBridges } from "@/components/command/AgentBridges";
 import { CloudDroneBridge } from "@/components/dashboard/CloudDroneBridge";
 import { LocalDroneBridge } from "@/components/dashboard/LocalDroneBridge";
+import { FleetProjectionBridge } from "@/components/dashboard/FleetProjectionBridge";
 
 /**
  * User menu with sign-out. Must only mount when ConvexAuthNextjsProvider exists
@@ -344,8 +345,13 @@ function CommandShellInner({ children }: { children: React.ReactNode }) {
         <AgentMavlinkBridge />
         <MeshToastBridge />
         <AgentBridges />
+        {/* The two presence bridges WRITE the node registry (local + cloud
+            presence); FleetProjectionBridge projects the registry into the
+            fleet store, so a node seen on both transports renders once and an
+            FC-less node never shows fabricated telemetry. */}
         <CloudDroneBridge />
         <LocalDroneBridge />
+        <FleetProjectionBridge />
       </main>
     </div>
   );

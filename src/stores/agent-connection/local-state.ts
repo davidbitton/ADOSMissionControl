@@ -27,6 +27,7 @@ export const localStateSlice: AgentConnectionSliceCreator<LocalStateSlice> = (
   mavlinkUrl: null,
   nodeDeviceId: null,
   stalePairing: null,
+  controlRttMs: null,
 
   setApiKey(key) {
     set({ apiKey: key });
@@ -34,6 +35,10 @@ export const localStateSlice: AgentConnectionSliceCreator<LocalStateSlice> = (
 
   setMavlinkUrl(url) {
     set({ mavlinkUrl: url });
+  },
+
+  setControlRttMs(rttMs) {
+    set({ controlRttMs: rttMs });
   },
 
   noteFetchSuccess() {

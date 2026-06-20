@@ -29,6 +29,7 @@ import { useVisibleTabs, type CommandSubTab } from "@/hooks/use-visible-tabs";
 import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
 import { useFleetNodes } from "@/hooks/use-fleet-nodes";
 import { selectNode, connectLocalNode } from "@/lib/agent/node-click-handler";
+import { deviceIdFromNodeId } from "@/lib/agent/node-id";
 import dynamic from "next/dynamic";
 import { FleetSidebar } from "./FleetSidebar";
 import { PairingDialog } from "./PairingDialog";
@@ -238,8 +239,10 @@ export function CommandPage() {
   // No-op for cloud-paired drones (they don't have a LAN entry).
   async function handleReResolveHost() {
     const selectedPairedId = usePairingStore.getState().selectedPairedId;
-    if (!selectedPairedId || !selectedPairedId.startsWith("local:")) return;
-    const deviceId = selectedPairedId.slice("local:".length);
+    const deviceId = deviceIdFromNodeId(selectedPairedId);
+    // Only a LAN-paired node has a hostname to re-resolve; bail if the
+    // selection isn't a known local node.
+    if (!deviceId) return;
     const localStore = useLocalNodesStore.getState();
     const local = localStore.nodes.find((n) => n.deviceId === deviceId);
     if (!local) return;

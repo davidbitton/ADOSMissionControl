@@ -30,10 +30,11 @@ export function useAutoReconnect() {
   if (!managerRef.current) {
     managerRef.current = new ReconnectManager(
       (id, name, protocol, transport, vehicleInfo, meta) => {
-        // Presence-bridge rows (local-/cloud-) are FCs attached through a
-        // paired agent; they must not re-own the fleet row on reconnect, or a
-        // later disconnect would delete the card. Direct connects own theirs.
-        const ownsFleetRow = !(id.startsWith("local-") || id.startsWith("cloud-"));
+        // A `node:<deviceId>` id is an FC attached through a paired agent; it
+        // must not re-own the fleet row on reconnect, or a later disconnect
+        // would delete the registry-projected card. A direct connect uses an
+        // `fc:<random>` id and owns its standalone row.
+        const ownsFleetRow = !id.startsWith("node:");
         useDroneManager
           .getState()
           .addDrone(id, name, protocol, transport, vehicleInfo, meta, { ownsFleetRow });

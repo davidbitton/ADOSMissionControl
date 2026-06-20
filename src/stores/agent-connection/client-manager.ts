@@ -25,6 +25,7 @@ import { useLocalNodesStore } from "../local-nodes-store";
 import { usePairingStore } from "../pairing-store";
 import { useCommandFleetStore } from "../command-fleet-store";
 import { probeAgent } from "@/lib/agent/local-pair-client";
+import { nodeIdForDevice } from "@/lib/agent/node-id";
 import { nextPollDelay } from "./poll-backoff";
 import type {
   ClientManagerSlice,
@@ -113,8 +114,8 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
             if (ln.nodes.some((n) => n.deviceId === deviceId)) {
               ln.migrateNode(deviceId, answeredId, { lastSeenAt: Date.now() });
               const ps = usePairingStore.getState();
-              if (ps.selectedPairedId === `local:${deviceId}`) {
-                ps.selectPairedDrone(`local:${answeredId}`);
+              if (ps.selectedPairedId === nodeIdForDevice(deviceId)) {
+                ps.selectPairedDrone(nodeIdForDevice(answeredId));
               }
               // Drop the status row keyed by the old id so the overview tile
               // re-keys under the live id on the next poll.
@@ -326,6 +327,7 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
       mavlinkUrl: null,
       consecutiveFailures: 0,
       stalePairing: null,
+      controlRttMs: null,
     });
     // Clear all other stores so a freshly-focused agent never shows the
     // previous one's data. Capabilities gate the radio/vision tabs and video
@@ -367,8 +369,18 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
       try {
         // Try consolidated endpoint first (1 request instead of 4).
         if (useFullEndpoint !== false && typeof client.getFullStatus === "function") {
+          // Time the request as the control-plane RTT surface. The LAN-direct
+          // status round-trip is the cheapest always-available timing signal;
+          // it is FC-independent (transport latency to the agent, not to the
+          // flight controller). Cloud-relay mode has no client, so this only
+          // ever runs on the LAN-direct path.
+          const rttStart =
+            typeof performance !== "undefined" ? performance.now() : Date.now();
           const full = await client.getFullStatus();
           if (full) {
+            const rttEnd =
+              typeof performance !== "undefined" ? performance.now() : Date.now();
+            get().setControlRttMs(Math.max(0, Math.round(rttEnd - rttStart)));
             useFullEndpoint = true;
             // Map consolidated response to the same stores as the 4-endpoint path.
             const status = {
@@ -379,6 +391,22 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
               fc_connected: full.fc_connected,
               fc_port: full.fc_port,
               fc_baud: full.fc_baud,
+              // Gated MAVLink truth (transport-open vs decoded-heartbeat) so the
+              // LAN-direct path renders the same honest FC state the cloud path
+              // does. Undefined on older agents (AgentStatusCard then falls back
+              // to fc_connected). spread-undefined keeps them off the object.
+              ...(typeof full.transport_open === "boolean" && {
+                transport_open: full.transport_open,
+              }),
+              ...(typeof full.mavlink_alive === "boolean" && {
+                mavlink_alive: full.mavlink_alive,
+              }),
+              ...(typeof full.heartbeat_age_s !== "undefined" && {
+                heartbeat_age_s: full.heartbeat_age_s,
+              }),
+              ...(typeof full.fc_source === "string" && {
+                fc_source: full.fc_source,
+              }),
             };
             useAgentSystemStore.getState().setStatus(status as AgentStatus);
             if (full.services) {
@@ -459,15 +487,37 @@ export const clientManagerSlice: AgentConnectionSliceCreator<
             }
             // Populate capabilities from consolidated response or infer from legacy data.
             // FullStatusResponse.capabilities is optional (older agents omit it).
+            // The air-side camera fields (cameraState / cameraUsbRecovery) are
+            // SIBLINGS of `capabilities` in the consolidated status, so fold them
+            // into the object handed to setCapabilities. Otherwise the LAN-direct
+            // path silently drops them and camera discovery / USB-recovery state
+            // never reaches the capability store — the cloud heartbeat path maps
+            // these through the same store, so without this the Fly view can't
+            // explain why a present agent has no video.
+            const cameraExtras: Record<string, unknown> = {};
+            if (typeof full.cameraState !== "undefined") {
+              cameraExtras.cameraState = full.cameraState;
+            }
+            if (typeof full.cameraUsbRecovery !== "undefined") {
+              cameraExtras.cameraUsbRecovery = full.cameraUsbRecovery;
+            }
             if (full.capabilities) {
               // Agent has capabilities API; normalize and store (handles shape differences).
-              useAgentCapabilitiesStore.getState().setCapabilities(full.capabilities);
+              useAgentCapabilitiesStore.getState().setCapabilities({
+                ...(full.capabilities as Record<string, unknown>),
+                ...cameraExtras,
+              });
             } else {
               // Agent doesn't have capabilities API; infer from board SoC + peripherals.
               const peripherals = useAgentPeripheralsStore.getState().peripherals;
               const inferred = inferCapabilities(status as AgentStatus, peripherals);
               if (inferred) {
-                useAgentCapabilitiesStore.getState().setCapabilities(inferred);
+                useAgentCapabilitiesStore.getState().setCapabilities({
+                  ...(inferred as unknown as Record<string, unknown>),
+                  ...cameraExtras,
+                });
+              } else if (Object.keys(cameraExtras).length > 0) {
+                useAgentCapabilitiesStore.getState().setCapabilities(cameraExtras);
               }
             }
             // Fallback: if capabilities store still has no cameras but we know board SoC,

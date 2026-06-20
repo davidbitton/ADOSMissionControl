@@ -21,17 +21,19 @@
  * @license GPL-3.0-only
  */
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useMutation } from "convex/react";
 import { Cpu, Radio, Server, Trash2 } from "lucide-react";
+import { useConvexAvailable } from "@/app/ConvexClientProvider";
+import { cmdDronesApi } from "@/lib/community-api-drones";
 import { useFleetNodes, type FleetNodeEntry } from "@/hooks/use-fleet-nodes";
 import { usePairingStore } from "@/stores/pairing-store";
-import { useAgentConnectionStore } from "@/stores/agent-connection-store";
-import { useLocalNodesStore } from "@/stores/local-nodes-store";
 import { selectNode } from "@/lib/agent/node-click-handler";
-import { unpairLocal } from "@/lib/agent/local-pair-client";
+import { forgetNode, type UnpairDroneMutation } from "@/lib/agent/forget-node";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
 
 const VIRTUALIZE_THRESHOLD = 12;
@@ -66,9 +68,18 @@ export function NodeSidebar({
     (n) => n.isLocal || n.profile !== "drone",
   );
   const selectedPairedId = usePairingStore((s) => s.selectedPairedId);
-  const removeNode = useLocalNodesStore((s) => s.removeNode);
-  const disconnect = useAgentConnectionStore((s) => s.disconnect);
-  const activeUrl = useAgentConnectionStore((s) => s.agentUrl);
+  // Convex unpair mutation for forgetNode (deletes the cloud row so a cloud
+  // node doesn't re-feed). A ConvexProvider is always mounted, so useMutation
+  // never throws; we only invoke it when Convex is available.
+  const convexAvailable = useConvexAvailable();
+  const unpairDroneMutation = useMutation(cmdDronesApi.unpairDrone);
+
+  // Pending forget, confirmed via a dialog (parity with the panel + cloud
+  // surfaces). Holds the node so the confirm can show its name + route the
+  // right convexId.
+  const [pendingForget, setPendingForget] = useState<FleetNodeEntry | null>(
+    null,
+  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const useVirtual = nodes.length >= VIRTUALIZE_THRESHOLD;
@@ -96,22 +107,24 @@ export function NodeSidebar({
     void selectNode(node, { onFocusAgent });
   }
 
-  function handleRemoveLocal(deviceId: string, e: React.MouseEvent) {
+  function requestForget(node: FleetNodeEntry, e: React.MouseEvent) {
     e.stopPropagation();
-    const node = useLocalNodesStore
-      .getState()
-      .nodes.find((n) => n.deviceId === deviceId);
-    if (node && activeUrl === node.hostname) disconnect();
-    // Tell the agent to release its pairing so "forget" actually unpairs the
-    // node (it returns to advertising a fresh pair code) instead of leaving a
-    // half-paired agent the GCS has forgotten the key for. Best-effort: if the
-    // agent is unreachable we still forget locally rather than block the row.
-    if (node) {
-      void unpairLocal(node.hostname, node.apiKey).catch(() => {
-        // Agent offline / already unpaired — local forget proceeds regardless.
-      });
-    }
-    removeNode(deviceId);
+    setPendingForget(node);
+  }
+
+  function confirmForget() {
+    const node = pendingForget;
+    setPendingForget(null);
+    if (!node) return;
+    // One atomic forget across every source. For a cloud-paired node this also
+    // deletes the Convex row (via the mutation) so listMyDrones stops re-feeding
+    // it; for a LAN node it releases the agent pairing + drops the credential.
+    forgetNode(node._id, {
+      convexId: node.convexId ?? null,
+      unpairMutation: convexAvailable
+        ? (unpairDroneMutation as UnpairDroneMutation)
+        : null,
+    });
   }
 
   function renderNode(n: FleetNodeEntry) {
@@ -169,15 +182,17 @@ export function NodeSidebar({
             {subtitle}
           </p>
         </div>
-        {n.isLocal && (
-          <button
-            onClick={(e) => handleRemoveLocal(n.deviceId, e)}
-            title={t("forgetLocal")}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-text-tertiary hover:text-status-error"
-          >
-            <Trash2 size={12} />
-          </button>
-        )}
+        {/* Remove control — always visible (was hover-only) and available for
+            cloud rows too (was gated on n.isLocal), so a cloud node can be
+            forgotten here, not only via the right-click context menu. */}
+        <button
+          onClick={(e) => requestForget(n, e)}
+          title={t("forgetLocal")}
+          aria-label={t("forgetLocal")}
+          className="opacity-60 hover:opacity-100 transition-opacity p-1 text-text-tertiary hover:text-status-error shrink-0"
+        >
+          <Trash2 size={12} />
+        </button>
       </div>
     );
   }
@@ -235,6 +250,18 @@ export function NodeSidebar({
           ))}
         </div>
       )}
+      <ConfirmDialog
+        open={pendingForget !== null}
+        onConfirm={confirmForget}
+        onCancel={() => setPendingForget(null)}
+        title={t("forgetLocal")}
+        message={
+          pendingForget
+            ? `Remove "${pendingForget.name}"? It will be unpaired and removed from this fleet.`
+            : ""
+        }
+        variant="danger"
+      />
     </div>
   );
 }

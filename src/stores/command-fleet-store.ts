@@ -54,6 +54,15 @@ export interface CommandCloudStatus {
   fcConnected?: boolean;
   fcPort?: string;
   fcBaud?: number;
+  /** Gated MAVLink truth, mirrored from the agent's heartbeat / status.
+   * `transportOpen` = a port is open; `mavlinkAlive` = a HEARTBEAT decoded
+   * within the freshness window; `heartbeatAgeS` = seconds since the last one.
+   * Undefined on agents that predate the gated surface. */
+  transportOpen?: boolean;
+  mavlinkAlive?: boolean;
+  heartbeatAgeS?: number | null;
+  /** Which FC source the router resolved the link from. */
+  fcSource?: "auto" | "serial" | "udp" | "tcp";
   memoryUsedMb?: number;
   memoryTotalMb?: number;
   diskUsedGb?: number;
@@ -89,6 +98,32 @@ export interface CommandCloudStatus {
   /** Air-side USB camera recovery state from the LAN-direct status.
    * Undefined on agents that predate the surface. */
   cameraUsbRecovery?: CameraUsbRecovery;
+  // ── Cloud-only display pills ────────────────────────────────────
+  // These are denormalized onto the heartbeat by the cloud bridge and
+  // surfaced as fleet-card badges by the projection selector. They are NOT
+  // FC telemetry, so they live here (keyed by deviceId) rather than in the
+  // node registry's FC sub-state — a cloud tick that carries them can never
+  // overwrite live flight data.
+  /** Local panel attached over the 40-pin header ("spi-lcd" | "hdmi" | "none"). */
+  attachedDisplayType?: "spi-lcd" | "hdmi" | "none";
+  /** How the agent landed on its current profile (drives the "auto" pill). */
+  profileSource?: "detected" | "tiebreaker" | "default" | "override" | "user";
+  /** Air-side video pipeline flavor (drives the "GST" pill). */
+  videoPipelineFlavor?: string;
+  /** GStreamer H.264 encoder factory name. */
+  videoEncoderName?: string;
+  /** True when the chosen encoder is a hardware path. */
+  videoEncoderHwAccel?: boolean;
+  /** Direct LAN MAVLink WebSocket URL the agent advertises (drives "Direct"). */
+  manualMavlinkWsUrl?: string;
+  /** True when the agent reports an active GPS-denied estimator. */
+  navigationGpsDenied?: boolean;
+  /** Active vision-nav estimator mode (free-form string). */
+  navigationMode?: string;
+  /** Inter-rig peer device-id from a decoded WFB PresenceBeacon. */
+  peerDeviceId?: string | null;
+  /** Peer-reported RSSI in dBm (signed). */
+  peerRssiDbm?: number | null;
   updatedAt: number;
 }
 

@@ -11,9 +11,11 @@ import type {
   AgentVersionInfo,
   ClaimResponse,
   CommandResult,
+  FcSource,
   FullStatusResponse,
   HardwareCheckStatus,
   LogEntry,
+  MavlinkPort,
   MeshNetEnrollment,
   NetworkPeer,
   PairingInfo,
@@ -126,6 +128,24 @@ export class AgentClient {
 
   getFullStatus(): Promise<FullStatusResponse | null> {
     return system.getFullStatus(this.ctx);
+  }
+
+  /** Enumerate serial devices the router can bind as the FC link. */
+  getMavlinkPorts(): Promise<MavlinkPort[]> {
+    return system.getMavlinkPorts(this.ctx);
+  }
+
+  /** Point the MAVLink router at a chosen FC source via PUT /api/config. */
+  setMavlinkSource(
+    source: FcSource,
+    opts?: { serialPort?: string; baudRate?: number },
+  ): Promise<void> {
+    return system.setMavlinkSource(this.ctx, source, opts);
+  }
+
+  /** Measure control-plane RTT to the agent (`GET /api/ping`). */
+  ping(): Promise<{ rttMs: number; pong: number } | null> {
+    return system.pingAgent(this.ctx);
   }
 
   // ── Setup wizard + LCD display ─────────────────────────────────

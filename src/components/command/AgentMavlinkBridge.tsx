@@ -25,7 +25,8 @@ import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useAgentSystemStore } from "@/stores/agent-system-store";
 import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
 import { useDroneManager } from "@/stores/drone-manager";
-import { useFleetStore } from "@/stores/fleet-store";
+import { useNodeRegistryStore } from "@/stores/node-registry";
+import { resolveNodeId } from "@/lib/agent/node-id";
 import type { Transport } from "@/lib/protocol/types/transport";
 import {
   mintWsTicket,
@@ -93,6 +94,12 @@ export function AgentMavlinkBridge() {
       const droneId = connectedDroneIdRef.current;
       connectedDroneIdRef.current = null;
       useDroneManager.getState().removeDrone(droneId);
+      // Detach the FC from the registry row: the node reverts to "no FC
+      // attached" (projection hides arm/mode/battery) but the presence row
+      // survives. Clear the connection's fcConnected flag too.
+      const registry = useNodeRegistryStore.getState();
+      registry.updateConnection(droneId, { fcConnected: false });
+      registry.detachFc(droneId);
     }
   }, [fcConnected]);
 
@@ -325,39 +332,35 @@ export function AgentMavlinkBridge() {
           return;
         }
 
-        // Reconcile to the presence-bridge fleet row for this node (created by
-        // LocalDroneBridge / CloudDroneBridge) so the FC attaches to the
-        // existing card instead of spawning a second entry. Match by the
-        // node's device id and reuse that row's id and name. The node device id
-        // is set on every connect path (LAN or cloud), so this identity is
-        // stable across heartbeats and never timestamp-derived when present.
-        const fleetRow = nodeDeviceId
-          ? useFleetStore
-              .getState()
-              .drones.find(
-                (d) =>
-                  d.cloudDeviceId === nodeDeviceId ||
-                  d.id === `local-${nodeDeviceId}` ||
-                  d.id === `cloud-${nodeDeviceId}`,
-              )
+        // The canonical node id: `node:<deviceId>` for a paired agent (stable
+        // across local + cloud transports, matching the registry / fleet row),
+        // or a fresh `fc:<random>` for a direct USB/serial FC with no agent
+        // identity. There is no `agent-<timestamp>` escape hatch any more — the
+        // registry GC keys off this id, and a timestamped id would orphan the
+        // row on every reconnect.
+        const droneId = resolveNodeId(nodeDeviceId ?? undefined);
+        const registry = useNodeRegistryStore.getState();
+        const presenceName = nodeDeviceId
+          ? registry.getEntry(droneId)?.presence.name
           : undefined;
-        // When the presence row exists, attach to it. When it does not yet
-        // (a connect/attach race), still key off the canonical `local-<id>`
-        // id the LocalDroneBridge uses — never a self-owned `agent-node-*`
-        // row, which would render a second card and split the FC-connected
-        // state from the presence card the operator is looking at. Only a
-        // node with no device id at all (direct USB/serial) owns a standalone
-        // timestamped row.
-        const droneId =
-          fleetRow?.id ??
-          (nodeDeviceId ? `local-${nodeDeviceId}` : `agent-${Date.now()}`);
         const droneName =
-          fleetRow?.name ??
-          useAgentSystemStore.getState().status?.board?.name ??
+          presenceName ||
+          useAgentSystemStore.getState().status?.board?.name ||
           "Drone";
         // The presence bridge owns the row whenever there is a node device id to
         // reconcile against; only own a standalone row when there is none.
         const ownsFleetRow = !nodeDeviceId;
+
+        // Attach the FC to the registry FIRST so a late presence patch merges
+        // onto the row instead of being dropped (fixes the bare-row race), and
+        // bind the connection transport. attachFc creates the row when this is
+        // a direct-USB FC with no prior presence.
+        registry.attachFc(droneId, droneId);
+        registry.updateConnection(droneId, {
+          transport: connType,
+          mavlinkUrl: mavlinkUrl || undefined,
+          fcConnected: true,
+        });
 
         useDroneManager.getState().addDrone(
           droneId,

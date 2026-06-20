@@ -68,14 +68,59 @@ export type WfbModuleSource = "prebuilt" | "dkms" | "none";
  */
 export type InstallStatus = "ok" | "degraded" | "failed" | "unknown";
 
+/**
+ * Which transport the MAVLink router uses to reach the flight controller.
+ *  - `auto`: the router probes the available ports and picks one
+ *  - `serial`: a fixed serial device (`serial_port` @ `baud_rate`)
+ *  - `udp`: a UDP endpoint
+ *  - `tcp`: a TCP endpoint
+ */
+export type FcSource = "auto" | "serial" | "udp" | "tcp";
+
+/** One enumerable serial device the agent's router can bind as the FC link. */
+export interface MavlinkPort {
+  /** Device path (e.g. `/dev/ttyACM0`). */
+  path: string;
+  /** Human-readable description from the OS (e.g. `Pixhawk · ArduPilot`). */
+  description: string;
+}
+
+/** Response from `GET /api/mavlink/ports`. */
+export interface MavlinkPortsResponse {
+  ports: MavlinkPort[];
+}
+
+/** Response from `GET /api/ping` — a server-stamped echo for control-plane RTT. */
+export interface PingResponse {
+  /** Server epoch milliseconds at the moment the agent answered. */
+  pong: number;
+}
+
 export interface AgentStatus {
   version: string;
   uptime_seconds: number;
   board: BoardInfo;
   health: HealthInfo;
+  /** Gated FC truth: `transport_open && mavlink_alive`. Older agents set this
+   * to "transport open" only, so the GCS prefers the explicit `mavlink_alive`
+   * + `heartbeat_age_s` fields below when present. */
   fc_connected: boolean;
   fc_port: string;
   fc_baud: number;
+  /** True when the MAVLink transport (serial / udp / tcp) is open, regardless
+   * of whether a HEARTBEAT has been decoded. With this true but
+   * `mavlink_alive` false the agent has a port open but no live link. Absent
+   * on agents that predate the gated truth surface. */
+  transport_open?: boolean;
+  /** True when a HEARTBEAT was decoded within the agent's freshness window.
+   * This is the real "FC is talking to us" signal. Absent on older agents. */
+  mavlink_alive?: boolean;
+  /** Seconds since the last decoded HEARTBEAT, or null when none has been
+   * seen. Absent on older agents. */
+  heartbeat_age_s?: number | null;
+  /** Which FC source the router resolved the link from. Absent on older
+   * agents (no source picker). */
+  fc_source?: FcSource;
   /** Running kernel release (uname -r). Absent on older agents. */
   kernel_release?: string;
   /** How the WFB radio kernel module was provided on this board. */
@@ -394,6 +439,12 @@ export interface FullStatusResponse {
   fc_connected: boolean;
   fc_port: string;
   fc_baud: number;
+  /** Gated MAVLink truth, siblings of `fc_connected`. Absent on older agents
+   * (the LAN-direct path then falls back to `fc_connected` alone). */
+  transport_open?: boolean;
+  mavlink_alive?: boolean;
+  heartbeat_age_s?: number | null;
+  fc_source?: FcSource;
   services: Array<{ name: string; state: string; task_done: boolean; uptimeSeconds: number }>;
   resources: { cpu_percent: number; memory_percent: number; disk_percent: number; temperature: number | null };
   video: { state: string; whep_url: string | null };

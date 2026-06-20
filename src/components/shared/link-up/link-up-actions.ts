@@ -11,6 +11,7 @@ import { usePairDialogStore } from "@/stores/pair-dialog-store";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useLocalNodesStore } from "@/stores/local-nodes-store";
 import { usePairingStore } from "@/stores/pairing-store";
+import { deviceIdFromNodeId } from "@/lib/agent/node-id";
 
 /** Open the direct flight-controller connect dialog (USB / WebSocket / BT). */
 export function openConnectFc(): void {
@@ -32,10 +33,7 @@ export function removeFocusedLocalNode(): void {
   const conn = useAgentConnectionStore.getState();
   const selected = usePairingStore.getState().selectedPairedId;
   const deviceId =
-    conn.stalePairing?.deviceId ??
-    (selected?.startsWith("local:")
-      ? selected.slice("local:".length)
-      : null);
+    conn.stalePairing?.deviceId ?? deviceIdFromNodeId(selected);
   if (deviceId) useLocalNodesStore.getState().removeNode(deviceId);
   conn.disconnect();
   usePairingStore.getState().selectPairedDrone(null);

@@ -119,10 +119,22 @@ export function PairingConfirm({
         </p>
       </div>
 
-      {/* Waiting indicator */}
-      <div className="flex items-center justify-center gap-2 py-2">
-        <Loader2 size={14} className="animate-spin text-text-tertiary" />
-        <p className="text-xs text-text-tertiary">{t("waitingForNode")}</p>
+      {/* Pending → connected progress. The agent runs the install / pair
+          command, beacons to the cloud relay, and only THEN does the drone
+          appear in the fleet (CloudDroneBridge). We surface that as a clear
+          two-step pending state so the operator sees progress and we never
+          claim "paired" before the drone actually shows up. */}
+      <div className="flex flex-col items-center gap-2 py-2">
+        <div className="flex items-center gap-2">
+          <Check size={14} className="text-status-success" />
+          <p className="text-xs text-text-secondary">Code generated</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Loader2 size={14} className="animate-spin text-accent-primary" />
+          <p className="text-xs text-text-tertiary">
+            {t("waitingForNode")}
+          </p>
+        </div>
       </div>
 
       {/* Discovered agents */}

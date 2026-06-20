@@ -10,8 +10,10 @@ import type { z } from "zod";
 import type {
   AgentStatus,
   CommandResult,
+  FcSource,
   FullStatusResponse,
   LogEntry,
+  MavlinkPort,
   ServiceInfo,
   SystemResources,
   TelemetrySnapshot,
@@ -20,6 +22,8 @@ import {
   AgentStatusSchema,
   CommandResultSchema,
   FullStatusResponseSchema,
+  MavlinkPortsResponseSchema,
+  PingResponseSchema,
   ServicesResponseSchema,
   SystemResourcesRawSchema,
   TelemetrySnapshotSchema,
@@ -232,5 +236,77 @@ export async function getFullStatus(
     });
   } catch {
     return null; // Agent version older than 0.3.19, or transient failure
+  }
+}
+
+/**
+ * Enumerate the serial devices the agent's MAVLink router can bind as the
+ * FC link (`GET /api/mavlink/ports`). Returns `[]` on agents that predate the
+ * endpoint (or any transient failure) so the picker degrades to "no ports
+ * detected" rather than throwing.
+ */
+export async function getMavlinkPorts(
+  ctx: RequestContext,
+): Promise<MavlinkPort[]> {
+  try {
+    const res = await agentRequest<{ ports: MavlinkPort[] }>(
+      ctx,
+      "/api/mavlink/ports",
+      {
+        schema: MavlinkPortsResponseSchema as z.ZodType<{ ports: MavlinkPort[] }>,
+        allowSchemaFallback: true,
+      },
+    );
+    return Array.isArray(res.ports) ? res.ports : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Point the MAVLink router at a chosen FC source. Writes the `mavlink.source`
+ * enum and, for a fixed serial source, the `serial_port` / `baud_rate`, all
+ * through the existing PUT /api/config surface so the agent's config validator
+ * owns the coercion. The caller then watches `mavlink_alive` / `heartbeat_age_s`
+ * on the next status poll to confirm a live link.
+ */
+export async function setMavlinkSource(
+  ctx: RequestContext,
+  source: FcSource,
+  opts?: { serialPort?: string; baudRate?: number },
+): Promise<void> {
+  await setConfigValue(ctx, "mavlink.source", source);
+  if (source === "serial") {
+    if (opts?.serialPort) {
+      await setConfigValue(ctx, "mavlink.serial_port", opts.serialPort);
+    }
+    if (typeof opts?.baudRate === "number") {
+      await setConfigValue(ctx, "mavlink.baud_rate", String(opts.baudRate));
+    }
+  }
+}
+
+/**
+ * Measure the control-plane round-trip time to the agent. Hits the lightweight
+ * `GET /api/ping` echo and times it with `performance.now()`. The returned
+ * `rttMs` is the wall-clock RTT; `pong` is the server epoch ms the agent
+ * stamped (handed back so callers can derive a clock offset if they want).
+ * Returns null on agents that predate `/api/ping` or any transient failure.
+ */
+export async function pingAgent(
+  ctx: RequestContext,
+): Promise<{ rttMs: number; pong: number } | null> {
+  const started =
+    typeof performance !== "undefined" ? performance.now() : Date.now();
+  try {
+    const res = await agentRequest<{ pong: number }>(ctx, "/api/ping", {
+      schema: PingResponseSchema as z.ZodType<{ pong: number }>,
+      allowSchemaFallback: true,
+    });
+    const ended =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+    return { rttMs: Math.max(0, Math.round(ended - started)), pong: res.pong };
+  } catch {
+    return null;
   }
 }

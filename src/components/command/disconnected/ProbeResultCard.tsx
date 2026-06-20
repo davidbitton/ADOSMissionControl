@@ -21,6 +21,7 @@ import {
 } from "@/lib/agent/local-pair-client";
 import { useLocalNodesStore } from "@/stores/local-nodes-store";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
+import { useConvexAvailable } from "@/app/ConvexClientProvider";
 import { cmdPairingApi } from "@/lib/community-api-drones";
 
 interface ProbeResultCardProps {
@@ -75,7 +76,34 @@ function BindStateBadge({
   return null;
 }
 
-export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardProps) {
+/**
+ * Convex-aware wrapper. `useConvexAuth()` hard-throws when no auth provider
+ * is mounted (the local-first / "Local only" case, where ConvexClientProvider
+ * mounts a bare ConvexProvider with no auth context). So read the auth flag
+ * ONLY when Convex is available, and feed `isAuthenticated` down as a prop —
+ * the inner body never calls the throwing hook. In local-only mode the
+ * operator is anonymous, so `isAuthenticated` is false (cloud wipe skipped).
+ */
+export function ProbeResultCard(props: ProbeResultCardProps) {
+  const convexAvailable = useConvexAvailable();
+  return convexAvailable ? (
+    <ProbeResultCardWithAuth {...props} />
+  ) : (
+    <ProbeResultCardInner {...props} isAuthenticated={false} />
+  );
+}
+
+function ProbeResultCardWithAuth(props: ProbeResultCardProps) {
+  const { isAuthenticated } = useConvexAuth();
+  return <ProbeResultCardInner {...props} isAuthenticated={isAuthenticated} />;
+}
+
+function ProbeResultCardInner({
+  probe,
+  onPaired,
+  onCancel,
+  isAuthenticated,
+}: ProbeResultCardProps & { isAuthenticated: boolean }) {
   const t = useTranslations("command.addNode");
   const [pairing, setPairing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -85,12 +113,12 @@ export function ProbeResultCard({ probe, onPaired, onCancel }: ProbeResultCardPr
   // strings to decide whether to show the button.
   const [showWipe, setShowWipe] = useState(false);
   const [wiping, setWiping] = useState(false);
-  const wipePairState = useMutation(cmdPairingApi.wipePairStateForOwnedDevice);
   // The cloud wipe is sign-in-gated (it clears the Convex pair rows for a
   // device the authenticated user owns). In local-first mode the operator is
   // anonymous, so calling it throws "Not authenticated"; skip it and do only
-  // the local cleanup, which is all a LAN-paired node needs.
-  const { isAuthenticated } = useConvexAuth();
+  // the local cleanup, which is all a LAN-paired node needs. `isAuthenticated`
+  // is threaded in from the wrapper so this body never calls useConvexAuth().
+  const wipePairState = useMutation(cmdPairingApi.wipePairStateForOwnedDevice);
   const addNode = useLocalNodesStore((s) => s.addNode);
   const abortRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);

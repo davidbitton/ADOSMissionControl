@@ -2,24 +2,41 @@
 
 /**
  * @module CloudDroneBridge
- * @description Bridges cloud-paired ADOS agents into the Dashboard fleet store.
- * Queries Convex for paired drones and their cloud status, then adds them
- * as FleetDrone entries with source="cloud". Handles staleness detection
- * to remove offline agents from the fleet view.
+ * @description Feeds cloud-paired ADOS agents into the canonical node registry
+ * as `"cloud"` presence (identity, profile, role, posture). The cloud-only
+ * display pills (GST / Direct / nav / peer / camera / profile-source / …) are
+ * pushed into `command-fleet-store` keyed by deviceId; the FleetProjectionBridge
+ * merges them back onto the projected row. Staleness drops the cloud presence
+ * source (and the pills) so an offline cloud node collapses to whatever the LAN
+ * presence still anchors — never a duplicate row.
  * @license GPL-3.0-only
  */
 
 import { useEffect, useRef } from "react";
-import { useFleetStore } from "@/stores/fleet-store";
 import { useAuthStore } from "@/stores/auth-store";
 import { cmdDronesApi } from "@/lib/community-api-drones";
 import { useConvexSkipQuery } from "@/hooks/use-convex-skip-query";
 import { STALE_THRESHOLD_MS } from "@/lib/agent/freshness";
 import { normalizeCameraUsbRecovery } from "@/lib/agent/camera-recovery";
-import type { FleetDrone } from "@/lib/types";
+import { useCommandFleetStore } from "@/stores/command-fleet-store";
+import type { CommandCloudStatus } from "@/stores/command-fleet-store";
+import {
+  useNodeRegistryStore,
+  resolveNodeId,
+} from "@/stores/node-registry";
+import type { NodeProfile, NodeRole } from "@/stores/node-registry";
+
+function pickString(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function pickBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
 
 export function CloudDroneBridge() {
-  const trackedIds = useRef<Set<string>>(new Set());
+  // deviceIds this bridge currently owns cloud presence + pills for.
+  const trackedDeviceIds = useRef<Set<string>>(new Set());
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const myDrones = useConvexSkipQuery(cmdDronesApi.listMyDrones, {
@@ -29,199 +46,186 @@ export function CloudDroneBridge() {
   useEffect(() => {
     if (!myDrones || !Array.isArray(myDrones)) return;
 
-    const fleet = useFleetStore.getState();
+    const registry = useNodeRegistryStore.getState();
+    const fleetStatus = useCommandFleetStore.getState();
     const now = Date.now();
-    const currentCloudIds = new Set<string>();
+    const current = new Set<string>();
+    const pillRows: CommandCloudStatus[] = [];
 
     for (const drone of myDrones) {
-      const fleetId = `cloud-${drone.deviceId}`;
-      currentCloudIds.add(fleetId);
-
-      // Check if drone is online (lastSeen within threshold)
+      const deviceId = drone.deviceId;
       const lastSeen = drone.lastSeen ?? 0;
       const isOnline = now - lastSeen < STALE_THRESHOLD_MS;
+      const nodeId = resolveNodeId(deviceId);
 
       if (!isOnline) {
-        // Remove stale cloud drone from fleet
-        if (trackedIds.current.has(fleetId)) {
-          fleet.removeDrone(fleetId);
-          trackedIds.current.delete(fleetId);
+        // Stale cloud node: drop its cloud presence + pills. If a LAN presence
+        // or an FC still anchors the row it survives; otherwise it GCs.
+        if (trackedDeviceIds.current.has(deviceId)) {
+          registry.dropPresence(nodeId, "cloud");
+          fleetStatus.removeCloudStatuses([deviceId]);
+          trackedDeviceIds.current.delete(deviceId);
         }
         continue;
       }
 
-      const attachedDisplayType: FleetDrone["attachedDisplayType"] =
-        drone.attachedDisplayType === "spi-lcd" ||
-        drone.attachedDisplayType === "hdmi" ||
-        drone.attachedDisplayType === "none"
-          ? drone.attachedDisplayType
-          : undefined;
+      current.add(deviceId);
 
-      const profileSource: FleetDrone["profileSource"] =
-        drone.profileSource === "detected" ||
-        drone.profileSource === "tiebreaker" ||
-        drone.profileSource === "default" ||
-        drone.profileSource === "override" ||
-        drone.profileSource === "user"
-          ? drone.profileSource
-          : undefined;
-
-      // Air-side pipeline identity for the fleet-card pill. Sourced
-      // from the agent's heartbeat enricher; absent when the legacy
-      // bash composition is in force.
-      const videoPipelineFlavor =
-        typeof (drone as { videoPipelineFlavor?: unknown })
-          .videoPipelineFlavor === "string"
-          ? ((drone as { videoPipelineFlavor?: string }).videoPipelineFlavor as
-              | string
-              | undefined)
-          : undefined;
-      const videoEncoderName =
-        typeof (drone as { videoEncoderName?: unknown }).videoEncoderName ===
-        "string"
-          ? ((drone as { videoEncoderName?: string }).videoEncoderName as
-              | string
-              | undefined)
-          : undefined;
-      const videoEncoderHwAccel =
-        typeof (drone as { videoEncoderHwAccel?: unknown })
-          .videoEncoderHwAccel === "boolean"
-          ? ((drone as { videoEncoderHwAccel?: boolean }).videoEncoderHwAccel as
-              | boolean
-              | undefined)
-          : undefined;
-
-      const manualMavlinkWsUrl =
-        typeof (drone as { manualMavlinkWsUrl?: unknown })
-          .manualMavlinkWsUrl === "string" &&
-        ((drone as { manualMavlinkWsUrl: string }).manualMavlinkWsUrl as string)
-          .length > 0
-          ? ((drone as { manualMavlinkWsUrl: string }).manualMavlinkWsUrl as
-              | string
-              | undefined)
-          : undefined;
-
-      // GPS-denied navigation flag for the fleet-card pill. Denormalized
-      // from cmd_drones so we don't need a join against cmd_droneStatus
-      // on every render. Undefined when the agent has no nav plugin.
-      const navigationGpsDenied =
-        typeof (drone as { navigationGpsDenied?: unknown })
-          .navigationGpsDenied === "boolean"
-          ? ((drone as { navigationGpsDenied?: boolean })
-              .navigationGpsDenied as boolean | undefined)
-          : undefined;
-      // Active estimator mode (free-form string) for the mode-aware
-      // pill. Falls back to undefined when the agent's heartbeat
-      // doesn't carry the field yet.
-      const navigationMode =
-        typeof (drone as { navigationMode?: unknown }).navigationMode ===
-        "string"
-          ? ((drone as { navigationMode?: string }).navigationMode as
-              | string
-              | undefined)
-          : undefined;
-      const peerDeviceId =
-        typeof (drone as { peerDeviceId?: unknown }).peerDeviceId === "string"
-        && ((drone as { peerDeviceId: string }).peerDeviceId).length > 0
-          ? ((drone as { peerDeviceId: string }).peerDeviceId)
+      const profileRaw = (drone as { profile?: unknown }).profile;
+      const profile: NodeProfile =
+        profileRaw === "ground-station" || profileRaw === "compute"
+          ? profileRaw
+          : "drone";
+      const roleRaw = (drone as { role?: unknown }).role;
+      const role: NodeRole =
+        roleRaw === "direct" || roleRaw === "relay" || roleRaw === "receiver"
+          ? roleRaw
           : null;
-      const peerRssiDbm =
-        typeof (drone as { peerRssiDbm?: unknown }).peerRssiDbm === "number"
-        && Number.isFinite((drone as { peerRssiDbm: number }).peerRssiDbm)
-          ? ((drone as { peerRssiDbm: number }).peerRssiDbm)
-          : null;
-      const cameraStateRaw = (drone as { cameraState?: unknown }).cameraState;
-      const cameraState =
-        typeof cameraStateRaw === "string"
-        && (cameraStateRaw === "ready" || cameraStateRaw === "missing" || cameraStateRaw === "error")
-          ? cameraStateRaw
-          : null;
-      const cameraUsbRecovery = normalizeCameraUsbRecovery(
-        (drone as { cameraUsbRecovery?: unknown }).cameraUsbRecovery,
-      );
       const cloudPostureRaw = (drone as { cloudPosture?: unknown }).cloudPosture;
-      const cloudPosture: FleetDrone["cloudPosture"] =
+      const cloudPosture =
         cloudPostureRaw === "local" ||
         cloudPostureRaw === "cloud" ||
         cloudPostureRaw === "self_hosted"
           ? cloudPostureRaw
           : undefined;
 
-      // Wire-contract node profile + role, denormalized onto cmd_drones from
-      // the agent heartbeat. Carry it through so the fleet card renders the
-      // GS / CMP badge for cloud-paired nodes the same way the local bridge
-      // does. Without this the badge reads an undefined profile and never
-      // shows.
-      const profileRaw = (drone as { profile?: unknown }).profile;
-      const profile: FleetDrone["profile"] =
-        profileRaw === "ground-station" || profileRaw === "compute"
-          ? profileRaw
-          : "drone";
-      const roleRaw = (drone as { role?: unknown }).role;
-      const role: FleetDrone["role"] =
-        roleRaw === "direct" || roleRaw === "relay" || roleRaw === "receiver"
-          ? roleRaw
+      // Cloud is authoritative for identity. Feed presence to the registry.
+      registry.upsertPresence(
+        nodeId,
+        {
+          deviceId,
+          name: drone.name || `Agent ${deviceId.slice(0, 8)}`,
+          profile,
+          role,
+          cloudPosture,
+          cloudDeviceId: deviceId,
+          lastHeartbeat: lastSeen,
+        },
+        "cloud",
+      );
+      trackedDeviceIds.current.add(deviceId);
+
+      // ── Cloud-only display pills → command-fleet-store ──────────────
+      const attachedDisplayTypeRaw = (drone as { attachedDisplayType?: unknown })
+        .attachedDisplayType;
+      const attachedDisplayType: CommandCloudStatus["attachedDisplayType"] =
+        attachedDisplayTypeRaw === "spi-lcd" ||
+        attachedDisplayTypeRaw === "hdmi" ||
+        attachedDisplayTypeRaw === "none"
+          ? attachedDisplayTypeRaw
+          : undefined;
+      const profileSourceRaw = (drone as { profileSource?: unknown })
+        .profileSource;
+      const profileSource: CommandCloudStatus["profileSource"] =
+        profileSourceRaw === "detected" ||
+        profileSourceRaw === "tiebreaker" ||
+        profileSourceRaw === "default" ||
+        profileSourceRaw === "override" ||
+        profileSourceRaw === "user"
+          ? profileSourceRaw
+          : undefined;
+      const cameraStateRaw = (drone as { cameraState?: unknown }).cameraState;
+      const cameraState =
+        cameraStateRaw === "ready" ||
+        cameraStateRaw === "missing" ||
+        cameraStateRaw === "error"
+          ? cameraStateRaw
+          : null;
+      const peerDeviceId = pickString(
+        (drone as { peerDeviceId?: unknown }).peerDeviceId,
+      );
+      const peerRssiRaw = (drone as { peerRssiDbm?: unknown }).peerRssiDbm;
+      const peerRssiDbm =
+        typeof peerRssiRaw === "number" && Number.isFinite(peerRssiRaw)
+          ? peerRssiRaw
+          : null;
+      // Gated MAVLink truth carried on the cloud heartbeat (when the agent
+      // ships it). Forward so a cloud-relayed drone reads the same honest FC
+      // state the LAN-direct path does.
+      const heartbeatAgeRaw = (drone as { heartbeatAgeS?: unknown }).heartbeatAgeS;
+      const fcSourceRaw = (drone as { fcSource?: unknown }).fcSource;
+      const fcSource: CommandCloudStatus["fcSource"] =
+        fcSourceRaw === "auto" ||
+        fcSourceRaw === "serial" ||
+        fcSourceRaw === "udp" ||
+        fcSourceRaw === "tcp"
+          ? fcSourceRaw
           : undefined;
 
-      const fleetDrone: FleetDrone = {
-        id: fleetId,
-        name: drone.name || `Agent ${drone.deviceId.slice(0, 8)}`,
-        status: isOnline ? "online" : "offline",
-        connectionState: isOnline ? "connected" : "disconnected",
-        flightMode: "STABILIZE",
-        armState: "disarmed",
-        lastHeartbeat: lastSeen,
-        firmwareVersion: drone.agentVersion,
-        healthScore: isOnline ? 80 : 0,
-        hasAgent: true,
-        source: "cloud",
-        cloudDeviceId: drone.deviceId,
+      // Merge onto any existing status row (the LAN bridge may co-own it) so
+      // pills + LAN telemetry coexist. updatedAt anchors cloud freshness.
+      const existing = fleetStatus.cloudStatuses[deviceId];
+      pillRows.push({
+        ...(existing ?? { deviceId }),
+        deviceId,
         attachedDisplayType,
         profileSource,
-        videoPipelineFlavor,
-        videoEncoderName,
-        videoEncoderHwAccel,
-        manualMavlinkWsUrl,
-        navigationGpsDenied,
-        navigationMode,
+        videoPipelineFlavor: pickString(
+          (drone as { videoPipelineFlavor?: unknown }).videoPipelineFlavor,
+        ),
+        videoEncoderName: pickString(
+          (drone as { videoEncoderName?: unknown }).videoEncoderName,
+        ),
+        videoEncoderHwAccel: pickBoolean(
+          (drone as { videoEncoderHwAccel?: unknown }).videoEncoderHwAccel,
+        ),
+        manualMavlinkWsUrl: pickString(
+          (drone as { manualMavlinkWsUrl?: unknown }).manualMavlinkWsUrl,
+        ),
+        navigationGpsDenied: pickBoolean(
+          (drone as { navigationGpsDenied?: unknown }).navigationGpsDenied,
+        ),
+        navigationMode: pickString(
+          (drone as { navigationMode?: unknown }).navigationMode,
+        ),
         peerDeviceId,
         peerRssiDbm,
+        transportOpen: pickBoolean(
+          (drone as { transportOpen?: unknown }).transportOpen,
+        ),
+        mavlinkAlive: pickBoolean(
+          (drone as { mavlinkAlive?: unknown }).mavlinkAlive,
+        ),
+        heartbeatAgeS:
+          typeof heartbeatAgeRaw === "number" &&
+          Number.isFinite(heartbeatAgeRaw)
+            ? heartbeatAgeRaw
+            : heartbeatAgeRaw === null
+              ? null
+              : undefined,
+        fcSource,
         cameraState,
-        cameraUsbRecovery,
-        cloudPosture,
-        profile,
-        role,
-      };
-
-      if (trackedIds.current.has(fleetId)) {
-        // Update existing cloud drone
-        fleet.updateDrone(fleetId, fleetDrone);
-      } else {
-        // Add new cloud drone
-        fleet.addDrone(fleetDrone);
-        trackedIds.current.add(fleetId);
-      }
+        cameraUsbRecovery: normalizeCameraUsbRecovery(
+          (drone as { cameraUsbRecovery?: unknown }).cameraUsbRecovery,
+        ),
+        updatedAt: lastSeen > 0 ? lastSeen : now,
+      });
     }
 
-    // Remove tracked cloud drones that no longer exist in paired list
-    for (const id of trackedIds.current) {
-      if (!currentCloudIds.has(id)) {
-        fleet.removeDrone(id);
-        trackedIds.current.delete(id);
+    if (pillRows.length > 0) fleetStatus.upsertCloudStatuses(pillRows);
+
+    // Drop cloud presence + pills for drones no longer in the paired list.
+    for (const deviceId of Array.from(trackedDeviceIds.current)) {
+      if (!current.has(deviceId)) {
+        registry.dropPresence(resolveNodeId(deviceId), "cloud");
+        fleetStatus.removeCloudStatuses([deviceId]);
+        trackedDeviceIds.current.delete(deviceId);
       }
     }
   }, [myDrones]);
 
-  // Cleanup on unmount
   useEffect(() => {
+    const tracked = trackedDeviceIds.current;
     return () => {
-      const fleet = useFleetStore.getState();
-      for (const id of trackedIds.current) {
-        fleet.removeDrone(id);
+      const registry = useNodeRegistryStore.getState();
+      const fleetStatus = useCommandFleetStore.getState();
+      for (const deviceId of tracked) {
+        registry.dropPresence(resolveNodeId(deviceId), "cloud");
+        fleetStatus.removeCloudStatuses([deviceId]);
       }
-      trackedIds.current.clear();
+      tracked.clear();
     };
   }, []);
 
-  return null; // Pure bridge, no UI
+  return null;
 }

@@ -20,13 +20,14 @@ import { Button } from "@/components/ui/button";
 import { usePairingStore, type PairedDrone } from "@/stores/pairing-store";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useLocalNodesStore } from "@/stores/local-nodes-store";
-import { unpairLocal } from "@/lib/agent/local-pair-client";
+import { forgetNode, type UnpairDroneMutation as ForgetUnpairMutation } from "@/lib/agent/forget-node";
 import { useClockTick } from "@/lib/agent/freshness";
+import { deviceIdFromNodeId } from "@/lib/agent/node-id";
 import { DroneRowExpanded } from "./fleet/DroneRow";
 import { DroneContextMenu } from "./fleet/DroneContextMenu";
 import { CollapsedSidebar } from "./fleet/CollapsedSidebar";
 import { NodeSidebar } from "./nodes/NodeSidebar";
-import { useFleetNodes } from "@/hooks/use-fleet-nodes";
+import { useFleetNodesFromRegistry } from "@/hooks/use-fleet-nodes";
 import type {
   RenameDroneMutation,
   UnpairDroneMutation,
@@ -130,7 +131,6 @@ function FleetSidebarBase({
   const pairedDrones = usePairingStore((s) => s.pairedDrones);
   const selectedPairedId = usePairingStore((s) => s.selectedPairedId);
   const selectPairedDrone = usePairingStore((s) => s.selectPairedDrone);
-  const removePairedDrone = usePairingStore((s) => s.removePairedDrone);
   const updatePairedDroneName = usePairingStore((s) => s.updatePairedDroneName);
   // Subscribe to the 1Hz shared clock so drone dots transition live, stale,
   // offline without needing an unrelated Convex query to trigger a re-render.
@@ -143,11 +143,18 @@ function FleetSidebarBase({
   // triggers the auto-reconnect effect once the local-nodes-store
   // has caught up.
   const localNodes = useLocalNodesStore((s) => s.nodes);
-  // Used both to suppress the "No nodes paired" empty state when the
-  // NodeSidebar below has local-paired nodes to render and to feed the
-  // collapsed rail with the merged cloud+local list.
-  const fleetNodes = useFleetNodes();
+  // The unified, deduped node list. A node paired both ways collapses to one
+  // entry here (the local shadow), so rendering the cloud-drone list from this
+  // (instead of the raw `pairedDrones`) means a cloud+local node renders ONCE:
+  // its local form falls to NodeSidebar below; only cloud-ONLY drones list here.
+  const fleetNodes = useFleetNodesFromRegistry();
   const fleetNodeCount = fleetNodes.length;
+  // Cloud-paired DRONES with no local shadow. `_id` is the canonical
+  // `node:<deviceId>` (selection compare), `convexId` carries the Convex doc id
+  // for the rename / unpair mutations.
+  const cloudDroneNodes = fleetNodes.filter(
+    (n) => !n.isLocal && n.profile === "drone",
+  );
 
   // One-shot flag: only auto-reconnect on initial page load, not on
   // subsequent watchdog-driven disconnects. Without this, when the agent is
@@ -173,7 +180,7 @@ function FleetSidebarBase({
   // the virtualizer overhead, so the render loop below short-circuits to
   // the plain map when the count is under VIRTUALIZE_THRESHOLD.
   const rowVirtualizer = useVirtualizer({
-    count: pairedDrones.length,
+    count: cloudDroneNodes.length,
     getScrollElement: () => listRef.current,
     estimateSize: () => FLEET_ROW_ESTIMATE_PX,
     overscan: FLEET_OVERSCAN,
@@ -204,42 +211,39 @@ function FleetSidebarBase({
 
   // Auto-reconnect on page load if a node was previously selected.
   // Only fires once (autoConnectDone ref) to prevent infinite reconnect
-  // loops when the agent is offline. Branches on the selected id
-  // prefix: synthetic "local:<deviceId>" ids resolve to the local-
-  // nodes store and reconnect directly via REST, otherwise the
-  // selection is a Convex-backed cloud pair and goes through the
-  // cloud relay.
+  // loops when the agent is offline. The selection id is the canonical
+  // `node:<deviceId>` for every node; we recover the device id and prefer the
+  // LAN-paired local node (direct REST on http, cloud relay on https) and
+  // fall back to a Convex-backed cloud pair matched by device id.
   useEffect(() => {
     if (autoConnectDone.current) return;
     if (!agentConnected && selectedPairedId) {
       const onHttps =
         typeof window !== "undefined" &&
         window.location.protocol === "https:";
-      if (selectedPairedId.startsWith("local:")) {
-        const deviceId = selectedPairedId.slice("local:".length);
-        const node = localNodes.find((n) => n.deviceId === deviceId);
-        if (node) {
-          autoConnectDone.current = true;
-          // Mirror the click-handler branching: the browser refuses
-          // mixed-content fetches to http://*.local from an https
-          // origin, so the only reachable path is the cloud relay.
-          // On http origins (localhost dev, Electron, on-LAN
-          // self-hosters) the direct LAN poll is preferred.
-          if (onHttps) {
-            agentConnectCloud(node.deviceId);
-          } else if (node.hostname && node.apiKey) {
-            // Pass the deviceId so nodeDeviceId is set synchronously: the FC's
-            // MAVLink session then reconciles to this node's local-<deviceId>
-            // card instead of racing to a standalone agent-<timestamp> row.
-            void agentConnect(node.hostname, node.apiKey, node.deviceId);
-          }
+      const deviceId = deviceIdFromNodeId(selectedPairedId);
+      if (!deviceId) return;
+      const node = localNodes.find((n) => n.deviceId === deviceId);
+      if (node) {
+        autoConnectDone.current = true;
+        // Mirror the click-handler branching: the browser refuses
+        // mixed-content fetches to http://*.local from an https origin, so the
+        // only reachable path is the cloud relay. On http origins (localhost
+        // dev, Electron, on-LAN self-hosters) the direct LAN poll is preferred.
+        if (onHttps) {
+          agentConnectCloud(node.deviceId);
+        } else if (node.hostname && node.apiKey) {
+          // Pass the deviceId so nodeDeviceId is set synchronously: the FC's
+          // MAVLink session then reconciles to this node's `node:<deviceId>`
+          // registry row instead of racing to a standalone row.
+          void agentConnect(node.hostname, node.apiKey, node.deviceId);
         }
-      } else if (pairedDrones.length > 0) {
-        const drone = pairedDrones.find((d) => d._id === selectedPairedId);
-        if (drone) {
-          autoConnectDone.current = true;
-          agentConnectCloud(drone.deviceId);
-        }
+        return;
+      }
+      const drone = pairedDrones.find((d) => d.deviceId === deviceId);
+      if (drone) {
+        autoConnectDone.current = true;
+        agentConnectCloud(drone.deviceId);
       }
     }
   }, [
@@ -252,6 +256,7 @@ function FleetSidebarBase({
   ]);
 
   function handleDroneClick(drone: PairedDrone) {
+    // `_id` is the canonical `node:<deviceId>` selection id.
     selectPairedDrone(drone._id);
     onFocusAgent();
     // Always cloud relay for paired drones. Direct mode is only for
@@ -265,27 +270,25 @@ function FleetSidebarBase({
     drone: PairedDrone
   ) {
     setContextMenu(null);
+    // The Convex mutations + the pairing-store row key on the Convex doc id,
+    // carried on `convexId` (the `_id` is now the canonical node id). Recover
+    // it from the unified list; fall back to `_id` for older shapes.
+    const entry = cloudDroneNodes.find((d) => d._id === drone._id);
+    const convexId = entry?.convexId ?? drone._id;
     switch (action) {
       case "rename":
         setRenaming(drone._id);
         setRenameValue(drone.name);
         break;
       case "unpair":
-        removePairedDrone(drone._id);
-        // Also delete from Convex so the reactive query removes it
-        unpairDroneMutation?.({ droneId: drone._id as never }).catch(() => {});
-        // If this cloud drone also has a LAN entry (same deviceId), release the
-        // agent's pairing and forget the local credential too, so a node paired
-        // both ways doesn't linger as a stale local card after a cloud unpair.
-        {
-          const shadow = useLocalNodesStore
-            .getState()
-            .nodes.find((n) => n.deviceId === drone.deviceId);
-          if (shadow) {
-            void unpairLocal(shadow.hostname, shadow.apiKey).catch(() => {});
-            useLocalNodesStore.getState().removeNode(shadow.deviceId);
-          }
-        }
+        // One atomic forget across every source: disconnects, deletes the
+        // Convex row (so listMyDrones stops re-feeding), releases any LAN
+        // shadow pairing, and drops registry presence so the projected card
+        // does not flash back. `drone._id` is the canonical `node:<deviceId>`.
+        forgetNode(drone._id, {
+          convexId,
+          unpairMutation: unpairDroneMutation as ForgetUnpairMutation,
+        });
         break;
       case "copy-ip":
         if (drone.lastIp) {
@@ -301,12 +304,15 @@ function FleetSidebarBase({
     }
   }
 
-  function handleRenameSubmit(droneId: string) {
-    if (renameValue.trim()) {
-      updatePairedDroneName(droneId, renameValue.trim());
+  function handleRenameSubmit(nodeId: string) {
+    const drone = cloudDroneNodes.find((d) => d._id === nodeId);
+    const convexId = drone?.convexId ?? nodeId;
+    if (renameValue.trim() && drone) {
+      // The pairing-store row keys on the Convex doc id.
+      updatePairedDroneName(convexId, renameValue.trim());
       // Persist rename to Convex
       renameDroneMutation
-        ?.({ droneId: droneId as never, name: renameValue.trim() })
+        ?.({ droneId: convexId as never, name: renameValue.trim() })
         .catch(() => {});
     }
     setRenaming(null);
@@ -333,7 +339,7 @@ function FleetSidebarBase({
 
   // Expanded view
   const activeContextDrone = contextMenu
-    ? pairedDrones.find((d) => d._id === contextMenu.droneId) ?? null
+    ? cloudDroneNodes.find((d) => d._id === contextMenu.droneId) ?? null
     : null;
 
   return (
@@ -355,7 +361,7 @@ function FleetSidebarBase({
       {/* Top row: fleet/overview selector + pair action sharing one
           line below the header. Hidden until at least one node exists
           so the empty state owns the initial pair affordance instead. */}
-      {(pairedDrones.length > 0 || fleetNodeCount > 0) && (
+      {fleetNodeCount > 0 && (
         <div className="flex items-center gap-1.5 px-2 py-2 border-b border-border-default">
           <button
             type="button"
@@ -388,7 +394,7 @@ function FleetSidebarBase({
       {/* Drone list */}
       <div ref={listRef} className="flex-1 overflow-auto p-2">
 
-        {pairedDrones.length === 0 && fleetNodeCount === 0 && (
+        {fleetNodeCount === 0 && (
           <div className="text-center py-8 space-y-3">
             <Cpu size={24} className="mx-auto text-text-tertiary/40" />
             <p className="text-xs text-text-tertiary">{t("noNodesPaired")}</p>
@@ -402,9 +408,9 @@ function FleetSidebarBase({
           </div>
         )}
 
-        {pairedDrones.length > 0 && pairedDrones.length < VIRTUALIZE_THRESHOLD && (
+        {cloudDroneNodes.length > 0 && cloudDroneNodes.length < VIRTUALIZE_THRESHOLD && (
           <div className="space-y-1">
-            {pairedDrones.map((drone) => (
+            {cloudDroneNodes.map((drone) => (
               <DroneRowExpanded
                 key={drone._id}
                 drone={drone}
@@ -422,7 +428,7 @@ function FleetSidebarBase({
           </div>
         )}
 
-        {pairedDrones.length >= VIRTUALIZE_THRESHOLD && (
+        {cloudDroneNodes.length >= VIRTUALIZE_THRESHOLD && (
           <div
             style={{
               height: `${rowVirtualizer.getTotalSize()}px`,
@@ -431,7 +437,7 @@ function FleetSidebarBase({
             }}
           >
             {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-              const drone = pairedDrones[virtualRow.index];
+              const drone = cloudDroneNodes[virtualRow.index];
               if (!drone) return null;
               return (
                 <div
@@ -467,7 +473,7 @@ function FleetSidebarBase({
 
         <NodeSidebar
           onFocusAgent={onFocusAgent}
-          showLeadingDivider={pairedDrones.length > 0}
+          showLeadingDivider={cloudDroneNodes.length > 0}
         />
       </div>
 

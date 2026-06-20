@@ -7,6 +7,7 @@ import { StatusDot } from "@/components/ui/status-dot";
 import { Cloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDroneMetadataStore } from "@/stores/drone-metadata-store";
+import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { navigationModeBadge } from "@/lib/agent/navigation-mode-label";
 import {
   CAMERA_RECOVERY_ACTIVE_STATES,
@@ -46,9 +47,20 @@ const gpsFixLabel: Record<number, string> = {
 
 export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
   const displayName = useDroneMetadataStore((s) => s.profiles[drone.id]?.displayName) ?? drone.name;
+  // Control-plane RTT is connection-scoped (the focused agent only), so show it
+  // on this card only when it IS the focused node.
+  const focusedDeviceId = useAgentConnectionStore((s) => s.nodeDeviceId);
+  const controlRttMs = useAgentConnectionStore((s) => s.controlRttMs);
+  const isFocusedNode =
+    !!drone.cloudDeviceId && focusedDeviceId === drone.cloudDeviceId;
   const sats = drone.gps?.satellites ?? 0;
   const fixType = drone.gps?.fixType ?? 0;
   const lowSats = sats < 6 && fixType > 0;
+  // When no FC is attached, arm / mode / battery are NOT real telemetry — the
+  // node registry projection leaves them at benign defaults that would read as
+  // a fabricated "disarmed / STABILIZE / 0%" reading. Hide those rather than
+  // lie. `fcAttached === undefined` (legacy rows) is treated as attached.
+  const fcAttached = drone.fcAttached !== false;
 
   return (
     <Card className={cn(selected && "border-accent-primary bg-accent-primary/5")} onClick={() => onClick?.(drone.id)}>
@@ -59,12 +71,16 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">
           {displayName}
         </span>
-        <Badge
-          variant={drone.armState === "armed" ? "warning" : "neutral"}
-          className="shrink-0 px-1 py-0 text-[9px]"
-        >
-          {drone.armState}
-        </Badge>
+        {/* Arm state is FC telemetry: only show it when an FC is attached, else
+            the registry default ("disarmed") would read as a real reading. */}
+        {fcAttached && (
+          <Badge
+            variant={drone.armState === "armed" ? "warning" : "neutral"}
+            className="shrink-0 px-1 py-0 text-[9px]"
+          >
+            {drone.armState}
+          </Badge>
+        )}
         <Badge
           variant={statusToBadgeVariant[drone.status]}
           className="shrink-0 px-1 py-0 text-[9px]"
@@ -182,6 +198,25 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
               </Badge>
             </span>
           )}
+          {isFocusedNode && controlRttMs != null && (
+            <span
+              title="Control-plane round-trip time to the agent"
+              className="inline-flex"
+            >
+              <Badge
+                variant={
+                  controlRttMs < 80
+                    ? "success"
+                    : controlRttMs < 250
+                      ? "warning"
+                      : "error"
+                }
+                className="text-[10px] font-mono"
+              >
+                {controlRttMs}ms
+              </Badge>
+            </span>
+          )}
           {drone.cameraState === "missing" && (
             <span
               title="Air-side video pipeline reports no primary camera. Check the USB camera connection."
@@ -235,16 +270,22 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
             }
             return null;
           })()}
-          {drone.cameraUsbRecovery?.powerContention && (
-            <span
-              title="The camera shares an over-subscribed USB hub with the radio, which can brown it out under load. Move the camera to a separate port or a self-powered hub."
-              className="inline-flex"
-            >
-              <Badge variant="warning" className="text-[10px]">
-                Camera: power
-              </Badge>
-            </span>
-          )}
+          {/* USB power contention is a STATIC topology hint (the camera shares a
+              hub with the radio), not a fault — surfacing it on a healthy,
+              streaming camera is noise. Only show it when another signal
+              corroborates an actual camera problem (missing / error), where the
+              shared hub is a plausible cause worth flagging. */}
+          {(drone.cameraState === "missing" || drone.cameraState === "error") &&
+            drone.cameraUsbRecovery?.powerContention && (
+              <span
+                title="The camera shares an over-subscribed USB hub with the radio, which can brown it out under load. Move the camera to a separate port or a self-powered hub."
+                className="inline-flex"
+              >
+                <Badge variant="warning" className="text-[10px]">
+                  Camera: power
+                </Badge>
+              </span>
+            )}
           {(drone.profileSource === "detected" ||
             drone.profileSource === "tiebreaker" ||
             drone.profileSource === "default") && (
@@ -262,11 +303,20 @@ export function DroneCard({ drone, selected, onClick }: DroneCardProps) {
             </span>
           )}
       </div>
-      <BatteryBar percentage={drone.battery?.remaining ?? 0} className="mb-2" />
+      {/* Battery is FC telemetry; with no FC the registry leaves it undefined
+          (a "0%" bar would be a lie). Show a neutral "no FC" line instead. */}
+      {fcAttached ? (
+        <BatteryBar percentage={drone.battery?.remaining ?? 0} className="mb-2" />
+      ) : (
+        <p className="mb-2 text-[10px] text-text-tertiary">
+          No flight controller connected
+        </p>
+      )}
       <div className="flex items-center justify-between text-[10px] text-text-tertiary">
-        <span className="font-mono">{drone.flightMode}</span>
+        {/* Flight mode is FC telemetry — hidden without an attached FC. */}
+        <span className="font-mono">{fcAttached ? drone.flightMode : ""}</span>
         <div className="flex items-center gap-2">
-          {drone.gps && (
+          {fcAttached && drone.gps && (
             <span className={cn("font-mono", lowSats ? "text-status-warning" : "text-text-tertiary")}>
               {gpsFixLabel[fixType] ?? `Fix ${fixType}`} {sats} sats
             </span>

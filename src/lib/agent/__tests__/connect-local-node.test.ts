@@ -74,8 +74,8 @@ describe("connectLocalNode", () => {
 
     connectLocalNode(DEV, { onFocusAgent: () => {} });
 
-    // Selects the colon-form fleet id used by use-fleet-nodes.
-    expect(select).toHaveBeenCalledWith(`local:${DEV}`);
+    // Selects the canonical `node:<deviceId>` id (shared across transports).
+    expect(select).toHaveBeenCalledWith(`node:${DEV}`);
     // The whole point: real LAN creds + deviceId, never connect("","").
     expect(connect).toHaveBeenCalledWith(HOST, KEY, DEV);
     expect(connectCloud).not.toHaveBeenCalled();

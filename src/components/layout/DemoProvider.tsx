@@ -8,6 +8,7 @@ import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useAgentSystemStore } from "@/stores/agent-system-store";
 import { usePairingStore, type PairedDrone } from "@/stores/pairing-store";
 import { useCommandFleetStore, type CommandCloudStatus } from "@/stores/command-fleet-store";
+import { useNodeRegistryStore } from "@/stores/node-registry";
 
 const DEMO_AGENTS: PairedDrone[] = [
   {
@@ -175,6 +176,10 @@ export function DemoProvider() {
       useFleetStore.getState().clearAlerts();
       usePairingStore.getState().clear();
       useCommandFleetStore.getState().clear();
+      // The demo seeds the node registry (the single fleet write target);
+      // clear it too so toggling demo off leaves no ghost rows for the
+      // FleetProjectionBridge to re-project.
+      useNodeRegistryStore.getState().clear();
     };
   }, [demoMode, hasHydrated]);
 

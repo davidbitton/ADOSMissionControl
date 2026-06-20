@@ -167,13 +167,20 @@ export function DroneRowExpanded({
         )}
       </div>
 
+      {/* Always-visible actions trigger (was hover-only). Opens the
+          rename / copy-IP / unpair menu so Unpair is discoverable without a
+          right-click. */}
       <button
         onClick={(e) => {
           e.stopPropagation();
-          const rect = (e.target as HTMLElement).getBoundingClientRect();
+          const rect = (
+            e.currentTarget as HTMLElement
+          ).getBoundingClientRect();
           onContextMenu(drone._id, { x: rect.right, y: rect.bottom });
         }}
-        className="p-0.5 text-text-tertiary opacity-0 group-hover:opacity-100 hover:text-text-primary transition-all"
+        title="Actions"
+        aria-label="Node actions"
+        className="p-0.5 text-text-tertiary opacity-60 group-hover:opacity-100 hover:text-text-primary transition-all shrink-0"
       >
         <MoreHorizontal size={14} />
       </button>

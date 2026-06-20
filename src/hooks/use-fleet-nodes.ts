@@ -14,6 +14,7 @@ import {
   usePairingStore,
   type PairedDrone,
 } from "@/stores/pairing-store";
+import { nodeIdForDevice } from "@/lib/agent/node-id";
 
 export interface FleetNodeEntry extends PairedDrone {
   /** Wire-contract profile of this node. */
@@ -23,6 +24,12 @@ export interface FleetNodeEntry extends PairedDrone {
   /** True when this entry is browser-local (LAN-paired). False when
    * it was paired via Convex / cloud relay. */
   isLocal: boolean;
+  /** The Convex document id of the cloud-paired row, when this node has
+   * one. `_id` is now the canonical `node:<deviceId>` selection id shared
+   * across the local + cloud transports, so the original Convex `_id`
+   * (needed for the rename / unpair mutations) is preserved here. Undefined
+   * for a LAN-only node that was never cloud-paired. */
+  convexId?: string;
 }
 
 function adaptLocal(n: LocalNode, cloudShadow?: PairedDrone): FleetNodeEntry {
@@ -32,7 +39,8 @@ function adaptLocal(n: LocalNode, cloudShadow?: PairedDrone): FleetNodeEntry {
   // os). Identity fields (apiKey, hostname via mdnsHost) come from
   // the local entry so connect() uses the LAN credentials.
   return {
-    _id: `local:${n.deviceId}`,
+    _id: nodeIdForDevice(n.deviceId),
+    convexId: cloudShadow?._id,
     userId: "local",
     deviceId: n.deviceId,
     name: n.name,
@@ -55,6 +63,12 @@ function adaptLocal(n: LocalNode, cloudShadow?: PairedDrone): FleetNodeEntry {
 function adaptCloud(d: PairedDrone): FleetNodeEntry {
   return {
     ...d,
+    // The canonical selection id is `node:<deviceId>` — the same string a LAN
+    // observation of this node mints — so a node seen both ways collapses to
+    // one row + one selection id. The original Convex doc id is kept on
+    // `convexId` for the rename / unpair mutations.
+    _id: nodeIdForDevice(d.deviceId),
+    convexId: d._id,
     // Convex pushStatus syncs profile + role onto cmd_drones from
     // the agent's heartbeat (additive schema). Older rows that
     // predate the field default to drone.
@@ -95,4 +109,17 @@ export function useFleetNodes(): FleetNodeEntry[] {
     () => mergeFleetNodes(cloudPaired, localNodes),
     [cloudPaired, localNodes],
   );
+}
+
+/**
+ * The unified, deduped node list the sidebar renders. Today this is the same
+ * merge as {@link useFleetNodes} (local shadows cloud, both keyed by the
+ * canonical `node:<deviceId>` id) — the wrapper name makes the sidebar's "one
+ * row per physical node" intent explicit and gives the follow-up a single seam
+ * to point straight at the node registry. A node seen on both transports
+ * appears once; its `_id` is the shared selection id and `convexId` carries the
+ * cloud doc id for rename / unpair.
+ */
+export function useFleetNodesFromRegistry(): FleetNodeEntry[] {
+  return useFleetNodes();
 }

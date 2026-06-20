@@ -44,6 +44,12 @@ export interface FleetDrone extends DroneInfo {
   gps?: GpsData;
   healthScore: number; // 0-100
   hasAgent?: boolean;
+  /** True when a flight controller is attached to this node (the node
+   * registry holds a non-null managedId). When false, arm/mode/battery
+   * are NOT real telemetry — the fleet card hides them rather than
+   * showing a fabricated disarmed / STABILIZE / 0% reading. Undefined on
+   * rows that predate the registry projection (treated as attached). */
+  fcAttached?: boolean;
   /** "local" for direct MAVLink connections, "cloud" for cloud-paired agents */
   source?: "local" | "cloud";
   /** Cloud device ID for cloud-paired agents */

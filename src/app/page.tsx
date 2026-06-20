@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, LayoutGrid, LayoutDashboard } from "lucide-r
 import { cn } from "@/lib/utils";
 import { useDroneManager } from "@/stores/drone-manager";
 import { useFleetStore } from "@/stores/fleet-store";
+import { nodeIdForDevice } from "@/lib/agent/node-id";
 import { useUiStore } from "@/stores/ui-store";
 import { useLogActivityStore } from "@/stores/log-activity-store";
 import { useConnectDialogStore } from "@/stores/connect-dialog-store";
@@ -28,15 +29,15 @@ export default function DashboardPage() {
   const immersiveMode = useUiStore((s) => s.immersiveMode);
   const exitImmersiveMode = useUiStore((s) => s.exitImmersiveMode);
 
-  // A grid tile's expand/open maps the agent deviceId back to its
-  // fleet-store row (LocalDroneBridge keys local rows as
-  // `local-<deviceId>` with cloudDeviceId set) and selects it, which
-  // opens the existing DroneDetailPanel — same as a sidebar click.
+  // A grid tile's expand/open maps the agent deviceId back to its registry-
+  // projected fleet row (keyed by the canonical `node:<deviceId>`) and selects
+  // it, opening the NodeDetailPanel — same as a sidebar click.
   function handleOpenAgent(deviceId: string) {
     const fleet = useFleetStore.getState().drones;
+    const nodeId = nodeIdForDevice(deviceId);
     const match =
-      fleet.find((d) => d.cloudDeviceId === deviceId) ??
-      fleet.find((d) => d.id === `local-${deviceId}`);
+      fleet.find((d) => d.id === nodeId) ??
+      fleet.find((d) => d.cloudDeviceId === deviceId);
     if (match) selectDrone(match.id);
   }
 

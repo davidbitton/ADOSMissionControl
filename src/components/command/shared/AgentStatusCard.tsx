@@ -15,7 +15,9 @@ import type { AgentStatus } from "@/lib/agent/types";
 import type { AgentCapabilities } from "@/lib/agent/feature-types";
 import { useAgentSystemStore } from "@/stores/agent-system-store";
 import { useAgentCapabilitiesStore } from "@/stores/agent-capabilities-store";
+import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useFreshness } from "@/lib/agent/freshness";
+import { deriveMavlinkLink, heartbeatAgeLabel } from "@/lib/agent/mavlink-link";
 
 type RadioStackState = NonNullable<AgentCapabilities["radioStackState"]>;
 
@@ -41,15 +43,24 @@ export function AgentStatusCard({ status }: AgentStatusCardProps) {
   const services = useAgentSystemStore((s) => s.services);
   const cpuHistory = useAgentSystemStore((s) => s.cpuHistory);
   const radioStackState = useAgentCapabilitiesStore((s) => s.radioStackState);
+  // Control-plane RTT to the agent (LAN-direct poll). Null in cloud-relay mode
+  // or before the first measurement.
+  const controlRttMs = useAgentConnectionStore((s) => s.controlRttMs);
   const freshness = useFreshness();
   const isStale = freshness.state !== "live" && freshness.state !== "unknown";
   const cpuPct = resources?.cpu_percent ?? status.health?.cpu_percent ?? 0;
   const memPct = resources?.memory_percent ?? status.health?.memory_percent ?? 0;
   const diskPct = resources?.disk_percent ?? status.health?.disk_percent ?? 0;
   const temp = resources?.temperature ?? status.health?.temperature ?? null;
-  // FC connected: trust the agent's authoritative fc_connected field from StateIPC.
-  // Service running != FC connected (service may be scanning for the serial port).
-  const fcConnected = status.fc_connected ?? false;
+  // FC link: derive the GATED truth from the agent's transport_open /
+  // mavlink_alive / heartbeat_age_s fields (newer agents). A bare fc_connected
+  // only means "transport open" — a port can be open with zero MAVLink flowing,
+  // which historically rendered a false "FC Connected". The three states read
+  // distinctly: alive (real link), silent ("Port open · no MAVLink", amber),
+  // down (red). Older agents fall back to fc_connected (alive/down only).
+  const link = deriveMavlinkLink(status);
+  const fcConnected = link.state === "alive";
+  const fcSilent = link.state === "silent";
   // Uptime: estimate from cpuHistory length (each entry ~5s) if status.uptime_seconds is 0
   const uptimeSeconds = status.uptime_seconds || (cpuHistory.length * 5);
   // Surface a radio-stack diagnostic only when the agent reports a
@@ -111,6 +122,23 @@ export function AgentStatusCard({ status }: AgentStatusCardProps) {
         {temp != null && (
           <span>{temp.toFixed(0)}°C</span>
         )}
+        {/* Control-plane RTT to the agent — the "diagnose output ping"
+            surface. Colored by latency band so a slow link is obvious. */}
+        {controlRttMs != null && (
+          <span
+            className={cn(
+              "ml-auto font-mono",
+              controlRttMs < 80
+                ? "text-status-success"
+                : controlRttMs < 250
+                  ? "text-status-warning"
+                  : "text-status-error",
+            )}
+            title="Control-plane round-trip time to the agent"
+          >
+            {controlRttMs} ms
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-4 pt-2 border-t border-border-default">
@@ -120,6 +148,8 @@ export function AgentStatusCard({ status }: AgentStatusCardProps) {
               size={12}
               className={isStale ? "text-status-warning" : "text-status-success"}
             />
+          ) : fcSilent ? (
+            <AlertTriangle size={12} className="text-status-warning" />
           ) : (
             <WifiOff size={12} className="text-status-error" />
           )}
@@ -130,16 +160,38 @@ export function AgentStatusCard({ status }: AgentStatusCardProps) {
                 ? isStale
                   ? "text-status-warning"
                   : "text-status-success"
-                : "text-status-error"
+                : fcSilent
+                  ? "text-status-warning"
+                  : "text-status-error"
             )}
           >
-            {fcConnected ? t("fcConnected") : t("fcDisconnected")}
+            {fcConnected
+              ? t("fcConnected")
+              : fcSilent
+                ? "Port open · no MAVLink"
+                : t("fcDisconnected")}
             {isStale && fcConnected && (
               <span className="text-text-tertiary"> (unverified)</span>
             )}
           </span>
         </div>
-        {fcConnected && status.fc_port && (
+        {/* Heartbeat age — the real liveness proof. Shown whenever the agent
+            ships the gated truth, so a silent port reads "no heartbeat" and a
+            live link reads "MAVLink 1.2s ago" instead of a bare badge. */}
+        {link.hasGatedTruth && (
+          <span
+            className={cn(
+              "text-xs",
+              link.mavlinkAlive ? "text-text-tertiary" : "text-status-warning",
+            )}
+            title="Time since the last decoded MAVLink HEARTBEAT"
+          >
+            {link.mavlinkAlive
+              ? `MAVLink ${heartbeatAgeLabel(link.heartbeatAgeS)}`
+              : "MAVLink: no heartbeat"}
+          </span>
+        )}
+        {link.transportOpen && status.fc_port && (
           <span className="text-xs text-text-tertiary">
             {status.fc_port} @ {status.fc_baud}
           </span>

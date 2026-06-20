@@ -142,6 +142,19 @@ export function mapFullStatusToCloudStatus(
     fcConnected: resp.fc_connected,
     fcPort: resp.fc_port,
     fcBaud: resp.fc_baud,
+    transportOpen: booleanOrUndefined(resp.transport_open),
+    mavlinkAlive: booleanOrUndefined(resp.mavlink_alive),
+    heartbeatAgeS:
+      resp.heartbeat_age_s === null
+        ? null
+        : numberOrUndefined(resp.heartbeat_age_s),
+    fcSource:
+      resp.fc_source === "auto" ||
+      resp.fc_source === "serial" ||
+      resp.fc_source === "udp" ||
+      resp.fc_source === "tcp"
+        ? resp.fc_source
+        : undefined,
     cpuPercent: resp.resources?.cpu_percent,
     memoryPercent: resp.resources?.memory_percent,
     diskPercent: resp.resources?.disk_percent,

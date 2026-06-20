@@ -6,8 +6,10 @@ import type {
 } from "@/lib/protocol/types";
 import { useTelemetryStore } from "./telemetry-store";
 import { useDroneStore } from "./drone-store";
-import { useFleetStore } from "./fleet-store";
 import { useSettingsStore } from "./settings-store";
+import { useVideoStore } from "./video-store";
+import { useAgentCapabilitiesStore } from "./agent-capabilities-store";
+import { useGroundStationStore } from "./ground-station-store";
 import { useDiagnosticsStore } from "./diagnostics-store";
 import { usePanelCacheStore } from "./panel-cache-store";
 import {
@@ -154,19 +156,11 @@ export const useDroneManager = create<DroneManagerState>((set, get) => ({
 
     useDiagnosticsStore.getState().logConnection("connect", name + " connected");
 
-    // Insert into fleet store so the drone appears in Fleet view
-    useFleetStore.getState().addDrone({
-      id,
-      name,
-      status: "online",
-      connectionState: "connected",
-      flightMode: "STABILIZE",
-      armState: "disarmed",
-      lastHeartbeat: Date.now(),
-      healthScore: 100,
-      firmwareVersion: vehicleInfo.firmwareVersionString,
-      frameType: vehicleInfo.vehicleClass,
-    });
+    // The fleet-store row is no longer written here. The node registry is the
+    // single fleet-identity write target: AgentMavlinkBridge calls attachFc on
+    // connect, and FleetProjectionBridge projects the registry into the fleet
+    // store. Writing a bare row here was the source of the FC bare-row race
+    // that locked the agent tabs.
 
     // Background bulk param download — seeds paramCache for instant panel reads
     protocol.getAllParameters().catch(() => {});
@@ -209,13 +203,14 @@ export const useDroneManager = create<DroneManagerState>((set, get) => ({
       stopRecordingFor(id).catch(() => {});
     }
 
-    // Remove from fleet store only when this managed drone owns the row. An
-    // FC attached through a paired agent leaves the presence-bridge card in
-    // place so it reverts to "flight controller not connected" rather than
-    // vanishing and orphaning the node.
-    if (ownsFleetRow) {
-      useFleetStore.getState().removeDrone(id);
-    }
+    // The fleet-store row is no longer removed here; the node registry owns
+    // fleet identity. A direct-USB FC (ownsFleetRow=true, an `fc:<random>`
+    // node) detaches via AgentMavlinkBridge's detachFc, which GCs its
+    // registry row; an agent-attached FC leaves the presence row in place so
+    // it reverts to "flight controller not connected". The projection reflects
+    // both. `ownsFleetRow` is retained on the ManagedDrone for the reconnect
+    // path's bookkeeping.
+    void ownsFleetRow;
 
     // The singleton telemetry ring only ever holds the SELECTED drone's
     // history (the bridge gates pushes on selection), so only wipe it when
@@ -346,6 +341,14 @@ export const useDroneManager = create<DroneManagerState>((set, get) => ({
         usePanelCacheStore.getState().clearForDrone(previousId);
       }
       invalidateParamCache();
+      // Reset the GLOBAL single-value stores that otherwise bleed the previous
+      // drone's data onto the newly selected one before its first frame: the
+      // video pipeline (stream URL + agent video status + poll/latency scratch),
+      // the per-agent capabilities (gate the radio/vision tabs + video feed),
+      // and the ground-station snapshot.
+      useVideoStore.getState().clearForSelection();
+      useAgentCapabilitiesStore.getState().clear();
+      useGroundStationStore.getState().resetAll();
     }
 
     if (id) {
