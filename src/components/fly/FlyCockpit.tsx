@@ -45,6 +45,7 @@ import { LocalDroneBridge } from "@/components/dashboard/LocalDroneBridge";
 import { FleetProjectionBridge } from "@/components/dashboard/FleetProjectionBridge";
 import { SkillConfirmHost } from "@/components/fly/SkillConfirmHost";
 import { SkillBar } from "@/components/fly/SkillBar";
+import { SkillBarEditor } from "@/components/fly/SkillBarEditor";
 import { CockpitTopBar } from "@/components/fly/CockpitTopBar";
 import { TelemetryStrip } from "@/components/fly/TelemetryStrip";
 import { FlyExitButton } from "@/components/fly/FlyExitButton";
@@ -59,6 +60,9 @@ import { useUiStore } from "@/stores/ui-store";
 import { useInputStore } from "@/stores/input-store";
 import { useSkillConfirmStore } from "@/stores/skill-confirm-store";
 import { useDroneStore } from "@/stores/drone-store";
+import { useFlyModeStore } from "@/stores/fly-mode-store";
+import { useTranslations } from "next-intl";
+import { Settings2 } from "lucide-react";
 
 // The minimap is a Leaflet view: load it client-only so the cockpit renders on
 // the server without pulling Leaflet into the SSR pass (same dynamic import the
@@ -84,11 +88,19 @@ interface FlyCockpitProps {
 
 export function FlyCockpit({ minimal = false }: FlyCockpitProps) {
   const router = useRouter();
+  const t = useTranslations("skillBindings");
   const containerRef = useRef<HTMLDivElement>(null);
 
   // A pending skill-confirm modal owns input: pause the dispatcher and defer
   // Escape to the dialog's own onCancel while one is open.
   const confirmPending = useSkillConfirmStore((s) => s.pending !== null);
+
+  // Fly Mode gates the Skill Bar + its editor entry; default off.
+  const flyEnabled = useFlyModeStore((s) => s.enabled);
+
+  // While the binding editor is open the dispatcher is paused so a captured
+  // key never fires a skill, and the bar is replaced by the editor surface.
+  const [editing, setEditing] = useState(false);
 
   // The currently-selected drone drives the per-drone plugin video overlay
   // host props and the per-drone plugin Skill registration.
@@ -136,8 +148,14 @@ export function FlyCockpit({ minimal = false }: FlyCockpitProps) {
   }, []);
 
   // The global keyboard + gamepad skill dispatcher. Dormant while a confirm
-  // modal is open so a stray hotkey can never fire a second action mid-confirm.
-  useSkillInput({ enabled: !confirmPending });
+  // modal is open (so a stray hotkey can never fire a second action mid-confirm)
+  // or while the binding editor is open (so a captured key never dispatches).
+  useSkillInput({ enabled: !confirmPending && !editing });
+
+  // Leaving Fly Mode while editing closes the editor.
+  useEffect(() => {
+    if (!flyEnabled && editing) setEditing(false);
+  }, [flyEnabled, editing]);
 
   // ── Exit ────────────────────────────────────────────────────────────────
   const exitCockpit = useCallback(() => {
@@ -159,12 +177,18 @@ export function FlyCockpit({ minimal = false }: FlyCockpitProps) {
     const handler = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (useSkillConfirmStore.getState().pending !== null) return;
+      // The editor owns Escape while open: close it instead of leaving.
+      if (editing) {
+        e.preventDefault();
+        setEditing(false);
+        return;
+      }
       e.preventDefault();
       exitCockpit();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [exitCockpit]);
+  }, [exitCockpit, editing]);
 
   // Reserved gamepad exit chord. Edge-detect off->on on the Start button so a
   // held button never re-fires; seed from the current state to avoid a spurious
@@ -240,10 +264,38 @@ export function FlyCockpit({ minimal = false }: FlyCockpitProps) {
           {/* Optional numeric readout strip (off unless a preset opts in). */}
           {showStrip && <TelemetryStrip />}
 
-          {/* Bottom-center Skill Bar. The bar self-gates to Fly Mode (renders
-              null when off) and is pointer-events-auto on the card itself. */}
+          {/* EDIT banner — a clear, unmissable indicator that the dispatcher
+              is paused and the bar is in binding-edit mode. */}
+          {flyEnabled && editing && (
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex justify-center">
+              <span className="pointer-events-auto mt-2 border border-accent-primary bg-bg-secondary/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-accent-primary backdrop-blur-sm">
+                {t("editBanner")}
+              </span>
+            </div>
+          )}
+
+          {/* Bottom-center: the live Skill Bar with an edit affordance, or the
+              binding editor while editing. The bar self-gates to Fly Mode
+              (renders null when off); the editor only mounts when Fly Mode is
+              on. Both are pointer-events-auto on their own card. */}
           <div className="pointer-events-none absolute inset-x-0 bottom-3 z-30 flex justify-center">
-            <SkillBar />
+            {flyEnabled && editing ? (
+              <SkillBarEditor onClose={() => setEditing(false)} />
+            ) : (
+              <div className="pointer-events-auto flex items-end gap-2">
+                <SkillBar />
+                {flyEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setEditing(true)}
+                    aria-label={t("editBar")}
+                    className="flex h-9 w-9 items-center justify-center self-center border border-border-default bg-bg-secondary/85 text-text-secondary backdrop-blur-sm transition-colors hover:border-accent-primary hover:text-text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary"
+                  >
+                    <Settings2 size={16} aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}

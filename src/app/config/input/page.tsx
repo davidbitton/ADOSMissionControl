@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { Gamepad2 } from "lucide-react";
 import { BluetoothPairModal } from "@/components/hardware/BluetoothPairModal";
 import { ControllersSection } from "@/components/hardware/ControllersSection";
+import { SkillBindingsSection } from "@/components/config/SkillBindingsSection";
 import { PageIntro } from "@/components/hardware/PageIntro";
 import { HintChip } from "@/components/hardware/HintChip";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { groundStationApiFromAgent } from "@/lib/api/ground-station-api";
 import { useAgentConnectionStore } from "@/stores/agent-connection-store";
 import { useGroundStationStore } from "@/stores/ground-station-store";
 import { useSettingsStore } from "@/stores/settings-store";
+import { registerBuiltins } from "@/lib/skills";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -45,6 +47,13 @@ export default function InputDevicesPage() {
   const apiKeyRef = useRef(apiKey);
   agentUrlRef.current = agentUrl;
   apiKeyRef.current = apiKey;
+
+  // The bindings section resolves skill labels from the registry; register the
+  // built-ins so the labels render even though this page is outside the cockpit
+  // shell. Idempotent.
+  useEffect(() => {
+    registerBuiltins();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -271,6 +280,9 @@ export default function InputDevicesPage() {
           </p>
           <ControllersSection />
         </section>
+
+        {/* Fly Mode skill / keyboard bindings for the active loadout. */}
+        <SkillBindingsSection />
 
         <BluetoothPairModal open={pairOpen} onClose={() => setPairOpen(false)} />
         </div>

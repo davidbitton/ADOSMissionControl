@@ -37,6 +37,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Skill, SkillState } from "@/lib/skills/types";
 import { skillDisplayLabel, skillEffectText } from "@/lib/skills/skill-label";
+import { formatChord } from "@/lib/skills/chord";
 
 /**
  * Built-in skill icons by lucide name. Plugin skills supply their own icon
@@ -72,22 +73,6 @@ interface SkillSlotProps {
   danger: boolean;
   /** Fire the slot's skill through the dispatcher. */
   onActivate: () => void;
-}
-
-/** Human-friendly chord label: "shift+a" -> "⇧A", "f1" -> "F1", "1" -> "1". */
-function formatChord(chord: string): string {
-  const parts = chord.split("+");
-  const key = parts[parts.length - 1];
-  const mods = parts.slice(0, -1);
-  const modGlyph: Record<string, string> = {
-    shift: "⇧",
-    ctrl: "⌃",
-    alt: "⌥",
-    meta: "⌘",
-  };
-  const prefix = mods.map((m) => modGlyph[m] ?? m.toUpperCase()).join("");
-  const keyLabel = /^f\d+$/i.test(key) ? key.toUpperCase() : key.toUpperCase();
-  return prefix + keyLabel;
 }
 
 export function SkillSlot({

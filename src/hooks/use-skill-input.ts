@@ -22,47 +22,12 @@ import { useSettingsStore } from "@/stores/settings-store";
 import { useInputStore } from "@/stores/input-store";
 import { useDroneManager } from "@/stores/drone-manager";
 import { activate, buildSkillContext } from "@/lib/skills";
+import { canonicalChord } from "@/lib/skills/chord";
 import type { SkillActivateArgs, SkillContext } from "@/lib/skills/types";
 
 interface UseSkillInputOptions {
   /** When false the dispatcher is dormant (e.g. while a modal owns input). */
   enabled: boolean;
-}
-
-/**
- * Build the canonical chord string for a keyboard event. Modifier order is
- * fixed (ctrl+alt+shift+meta+<key>) so a loadout lookup is deterministic.
- * Letters lower-case via e.key; digits and function keys derive from e.code
- * so a layout difference (or a held Shift) does not change the chord. Used
- * verbatim against the loadout slot `key` values.
- */
-function canonicalChord(e: KeyboardEvent): string | null {
-  let base: string | null = null;
-
-  // Digit row: Digit0..Digit9 -> "0".."9".
-  if (/^Digit[0-9]$/.test(e.code)) {
-    base = e.code.slice(5);
-  } else if (/^Numpad[0-9]$/.test(e.code)) {
-    base = e.code.slice(6);
-  } else if (/^F([1-9]|1[0-9]|2[0-4])$/.test(e.code)) {
-    // Function keys: F1..F24 -> "f1".."f24".
-    base = e.code.toLowerCase();
-  } else if (e.key.length === 1) {
-    // Single printable character (letters, punctuation) -> lower-cased key.
-    base = e.key.toLowerCase();
-  } else {
-    return null;
-  }
-
-  if (!base) return null;
-
-  return (
-    (e.ctrlKey ? "ctrl+" : "") +
-    (e.altKey ? "alt+" : "") +
-    (e.shiftKey ? "shift+" : "") +
-    (e.metaKey ? "meta+" : "") +
-    base
-  );
 }
 
 /** True when the event originates from an editable field — never dispatch. */
@@ -132,7 +97,6 @@ export function useSkillInput({ enabled }: UseSkillInputOptions): void {
     return () => window.removeEventListener("keydown", handleKey);
     // dispatchSkill closes over stable store getters + a ref'd toast; it does
     // not need to be a dependency.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 
   // Gamepad half: edge-detect false->true transitions on input-store buttons.
@@ -166,6 +130,5 @@ export function useSkillInput({ enabled }: UseSkillInputOptions): void {
     });
 
     return () => unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 }
