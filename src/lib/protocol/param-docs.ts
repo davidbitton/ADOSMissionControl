@@ -85,10 +85,10 @@ export function vehicleToDocsTitle(vehicle: ArduPilotVehicle): string {
 
 /**
  * Extract a stable version tag (e.g. V4.6.3) from AUTOPILOT_VERSION / display strings.
- * Returns null when no semver-like version is present (caller uses the unversioned parameters.html).
+ * Returns null when no semver-like version is present (caller may fall back to parameters.html).
  *
  * Note: ardupilot.org has no `parameters-*-stable-latest.html` page — only specific V*.*.* builds
- * or the live `parameters.html` index.
+ * or the live `parameters.html` index (tracks master / latest, not the craft's firmware).
  */
 export function parseFirmwareVersionTag(firmwareVersionString: string | undefined | null): string | null {
   if (!firmwareVersionString || !firmwareVersionString.trim()) return null;
@@ -96,13 +96,24 @@ export function parseFirmwareVersionTag(firmwareVersionString: string | undefine
 
   // Prefer explicit V-prefixed semver (ArduCopter V4.6.3)
   const vPrefixed = s.match(/\bV(\d+\.\d+(?:\.\d+)?)\b/i);
-  if (vPrefixed) return `V${vPrefixed[1]}`;
+  if (vPrefixed) return normalizeVersionTag(vPrefixed[1]);
 
-  // Plain semver often appears after vehicle name (APM:Copter 4.5.7, Copter 4.6.0)
-  const plain = s.match(/(?:^|[\s:])(\d+\.\d+(?:\.\d+)?)(?:\b|$)/);
-  if (plain) return `V${plain[1]}`;
+  // AUTOPILOT_VERSION handler stores bare "4.5.7" (or "4.5.0" with patch)
+  const leading = s.match(/^(\d+\.\d+(?:\.\d+)?)\b/);
+  if (leading) return normalizeVersionTag(leading[1]);
+
+  // Plain semver embedded (APM:Copter 4.5.7, Copter 4.6.0, ChibiOS: … 4.5.7)
+  const embedded = s.match(/(?:^|[\s:/_-])(\d+\.\d+(?:\.\d+)?)(?:\b|$)/);
+  if (embedded) return normalizeVersionTag(embedded[1]);
 
   return null;
+}
+
+/** Ensure V-major.minor.patch for ardupilot.org filenames (pad missing patch to .0). */
+function normalizeVersionTag(semver: string): string {
+  const parts = semver.split(".");
+  while (parts.length < 3) parts.push("0");
+  return `V${parts.slice(0, 3).join(".")}`;
 }
 
 /**

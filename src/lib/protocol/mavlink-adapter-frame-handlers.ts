@@ -314,9 +314,14 @@ function handleAutopilotVersionFrame(s: FrameHandlerState, frame: MAVLinkFrame):
     const major = (data.flightSwVersion >> 24) & 0xff
     const minor = (data.flightSwVersion >> 16) & 0xff
     const patch = (data.flightSwVersion >> 8) & 0xff
+    // Prefix with handler label so UI/docs parsers see "ArduCopter V4.5.7" not bare semver
+    const base = s.vehicleInfo.firmwareVersionString?.replace(/\s+V?\d+\.\d+(\.\d+)?.*$/i, '').trim()
+      || s.firmwareHandler?.getFirmwareVersion()
+      || 'ArduPilot'
+    const semver = `${major}.${minor}.${patch}`
     s.vehicleInfo = {
       ...s.vehicleInfo,
-      firmwareVersionString: `${major}.${minor}.${patch}`,
+      firmwareVersionString: `${base} V${semver}`,
       boardId: data.boardVersion,
     }
   }

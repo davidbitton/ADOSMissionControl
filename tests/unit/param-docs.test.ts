@@ -31,9 +31,19 @@ describe("parseFirmwareVersionTag", () => {
     expect(parseFirmwareVersionTag("APM:Copter 4.5.7")).toBe("V4.5.7");
   });
 
-  it("returns null when unparseable (caller uses parameters.html)", () => {
+  it("parses bare semver from AUTOPILOT_VERSION", () => {
+    expect(parseFirmwareVersionTag("4.5.7")).toBe("V4.5.7");
+    expect(parseFirmwareVersionTag("4.6")).toBe("V4.6.0");
+  });
+
+  it("parses handler-prefixed string after version update", () => {
+    expect(parseFirmwareVersionTag("ArduCopter V4.5.7")).toBe("V4.5.7");
+  });
+
+  it("returns null for name-only strings (no semver yet)", () => {
     expect(parseFirmwareVersionTag("")).toBeNull();
     expect(parseFirmwareVersionTag(null)).toBeNull();
+    expect(parseFirmwareVersionTag("ArduCopter")).toBeNull();
     expect(parseFirmwareVersionTag("custom-build-xyz")).toBeNull();
   });
 });

@@ -16,7 +16,11 @@ import { useDroneManager } from "@/stores/drone-manager";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useUiStore } from "@/stores/ui-store";
 import { getParamMetadata, firmwareTypeToVehicle, type ParamMetadata } from "@/lib/protocol/param-metadata";
-import { resolveParamDocContext, type ParamDocContext } from "@/lib/protocol/param-docs";
+import {
+  parseFirmwareVersionTag,
+  resolveParamDocContext,
+  type ParamDocContext,
+} from "@/lib/protocol/param-docs";
 import { cn } from "@/lib/utils";
 import { RefreshCw, ListTree } from "lucide-react";
 import type { ParameterValue } from "@/lib/protocol/types";
@@ -77,23 +81,43 @@ export function ParametersPanel() {
   const favoriteParams = useSettingsStore((s) => s.favoriteParams);
   const pendingParamSearch = useUiStore((s) => s.pendingParamSearch);
   const setPendingParamSearch = useUiStore((s) => s.setPendingParamSearch);
-  // Subscribe to selected drone vehicleInfo so docs links update when connect/select changes.
-  // vehicleInfo is replaced on connect; also depend on selectedDroneId so selection swaps update.
+  // Docs need a semver from AUTOPILOT_VERSION (adapter mutates its own vehicleInfo).
+  // Managed-drone snapshot at connect is often just "ArduCopter" with no version.
   const selectedDroneId = useDroneManager((s) => s.selectedDroneId);
-  const vehicleInfo = useDroneManager((s) => {
+  const storeVehicleInfo = useDroneManager((s) => {
     const id = s.selectedDroneId;
     if (!id) return null;
     return s.drones.get(id)?.vehicleInfo ?? null;
   });
+  const getSelectedProtocol = useDroneManager((s) => s.getSelectedProtocol);
+  const [liveVehicleInfoTick, setLiveVehicleInfoTick] = useState(0);
+
+  useEffect(() => {
+    const protocol = getSelectedProtocol();
+    if (!protocol?.onAutopilotVersion) return;
+    const unsub = protocol.onAutopilotVersion(() => {
+      setLiveVehicleInfoTick((n) => n + 1);
+    });
+    // AUTOPILOT_VERSION may already have landed before this panel mounted
+    setLiveVehicleInfoTick((n) => n + 1);
+    return unsub;
+  }, [getSelectedProtocol, selectedDroneId]);
 
   const docContext = useMemo((): ParamDocContext | null => {
-    if (!vehicleInfo) return null;
-    return resolveParamDocContext(
-      vehicleInfo.firmwareType,
-      vehicleInfo.firmwareVersionString,
-      vehicleInfo.vehicleClass,
-    );
-  }, [vehicleInfo, selectedDroneId]);
+    void liveVehicleInfoTick;
+    const live = getSelectedProtocol()?.getVehicleInfo?.() ?? null;
+    const vi = live ?? storeVehicleInfo;
+    if (!vi) return null;
+    // Prefer the longer/more specific version string between live adapter and store snapshot
+    const versionStr =
+      (live?.firmwareVersionString && parseFirmwareVersionTag(live.firmwareVersionString)
+        ? live.firmwareVersionString
+        : null) ??
+      storeVehicleInfo?.firmwareVersionString ??
+      live?.firmwareVersionString ??
+      "";
+    return resolveParamDocContext(vi.firmwareType, versionStr, vi.vehicleClass);
+  }, [storeVehicleInfo, selectedDroneId, liveVehicleInfoTick, getSelectedProtocol]);
 
   // Throttled progress ref — update UI at most every 100ms during download
   const lastProgressUpdate = useRef(0);
