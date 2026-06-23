@@ -10,6 +10,9 @@ export interface RecentConnection {
   type: "serial" | "websocket";
   baudRate?: number;
   url?: string;
+  /** USB identity when type is serial — used to pick the right interface on multi-port FCs. */
+  portVendorId?: number;
+  portProductId?: number;
   name: string;
   date: number;
 }
