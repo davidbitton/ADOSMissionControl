@@ -41,6 +41,11 @@ export interface AgentConnectPanelProps {
   onPaired?: (deviceId: string, apiKey: string, url: string) => void;
   /** Close the host surface (modal) after a successful LAN pair. */
   onClose: () => void;
+  /**
+   * When true (default), call onClose after LAN pair. Set false when the parent
+   * owns close-on-connect policy (e.g. Connect dialog keep-open preference).
+   */
+  closeOnPaired?: boolean;
   /** Which tab to open on. Defaults to the Add-a-drone tab. */
   initialTab?: DialogTab;
 }
@@ -86,6 +91,7 @@ function AgentConnectPanelBase({
   open,
   onPaired,
   onClose,
+  closeOnPaired = true,
   initialTab = "add",
   claimCode,
   preGenerate,
@@ -172,9 +178,9 @@ function AgentConnectPanelBase({
               onPaired={(deviceId) => {
                 // apiKey is already persisted in the local-nodes-store by
                 // ProbeResultCard; forward for caller-side selection, then
-                // close the host surface.
+                // optionally close the host surface (parent may own keep-open).
                 onPaired?.(deviceId, "", "");
-                onClose();
+                if (closeOnPaired) onClose();
               }}
             />
             <InstallAgentStrip />

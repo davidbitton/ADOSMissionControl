@@ -27,7 +27,14 @@ import { savePreset, type ConnectionPreset } from "@/lib/connection-presets";
 import { randomId } from "@/lib/utils";
 import { Usb, Zap, Save, Star, History } from "lucide-react";
 
-export function DirectMavlinkPanel({ onClose }: { onClose: () => void }) {
+export function DirectMavlinkPanel({
+  onClose,
+  onConnectSuccess,
+}: {
+  onClose: () => void;
+  /** Called after a successful serial/WebSocket/Bluetooth connect (or multi-link attach). */
+  onConnectSuccess?: () => void;
+}) {
   const t = useTranslations("connect");
   const droneCount = useDroneManager((s) => s.drones.size);
   const drones = useDroneManager((s) => s.drones);
@@ -89,17 +96,20 @@ export function DirectMavlinkPanel({ onClose }: { onClose: () => void }) {
   }, []);
 
   const handleConnected = useCallback(
-    (name: string, type: "serial" | "websocket", detail: string | number) => {
-      void saveRecentConnection({
-        type,
-        name,
-        date: Date.now(),
-        ...(type === "serial"
-          ? { baudRate: detail as number }
-          : { url: detail as string }),
-      });
+    (name: string, type: "serial" | "websocket" | "ble", detail: string | number) => {
+      if (type === "serial" || type === "websocket") {
+        void saveRecentConnection({
+          type,
+          name,
+          date: Date.now(),
+          ...(type === "serial"
+            ? { baudRate: detail as number }
+            : { url: detail as string }),
+        });
+      }
+      onConnectSuccess?.();
     },
-    [],
+    [onConnectSuccess],
   );
 
   function handleSerialConnected(name: string, _type: "serial", baudRate: number) {
@@ -108,6 +118,10 @@ export function DirectMavlinkPanel({ onClose }: { onClose: () => void }) {
 
   function handleWsConnected(name: string, _type: "websocket", url: string) {
     handleConnected(name, "websocket", url);
+  }
+
+  function handleBleConnected(name: string, _type: "ble", deviceName: string) {
+    handleConnected(name, "ble", deviceName);
   }
 
   async function handleSavePreset() {
@@ -248,6 +262,7 @@ export function DirectMavlinkPanel({ onClose }: { onClose: () => void }) {
             />
           ) : tab === "bluetooth" ? (
             <BluetoothPanel
+              onConnected={handleBleConnected}
               targetDroneId={connectMode === "link" ? selectedTargetDroneId : null}
             />
           ) : null}

@@ -11,7 +11,7 @@
 
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
@@ -30,16 +30,27 @@ export function ConnectDialog() {
   // agent pair-dialog store. Either opens this surface; closing clears both.
   const connectOpen = useConnectDialogStore((s) => s.open);
   const closeConnect = useConnectDialogStore((s) => s.closeDialog);
+  const keepOpenAfterConnect = useConnectDialogStore((s) => s.keepOpenAfterConnect);
+  const setKeepOpenAfterConnect = useConnectDialogStore((s) => s.setKeepOpenAfterConnect);
+  const notifyConnectSuccess = useConnectDialogStore((s) => s.notifyConnectSuccess);
   const pairOpen = usePairDialogStore((s) => s.open);
   const closePair = usePairDialogStore((s) => s.closeDialog);
   const agentInitialTab = usePairDialogStore((s) => s.initialTab);
   const droneCount = useDroneManager((s) => s.drones.size);
 
   const open = connectOpen || pairOpen;
-  const close = () => {
+  const close = useCallback(() => {
     closeConnect();
     closePair();
-  };
+  }, [closeConnect, closePair]);
+
+  /** Successful FC connect or agent pair — close unless operator opted to keep open. */
+  const handleConnectSuccess = useCallback(() => {
+    notifyConnectSuccess();
+    if (!useConnectDialogStore.getState().keepOpenAfterConnect) {
+      closePair();
+    }
+  }, [notifyConnectSuccess, closePair]);
 
   // Select the freshly-paired node so the drone-detail connect-on-select
   // effect brings the agent live (mirrors the retired ShellPairingDialog).
@@ -61,11 +72,26 @@ export function ConnectDialog() {
       selectTimer.current = null;
       useDroneManager.getState().selectDrone(fleetId);
     }, 150);
+    handleConnectSuccess();
   }
 
   return (
     <Modal open={open} onClose={close} title={t("title")} className="max-w-5xl">
       <div className="max-h-[80vh] overflow-y-auto -m-4 p-4 space-y-4">
+        {/* Keep-open preference (persisted) — default is close on successful connect */}
+        <label className="flex items-start gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            className="mt-0.5 rounded border-border-default bg-bg-tertiary text-accent-primary focus:ring-accent-primary/40"
+            checked={keepOpenAfterConnect}
+            onChange={(e) => setKeepOpenAfterConnect(e.target.checked)}
+          />
+          <span className="min-w-0">
+            <span className="text-xs text-text-primary block">{t("keepOpenAfterConnect")}</span>
+            <span className="text-[10px] text-text-tertiary block">{t("keepOpenAfterConnectHint")}</span>
+          </span>
+        </label>
+
         {/* Active connections (shared across both stacks) */}
         {droneCount > 0 && (
           <div className="bg-bg-primary border border-status-success/20 p-3 space-y-2">
@@ -95,7 +121,7 @@ export function ConnectDialog() {
               </div>
             </header>
             <div className="p-3">
-              <DirectMavlinkPanel onClose={close} />
+              <DirectMavlinkPanel onClose={close} onConnectSuccess={handleConnectSuccess} />
             </div>
           </section>
 
@@ -118,6 +144,7 @@ export function ConnectDialog() {
                 open={open}
                 onClose={close}
                 onPaired={handleAgentPaired}
+                closeOnPaired={false}
                 initialTab={agentInitialTab}
               />
             </div>

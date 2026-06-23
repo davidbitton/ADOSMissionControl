@@ -656,7 +656,9 @@
     "fcStackDesc": "Direct MAVLink — USB, WebSocket, Bluetooth",
     "agentStackTitle": "Companion Computer",
     "agentStackDesc": "ADOS Agent — software-defined",
-    "agentStackBadge": "Full features"
+    "agentStackBadge": "Full features",
+    "keepOpenAfterConnect": "Keep this dialog open after connect",
+    "keepOpenAfterConnectHint": "Useful when connecting multiple crafts or adding links. Unchecked by default — the dialog closes when a connection succeeds."
   },
   "droneDetail": {
     "overview": "Overview",
