@@ -57,6 +57,13 @@ export function RecentConnections() {
           );
           return;
         }
+        // Drop existing live links to the same URL so we do not stack transports
+        const dm = useDroneManager.getState();
+        for (const [id, drone] of dm.drones) {
+          if (drone.connectionMeta?.type === "websocket" && drone.connectionMeta.url === conn.url) {
+            dm.disconnectDrone(id);
+          }
+        }
         const transport = new WebSocketTransport();
         await transport.connect(conn.url);
         const adapter = new MAVLinkAdapter();
@@ -79,8 +86,36 @@ export function RecentConnections() {
           setError("No permitted serial ports. Click 'Request Port' in the Serial tab.");
           return;
         }
+        // Prefer the same USB interface as last time (not always ports[0])
+        let portInfo = ports[0];
+        if (conn.portVendorId !== undefined && conn.portProductId !== undefined) {
+          const match = ports.find(
+            (p) => p.vendorId === conn.portVendorId && p.productId === conn.portProductId,
+          );
+          if (match) portInfo = match;
+        }
+
+        // Disconnect any live serial drone using this port so the OS/WebSerial
+        // handle is released before we open a new transport (reconnect case).
+        const dm = useDroneManager.getState();
+        for (const [id, drone] of dm.drones) {
+          if (drone.transport?.type !== "webserial") continue;
+          const t = drone.transport as WebSerialTransport;
+          if (t.getPort() === portInfo.port) {
+            dm.disconnectDrone(id);
+          } else if (
+            drone.connectionMeta?.type === "serial" &&
+            conn.portVendorId !== undefined &&
+            drone.connectionMeta.portVendorId === conn.portVendorId &&
+            drone.connectionMeta.portProductId === conn.portProductId
+          ) {
+            dm.disconnectDrone(id);
+          }
+        }
+        await WebSerialTransport.releasePort(portInfo.port);
+
         const transport = new WebSerialTransport();
-        await transport.connectToPort(ports[0].port, conn.baudRate || 115200);
+        await transport.connectToPort(portInfo.port, conn.baudRate || 115200);
         const adapter = new MAVLinkAdapter();
         const vehicleInfo = await adapter.connect(transport);
         const droneId = randomId();
@@ -88,15 +123,21 @@ export function RecentConnections() {
         addDrone(droneId, droneName, adapter, transport, vehicleInfo, {
           type: "serial",
           baudRate: conn.baudRate,
-          portVendorId: ports[0].vendorId,
-          portProductId: ports[0].productId,
+          portVendorId: portInfo.vendorId,
+          portProductId: portInfo.productId,
         });
         useDroneMetadataStore.getState().ensureProfile(droneId, {
           displayName: droneName,
           serial: `ALT-${droneId.toUpperCase()}`,
           enrolledAt: Date.now(),
         });
-        void saveRecentConnection({ ...conn, name: droneName, date: Date.now() });
+        void saveRecentConnection({
+          ...conn,
+          name: droneName,
+          date: Date.now(),
+          portVendorId: portInfo.vendorId,
+          portProductId: portInfo.productId,
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Reconnect failed");

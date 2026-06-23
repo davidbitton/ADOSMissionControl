@@ -106,8 +106,16 @@ export function useAutoReconnect() {
         } else if (last.type === "serial") {
           const ports = await serialPortManager.getKnownPorts();
           if (ports.length === 0) return;
+          let portInfo = ports[0];
+          if (last.portVendorId !== undefined && last.portProductId !== undefined) {
+            const match = ports.find(
+              (p) => p.vendorId === last.portVendorId && p.productId === last.portProductId,
+            );
+            if (match) portInfo = match;
+          }
+          await WebSerialTransport.releasePort(portInfo.port);
           const transport = new WebSerialTransport();
-          await transport.connectToPort(ports[0].port, last.baudRate || 115200);
+          await transport.connectToPort(portInfo.port, last.baudRate || 115200);
           const adapter = new MAVLinkAdapter();
           const vehicleInfo = await adapter.connect(transport);
           const id = randomId();
@@ -115,8 +123,8 @@ export function useAutoReconnect() {
           addDrone(id, name, adapter, transport, vehicleInfo, {
             type: "serial",
             baudRate: last.baudRate,
-            portVendorId: ports[0].vendorId,
-            portProductId: ports[0].productId,
+            portVendorId: portInfo.vendorId,
+            portProductId: portInfo.productId,
           });
           toast(`Auto-connected to ${name}`, "success");
         }

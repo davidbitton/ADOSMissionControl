@@ -171,6 +171,8 @@ export class ReconnectManager {
       if (match) matchedPort = match.port;
     }
 
+    // Prior session may still own the port (stale transport / incomplete disconnect)
+    await WebSerialTransport.releasePort(matchedPort);
     const transport = new WebSerialTransport();
     await transport.connectToPort(matchedPort, entry.meta.baudRate || 115200);
 

@@ -12,7 +12,15 @@ type TransportEventMap = {
   error: Error;
 };
 
-/** Shared guidance when WebSerial open fails — not always a true lock contention. */
+/**
+ * Track which transport owns which SerialPort in this renderer.
+ * Reconnect/recent-connect creates a *new* WebSerialTransport while the old
+ * instance still holds reader/writer locks; `port.close()` from the new
+ * instance cannot succeed until those locks are released via the owner.
+ */
+const portOwners = new WeakMap<SerialPort, WebSerialTransport>();
+
+/** Shared guidance when WebSerial open fails after we already tried to reclaim. */
 export function formatSerialOpenError(err: unknown): Error {
   const msg = err instanceof Error ? err.message : String(err);
   const lower = msg.toLowerCase();
@@ -26,19 +34,12 @@ export function formatSerialOpenError(err: unknown): Error {
     return err instanceof Error ? err : new Error(msg);
   }
 
-  // "Already open" is often misleading: WebSerial reports it when this renderer
-  // still holds the handle, another app/tab owns the OS port, OR the operator
-  // picked the wrong interface on a multi-port USB device (MAVLink vs SLCAN/CAN).
   return new Error(
     `${msg}\n\n` +
-      `Common causes (try in order):\n` +
-      `1. Wrong serial interface — many flight controllers enumerate TWO USB serial ports ` +
-      `(e.g. MAVLink/telemetry on one, SLCAN/CAN or console on the other). ` +
-      `This dialog only speaks MAVLink; pick the other port from the list and try again.\n` +
-      `2. Port held elsewhere — another Chrome/Edge tab, Electron window, Mission Planner, ` +
-      `QGC, or configurator still has the port open. Disconnect there or fully quit that app.\n` +
-      `3. Stale handle in this app — disconnect any existing craft, fully quit Electron ` +
-      `(not just reload), then reconnect.`,
+      `Could not open this serial port. Usually one of:\n` +
+      `1. Still held in this app — disconnect the craft (or wait for reconnect cleanup), then try again.\n` +
+      `2. Held by another app/tab — close other Chrome/Electron/Mission Planner/QGC/configurator instances.\n` +
+      `3. Wrong interface on a multi-port USB device — try the other permitted port (MAVLink vs SLCAN/console).`,
   );
 }
 
@@ -70,28 +71,61 @@ export class WebSerialTransport implements Transport {
   }
 
   /**
-   * Best-effort close before open. Only works if *this* document still owns
-   * the open handle; cannot steal a port held by another process/tab.
+   * Fully release any transport in this renderer that owns `port`, then try
+   * a best-effort port.close() if streams are still present without locks.
    */
-  private static async ensurePortClosed(port: SerialPort): Promise<void> {
+  static async releasePort(port: SerialPort): Promise<void> {
+    const owner = portOwners.get(port);
+    if (owner) {
+      await owner.disconnect().catch(() => {});
+    }
     try {
       if (port.readable || port.writable) {
         await port.close().catch(() => {});
       }
     } catch {
-      // open() will surface a clearer error if still locked
+      // open() will throw if still unavailable
     }
   }
 
   private async openPortStreams(baudRate: number): Promise<void> {
     if (!this.port) throw new Error("No serial port");
-    await WebSerialTransport.ensurePortClosed(this.port);
+
+    // Reclaim if we (or another transport instance) already own this port
+    const prior = portOwners.get(this.port);
+    if (prior && prior !== this) {
+      await prior.disconnect().catch(() => {});
+    } else if (prior === this) {
+      await this.releaseStreamsOnly();
+    } else {
+      // No registered owner but port may still look open (orphan / incomplete disconnect)
+      try {
+        if (this.port.readable || this.port.writable) {
+          await this.port.close().catch(() => {});
+        }
+      } catch {
+        // continue to open attempt
+      }
+    }
+
+    // Small yield so the browser finishes releasing locks after disconnect
+    await new Promise<void>((r) => setTimeout(r, 50));
+
     try {
       await this.port.open({ baudRate });
     } catch (err) {
-      throw formatSerialOpenError(err);
+      // One more reclaim attempt (race with removeDrone/close handler)
+      await WebSerialTransport.releasePort(this.port);
+      await new Promise<void>((r) => setTimeout(r, 80));
+      try {
+        await this.port.open({ baudRate });
+      } catch (err2) {
+        throw formatSerialOpenError(err2);
+      }
     }
+
     this._connected = true;
+    portOwners.set(this.port, this);
     if (this.port.readable) {
       this.reader = this.port.readable.getReader();
     }
@@ -99,6 +133,32 @@ export class WebSerialTransport implements Transport {
       this.writer = this.port.writable.getWriter();
     }
     this.readLoop();
+  }
+
+  /** Drop reader/writer without emitting close (used when re-opening same instance). */
+  private async releaseStreamsOnly(): Promise<void> {
+    this._connected = false;
+    if (this.reader) {
+      await this.reader.cancel().catch(() => {});
+      try {
+        this.reader.releaseLock();
+      } catch {
+        /* already released */
+      }
+      this.reader = null;
+    }
+    if (this.writer) {
+      await this.writer.close().catch(() => {});
+      try {
+        this.writer.releaseLock();
+      } catch {
+        /* already released */
+      }
+      this.writer = null;
+    }
+    if (this.port) {
+      await this.port.close().catch(() => {});
+    }
   }
 
   /**
@@ -121,6 +181,7 @@ export class WebSerialTransport implements Transport {
       await this.openPortStreams(baudRate);
     } catch (err) {
       this._connected = false;
+      if (this.port) portOwners.delete(this.port);
       this.port = null;
       throw err instanceof Error ? err : formatSerialOpenError(err);
     }
@@ -140,6 +201,7 @@ export class WebSerialTransport implements Transport {
       await this.openPortStreams(baudRate);
     } catch (err) {
       this._connected = false;
+      if (this.port) portOwners.delete(this.port);
       this.port = null;
       throw err instanceof Error ? err : formatSerialOpenError(err);
     }
@@ -165,6 +227,7 @@ export class WebSerialTransport implements Transport {
     } finally {
       if (this._connected && !this._disconnecting) {
         this._connected = false;
+        if (this.port) portOwners.delete(this.port);
         this.emit("close", undefined as never);
       }
     }
@@ -188,16 +251,25 @@ export class WebSerialTransport implements Transport {
 
     this._disconnecting = true;
     this._connected = false;
+    const ownedPort = this.port;
 
     try {
       if (this.reader) {
         await this.reader.cancel().catch(() => {});
-        this.reader.releaseLock();
+        try {
+          this.reader.releaseLock();
+        } catch {
+          /* ignore */
+        }
         this.reader = null;
       }
       if (this.writer) {
         await this.writer.close().catch(() => {});
-        this.writer.releaseLock();
+        try {
+          this.writer.releaseLock();
+        } catch {
+          /* ignore */
+        }
         this.writer = null;
       }
       if (this.port) {
@@ -205,6 +277,7 @@ export class WebSerialTransport implements Transport {
         this.port = null;
       }
     } finally {
+      if (ownedPort) portOwners.delete(ownedPort);
       this._disconnecting = false;
       this.emit("close", undefined as never);
     }
