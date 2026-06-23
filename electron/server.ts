@@ -31,12 +31,62 @@ async function findFreePort(preferred: number): Promise<number> {
   });
 }
 
+/**
+ * Find server.js under a standalone root. Handles both the normal layout
+ * (standalone/server.js) and the nested layout Next can emit when the project
+ * path includes segments like ~/src/... (standalone/src/<project>/server.js).
+ * postbuild should flatten this; this is a defensive fallback for electron:dev.
+ */
+function findStandaloneServerJs(standaloneRoot: string): string | null {
+  const direct = path.join(standaloneRoot, "server.js");
+  if (fs.existsSync(direct)) return direct;
+
+  function walk(dir: string, depth: number): string | null {
+    if (depth > 6) return null;
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(dir);
+    } catch {
+      return null;
+    }
+    for (const name of entries) {
+      if (name === "node_modules" || name === ".next" || name === "public") continue;
+      const child = path.join(dir, name);
+      let st: fs.Stats;
+      try {
+        st = fs.statSync(child);
+      } catch {
+        continue;
+      }
+      if (!st.isDirectory()) continue;
+      const candidate = path.join(child, "server.js");
+      if (fs.existsSync(candidate)) return candidate;
+      const nested = walk(child, depth + 1);
+      if (nested) return nested;
+    }
+    return null;
+  }
+
+  return walk(standaloneRoot, 0);
+}
+
 /** Resolve path to the standalone server.js. */
 function getServerPath(): string {
-  if (app.isPackaged) {
-    return path.join(process.resourcesPath, "standalone", "server.js");
-  }
-  return path.join(__dirname, "..", ".next", "standalone", "server.js");
+  const standaloneRoot = app.isPackaged
+    ? path.join(process.resourcesPath, "standalone")
+    : path.join(__dirname, "..", ".next", "standalone");
+
+  const found = findStandaloneServerJs(standaloneRoot);
+  if (found) return found;
+
+  // Default expected path (best error message if missing entirely)
+  return path.join(standaloneRoot, "server.js");
+}
+
+/** Working directory for the forked standalone server (parent of server.js). */
+function getServerCwd(): string {
+  const serverPath = getServerPath();
+  return path.dirname(serverPath);
 }
 
 /** Get the static files directory (for diagnostic logging only). */
@@ -122,12 +172,22 @@ export async function startServer(options: StartOptions = {}): Promise<number> {
     }
   }
 
+  if (!fs.existsSync(serverPath)) {
+    throw new Error(
+      `Standalone server not found at ${serverPath}. ` +
+        `Run "npm run build" first (postbuild flattens .next/standalone).`,
+    );
+  }
+
+  const serverCwd = getServerCwd();
+  console.log(`[electron] Starting standalone server: ${serverPath} (cwd=${serverCwd})`);
+
   serverProcess = fork(serverPath, [], {
     env,
     stdio: "pipe",
-    cwd: app.isPackaged
-      ? path.join(process.resourcesPath, "standalone")
-      : path.join(__dirname, ".."),
+    // Cwd must be the directory that contains server.js (and node_modules),
+    // not the monorepo root — especially when output is still nested.
+    cwd: serverCwd,
   });
 
   serverProcess.stdout?.on("data", (data: Buffer) => {

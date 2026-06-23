@@ -98,8 +98,11 @@ export function DirectMavlinkPanel({ onClose }: { onClose: () => void }) {
           ? { baudRate: detail as number }
           : { url: detail as string }),
       });
+      // Direct connect does not need the modal afterward; main dashboard shows
+      // the new fleet row (via node registry attach in addDrone).
+      onClose();
     },
-    [],
+    [onClose],
   );
 
   function handleSerialConnected(name: string, _type: "serial", baudRate: number) {

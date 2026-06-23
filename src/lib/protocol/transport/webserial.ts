@@ -40,6 +40,58 @@ export class WebSerialTransport implements Transport {
   }
 
   /**
+   * Best-effort close of a port that may still be open from a previous
+   * Electron/Chrome session (orphan app, crash, connect dialog without disconnect).
+   * Web Serial only allows one open handle; failing to close first surfaces as
+   * "Failed to open serial port" / port in use.
+   */
+  private static async ensurePortClosed(port: SerialPort): Promise<void> {
+    try {
+      // readable/writable present means the port is open in this renderer.
+      if (port.readable || port.writable) {
+        await port.close().catch(() => {});
+      }
+    } catch {
+      // ignore — open() will throw a clearer error if still locked elsewhere
+    }
+  }
+
+  private static formatOpenError(err: unknown): Error {
+    const msg = err instanceof Error ? err.message : String(err);
+    const lower = msg.toLowerCase();
+    if (
+      lower.includes("failed to open") ||
+      lower.includes("already open") ||
+      lower.includes("access denied") ||
+      lower.includes("networkerror")
+    ) {
+      return new Error(
+        `${msg} — serial port is usually held by another app (another Electron/Altnautica window, Chrome/Edge tab, Mission Planner, QGC, Betaflight Configurator). ` +
+          `Quit those, or in this app disconnect first; then fully quit Electron (not just reload) and retry.`,
+      );
+    }
+    return err instanceof Error ? err : new Error(msg);
+  }
+
+  private async openPortStreams(baudRate: number): Promise<void> {
+    if (!this.port) throw new Error("No serial port");
+    await WebSerialTransport.ensurePortClosed(this.port);
+    try {
+      await this.port.open({ baudRate });
+    } catch (err) {
+      throw WebSerialTransport.formatOpenError(err);
+    }
+    this._connected = true;
+    if (this.port.readable) {
+      this.reader = this.port.readable.getReader();
+    }
+    if (this.port.writable) {
+      this.writer = this.port.writable.getWriter();
+    }
+    this.readLoop();
+  }
+
+  /**
    * Open the browser serial port picker and connect.
    * @param baudRate — UART baud rate, default 115200 (standard for MAVLink)
    */
@@ -56,30 +108,11 @@ export class WebSerialTransport implements Transport {
 
     try {
       this.port = await navigator.serial.requestPort();
-
-      // Port may still be open from a previous session (e.g. page refresh).
-      // Close it first so we can reopen cleanly with the desired baud rate.
-      if (this.port.readable) {
-        await this.port.close().catch(() => {});
-      }
-
-      await this.port.open({ baudRate });
-      this._connected = true;
-
-      // Set up read/write streams
-      if (this.port.readable) {
-        this.reader = this.port.readable.getReader();
-      }
-      if (this.port.writable) {
-        this.writer = this.port.writable.getWriter();
-      }
-
-      // Start reading in background
-      this.readLoop();
+      await this.openPortStreams(baudRate);
     } catch (err) {
       this._connected = false;
       this.port = null;
-      throw err;
+      throw err instanceof Error ? err : WebSerialTransport.formatOpenError(err);
     }
   }
 
@@ -94,28 +127,11 @@ export class WebSerialTransport implements Transport {
 
     try {
       this.port = port;
-
-      // Port may still be open from a previous session (e.g. page refresh).
-      // Close it first so we can reopen cleanly with the desired baud rate.
-      if (port.readable) {
-        await port.close().catch(() => {});
-      }
-
-      await this.port.open({ baudRate });
-      this._connected = true;
-
-      if (this.port.readable) {
-        this.reader = this.port.readable.getReader();
-      }
-      if (this.port.writable) {
-        this.writer = this.port.writable.getWriter();
-      }
-
-      this.readLoop();
+      await this.openPortStreams(baudRate);
     } catch (err) {
       this._connected = false;
       this.port = null;
-      throw err;
+      throw err instanceof Error ? err : WebSerialTransport.formatOpenError(err);
     }
   }
 
