@@ -1,18 +1,36 @@
 "use client";
 
-import { useState, useRef, useLayoutEffect, useCallback, useId } from "react";
+import { useState, useRef, useLayoutEffect, useCallback, useId, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ExternalLink } from "lucide-react";
 import type { ParamMetadata } from "@/lib/protocol/param-metadata";
 import { cn } from "@/lib/utils";
 
 const VIEWPORT_MARGIN = 8;
+/** Brief grace so the pointer can move from trigger → portaled panel without flicker. */
 const CLOSE_DELAY_MS = 120;
+
+/**
+ * Only one param tooltip may be open. Opening another runs the prior instance's
+ * closer immediately (avoids stacked portals during the leave delay).
+ */
+let activeDismiss: (() => void) | null = null;
+
+function takeFocus(dismiss: () => void): void {
+  if (activeDismiss && activeDismiss !== dismiss) {
+    activeDismiss();
+  }
+  activeDismiss = dismiss;
+}
+
+function releaseFocus(dismiss: () => void): void {
+  if (activeDismiss === dismiss) activeDismiss = null;
+}
 
 /**
  * Hover tooltip for parameter names: metadata + optional external docs link.
  * Renders via portal to document.body so virtualized grid rows (overflow /
- * stacking) do not clip or cover the panel.
+ * stacking) do not clip or cover the panel. Only one instance is shown at a time.
  */
 export function ParamTooltip({
   meta,
@@ -30,6 +48,7 @@ export function ParamTooltip({
   const triggerRef = useRef<HTMLSpanElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissRef = useRef<() => void>(() => {});
   const tooltipId = useId();
 
   const hasMeta = Boolean(meta && (meta.humanName || meta.description));
@@ -42,14 +61,33 @@ export function ParamTooltip({
     }
   }, []);
 
+  const dismiss = useCallback(() => {
+    clearCloseTimer();
+    setShow(false);
+    setPos(null);
+    releaseFocus(dismissRef.current);
+  }, [clearCloseTimer]);
+
+  dismissRef.current = dismiss;
+
   const scheduleClose = useCallback(() => {
     clearCloseTimer();
-    closeTimerRef.current = setTimeout(() => setShow(false), CLOSE_DELAY_MS);
+    closeTimerRef.current = setTimeout(() => {
+      dismissRef.current();
+    }, CLOSE_DELAY_MS);
   }, [clearCloseTimer]);
 
   const open = useCallback(() => {
     clearCloseTimer();
+    takeFocus(dismissRef.current);
     setShow(true);
+  }, [clearCloseTimer]);
+
+  useEffect(() => {
+    return () => {
+      clearCloseTimer();
+      releaseFocus(dismissRef.current);
+    };
   }, [clearCloseTimer]);
 
   useLayoutEffect(() => {
@@ -75,7 +113,6 @@ export function ParamTooltip({
     };
 
     update();
-    // Re-measure after paint when overlay has real size
     const raf = requestAnimationFrame(update);
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
