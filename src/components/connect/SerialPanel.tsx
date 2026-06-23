@@ -108,9 +108,10 @@ export function SerialPanel({
   async function handleConnect() {
     setError(null);
     setConnecting(true);
+    let transport: WebSerialTransport | null = null;
 
     try {
-      const transport = new WebSerialTransport();
+      transport = new WebSerialTransport();
       const baud = parseInt(selectedBaudRate, 10);
       const portIdx = parseInt(selectedPortIndex);
 
@@ -157,6 +158,7 @@ export function SerialPanel({
 
       onConnected?.(droneName, "serial", baud);
     } catch (err) {
+      try { await transport?.disconnect(); } catch { /* release port after failed MAVLink handshake */ }
       setError(err instanceof Error ? err.message : "Connection failed");
     } finally {
       setConnecting(false);
@@ -249,10 +251,15 @@ export function SerialPanel({
       {knownPorts.length > 0 && (
         <p className="text-[10px] text-text-tertiary">
           {t("portsAvailable", { count: knownPorts.length })}
+          {knownPorts.length > 1
+            ? " — multiple interfaces often mean MAVLink on one port and SLCAN/CAN or console on another; try each until MAVLink connects."
+            : ""}
         </p>
       )}
 
-      {error && <p className="text-xs text-status-error">{error}</p>}
+      {error && (
+        <p className="text-xs text-status-error whitespace-pre-line">{error}</p>
+      )}
     </div>
   );
 }

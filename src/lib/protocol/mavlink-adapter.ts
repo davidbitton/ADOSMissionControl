@@ -164,7 +164,13 @@ export class MAVLinkAdapter implements DroneProtocol {
     this.parser.onFrame((frame) => this.handleFrame(frame))
 
     const vehicleInfo = await new Promise<VehicleInfo>((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('No heartbeat received within 10 seconds')), 10000)
+      const timeout = setTimeout(() => reject(new Error(
+        'No MAVLink heartbeat within 10 seconds. ' +
+        'The serial port may have opened, but this link is not speaking MAVLink — common on multi-port USB devices ' +
+        'where one interface is MAVLink/telemetry and another is SLCAN/CAN, console, or a different function. ' +
+        'Disconnect, choose the other serial port in the list (or request/select the MAVLink interface), verify baud rate, ' +
+        'and ensure SERIALn_PROTOCOL is MAVLink on that port in the flight controller.',
+      )), 10000)
       const unsub = this.parser.onFrame((frame) => {
         if (frame.msgId === 0) {
           const hb = decodeHeartbeat(frame.payload)

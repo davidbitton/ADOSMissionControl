@@ -69,7 +69,31 @@ class SerialPortManagerImpl {
     if (!this.isSupported()) return [];
     try {
       const ports = await navigator.serial.getPorts();
-      return ports.map((port, i) => this.buildPortInfo(port, i));
+      const infos = ports.map((port, i) => this.buildPortInfo(port, i));
+      // Same VID:PID often appears twice (MAVLink + SLCAN/console). Disambiguate in the UI.
+      const keyCounts = new Map<string, number>();
+      for (const info of infos) {
+        const key =
+          info.vendorId !== undefined && info.productId !== undefined
+            ? `${info.vendorId}:${info.productId}`
+            : info.label;
+        keyCounts.set(key, (keyCounts.get(key) ?? 0) + 1);
+      }
+      const keyIndex = new Map<string, number>();
+      return infos.map((info) => {
+        const key =
+          info.vendorId !== undefined && info.productId !== undefined
+            ? `${info.vendorId}:${info.productId}`
+            : info.label;
+        const total = keyCounts.get(key) ?? 1;
+        if (total <= 1) return info;
+        const n = (keyIndex.get(key) ?? 0) + 1;
+        keyIndex.set(key, n);
+        return {
+          ...info,
+          label: `${info.label} — interface ${n}/${total}`,
+        };
+      });
     } catch {
       return [];
     }
