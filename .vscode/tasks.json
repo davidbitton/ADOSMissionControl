@@ -1,0 +1,71 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "npm: build",
+      "type": "npm",
+      "script": "build",
+      "detail": "next build + postbuild (copy-standalone-assets: flatten server.js + static/public). Required before Electron can start the embedded Next server.",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": false,
+        "clear": false
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "npm: electron:compile",
+      "type": "npm",
+      "script": "electron:compile",
+      "detail": "tsc -p electron/tsconfig.json → dist-electron/",
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "desktop: prepare",
+      "detail": "Build Next standalone (incl. postbuild flatten) then compile Electron main. Run this before launching Electron if you skip the full desktop:dev script.",
+      "dependsOrder": "sequence",
+      "dependsOn": ["npm: build", "npm: electron:compile"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "group": "build"
+    },
+    {
+      "label": "npm: desktop:dev",
+      "type": "npm",
+      "script": "desktop:dev",
+      "detail": "Full pipeline: build → electron:compile → electron . (same as package.json desktop:dev).",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "group": "none"
+    },
+    {
+      "label": "npm: desktop:demo",
+      "type": "npm",
+      "script": "desktop:demo",
+      "detail": "Full pipeline with simulated drones: build → electron:compile → electron . --demo",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "group": "none"
+    }
+  ]
+}

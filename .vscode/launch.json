@@ -1,0 +1,66 @@
+{
+  // Desktop Electron launches require a successful `npm run build` first.
+  // That runs postbuild (scripts/copy-standalone-assets.mjs), which flattens
+  // Next standalone output so electron/server.ts finds .next/standalone/server.js
+  // (repos under ~/src/... otherwise nest as standalone/src/<project>/server.js).
+  //
+  // "Desktop: Dev" / "Desktop: Demo" enforce this via preLaunchTask "desktop: prepare",
+  // then start Electron only. Use "Desktop: Dev (npm script)" to run the entire
+  // package.json pipeline as one process if you prefer.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Desktop: Dev",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "runtimeArgs": ["."],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "preLaunchTask": "desktop: prepare",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Desktop: Demo",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "runtimeArgs": [".", "--demo"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "preLaunchTask": "desktop: prepare",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Desktop: Dev (npm script)",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "desktop:dev"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Desktop: Electron only (no rebuild)",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "runtimeArgs": ["."],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
+      "skipFiles": ["<node_internals>/**"],
+      "program": "${file}"
+    }
+  ]
+}
